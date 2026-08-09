@@ -1,0 +1,12 @@
+2026-01-01 opening
+    assets:bank        $100
+    assets:hand        $150
+    equity:opening
+
+2026-01-02 coffee
+    expenses:food       $5
+    assets:bank
+
+2026-01-02 coffee
+    assets:bank       $500
+    income:salary

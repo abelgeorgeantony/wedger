@@ -1,0 +1,16 @@
+# Skip the header row
+skip 1
+
+# Map the CSV columns to hledger fields
+fields date, description, amount
+
+# Assign defaults and conditional categorization
+currency $
+account1 assets:bank:checking
+
+# Categorize based on keywords in the description
+if WHOLE FOODS
+    account2 expenses:food
+
+if TRANSFER TO SAVINGS
+    account2 assets:bank:savings

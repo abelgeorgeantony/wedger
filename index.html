@@ -1,0 +1,2246 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>hledger WASM</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --ink: #1a2420;
+      --ink-soft: #4b5a54;
+      --paper: #f6f5f0;
+      --panel: #ffffff;
+      --rule: #d2cbb8;
+      --accent: #2f6b4f;
+      --accent-ink: #16332a;
+      --mono: ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, Consolas, monospace;
+      --sans: "Iowan Old Style", "Source Serif 4", Georgia, ui-serif, serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      height: 100%;
+    }
+
+    html.dark-mode {
+      filter: invert(1) hue-rotate(160deg);
+    }
+
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: var(--sans);
+      padding-top: calc(2.4vw + 1px);
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(360px, 1fr) minmax(240px, 320px);
+      gap: 1px;
+      background: var(--rule);
+      height: calc(100dvh - (2.4vw + 1px));
+    }
+
+    .pane {
+      background: var(--panel);
+      min-width: 0;
+      min-height: 0;
+    }
+
+    .pane-right {
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+      overflow-y: auto;
+    }
+
+    .pane-left {
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+      min-height: 0;
+    }
+
+    h2 {
+      margin: 0 0 8px;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--ink-soft);
+      flex: none;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+      margin: 0 0 16px;
+    }
+
+    .field-row {
+      display: grid;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .field-label {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--ink-soft);
+    }
+
+    input[type="text"],
+    input[type="date"],
+    textarea,
+    input[type="file"],
+    select {
+      font-family: var(--mono);
+      font-size: 12.5px;
+      line-height: 1.5;
+      width: 100%;
+      border: 1px solid var(--rule);
+      border-radius: 4px;
+      background: var(--paper);
+      color: inherit;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    input[type="text"]:hover,
+    input[type="date"]:hover,
+    textarea:hover,
+    input[type="file"]:hover,
+    select:hover {
+      border-color: var(--accent);
+      box-shadow: inset 0 0 0 1px var(--accent);
+    }
+
+    input[type="text"]:disabled,
+    textarea:disabled,
+    button:disabled {
+      background: var(--rule);
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    input[type="text"],
+    input[type="date"],
+    select {
+      padding: 8px 10px;
+    }
+
+    input[type="file"] {
+      padding: 5px;
+      background: var(--panel);
+      cursor: pointer;
+    }
+
+    input[type="file"]::file-selector-button {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      border: 1px solid var(--rule);
+      border-radius: 4px;
+      background: var(--paper);
+      color: var(--ink);
+      padding: 4px 8px;
+      margin-right: 10px;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+
+    input[type="file"]::file-selector-button:hover {
+      background: var(--rule);
+    }
+
+    textarea {
+      resize: none;
+      overflow-y: auto;
+      padding: 12px;
+    }
+
+    /* --- Status Banner --- */
+    .status-banner {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      z-index: 1000;
+      border-radius: 0;
+      border-top: none;
+      border-left: none;
+      border-right: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 0.6vw 1vw;
+      font-family: var(--mono);
+      font-size: auto;
+      font-weight: 500;
+      border-bottom: 1px solid var(--rule);
+      background: var(--paper);
+      color: var(--ink);
+      transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+      flex: none;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+
+    #status-text {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: calc(100vw - 80px);
+    }
+
+    .status-banner[data-state="ok"] {
+      background: #edf7f2;
+      border-color: #a8d5ba;
+      color: var(--accent-ink);
+    }
+
+    .status-banner[data-state="error"] {
+      background: #fdf2f2;
+      border-color: #f5c2c2;
+      color: #900c0c;
+    }
+
+    .status-banner[data-state="loading"] {
+      background: var(--paper);
+      border-color: var(--rule);
+      color: var(--ink-soft);
+    }
+
+    .status-banner[data-state="info"] {
+      background: var(--paper);
+      border-color: var(--rule);
+      color: var(--ink-soft);
+    }
+
+    /* --- View bar & Top Controls --- */
+
+    .view-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex: none;
+      margin-bottom: 16px;
+      gap: 12px;
+    }
+
+    #file-manager {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex: 1;
+      max-width: 50%;
+    }
+
+    #file-selector {
+      width: fit-content;
+    }
+
+    .view-bar-right {
+      display: flex;
+      gap: 8px;
+    }
+
+    #input-view,
+    #output-view {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    #journal-panel,
+    #gui-panel {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      gap: 10px;
+    }
+
+    #journal-panel {
+      flex-direction: column;
+    }
+
+    #gui-panel,
+    #gui-output-panel {
+      flex-direction: column;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: transparent transparent;
+      gap: 10px;
+      padding-top: 2px;
+    }
+
+    #gui-panel:hover,
+    #gui-output-panel:hover {
+      scrollbar-color: color-mix(in srgb, var(--rule) 70%, transparent) transparent;
+    }
+
+    #gui-panel::-webkit-scrollbar,
+    #gui-output-panel::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    #gui-panel::-webkit-scrollbar-track,
+    #gui-output-panel::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    #gui-panel::-webkit-scrollbar-thumb,
+    #gui-output-panel::-webkit-scrollbar-thumb {
+      background: transparent;
+      border-radius: 999px;
+    }
+
+    #gui-panel:hover::-webkit-scrollbar-thumb,
+    #gui-output-panel:hover::-webkit-scrollbar-thumb {
+      background: var(--rule);
+    }
+
+    #journal-panel textarea {
+      flex: 1;
+      min-height: 0;
+    }
+
+    #output {
+      flex: 1;
+      min-height: 0;
+      background: var(--paper);
+      color: var(--ink);
+      border: 1px solid var(--accent);
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.03);
+    }
+
+    .toggle-row {
+      display: flex;
+      gap: 18px;
+      margin: 4px 0 18px;
+    }
+
+    .toggle {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--ink-soft);
+    }
+
+    .report-group {
+      margin-bottom: 14px;
+    }
+
+    .report-group-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--ink-soft);
+      margin-bottom: 6px;
+    }
+
+    .report-group .buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    button {
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid var(--accent-ink);
+      border-radius: 4px;
+      background: var(--accent);
+      color: #fff;
+      cursor: pointer;
+      padding: 7px 12px;
+      min-height: 34px;
+      width: fit-content;
+    }
+
+    button.secondary {
+      background: var(--panel);
+      color: var(--ink);
+      border-color: var(--rule);
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.4;
+    }
+
+    button:focus-visible,
+    input:focus-visible,
+    textarea:focus-visible,
+    select:focus-visible {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: inset 0 0 0 1px var(--accent), 0 0 0 2px color-mix(in srgb, var(--accent) 22%, transparent);
+    }
+
+    /* --- Modal Dialogs --- */
+    .modal {
+      border: 1px solid var(--rule);
+      border-radius: 6px;
+      background: var(--panel);
+      color: var(--ink);
+      padding: 24px;
+      width: 90%;
+      max-width: 500px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    .modal-large {
+      width: 95%;
+      max-width: 1000px;
+      height: 90dvh;
+      max-height: 800px;
+    }
+
+    .modal-large[open] {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal::backdrop {
+      background: rgba(26, 36, 32, 0.4);
+      backdrop-filter: blur(2px);
+    }
+
+    .modal h2 {
+      font-size: 14px;
+      margin-bottom: 20px;
+      color: var(--ink);
+    }
+
+    .split-pane {
+      display: flex;
+      gap: 20px;
+      flex: 1;
+      min-height: 0;
+      margin-bottom: auto;
+    }
+
+    .csv-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .csv-col textarea {
+      flex: 1;
+      min-height: 100px;
+    }
+
+    /* --- Toggle Switch --- */
+    .switch-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .switch-label {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--ink-soft);
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 36px;
+      height: 20px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: background-color 0.2s ease;
+      border-radius: 20px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 16px;
+      left: 2px;
+      bottom: 2px;
+      background-color: white;
+      transition: transform 0.2s ease;
+      border-radius: 50%;
+    }
+
+    .switch input:checked+.slider {
+      background-color: var(--accent);
+    }
+
+    .switch input:checked+.slider:before {
+      transform: translateX(16px);
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    /* --- Enhanced GUI Transaction Cards --- */
+    .txn-card {
+      background: var(--panel, #ffffff);
+      border: 1px solid var(--rule);
+      border-radius: 10px;
+      display: flex;
+      flex-direction: row;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+      margin: 0 8px 8px 0;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .txn-card:hover {
+      border-color: var(--accent);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      transform: translateY(-1px);
+    }
+
+    .txn-content {
+      flex: 1;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .txn-actions-container {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 12px;
+      background: var(--paper);
+      border-left: 1px solid var(--rule);
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .txn-actions-container button {
+      padding: 4px 10px;
+      min-height: 28px;
+      font-size: 11px;
+      width: 100%;
+    }
+
+    .txn-main {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .txn-info {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .txn-title-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .txn-desc {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--ink);
+      word-break: break-word;
+      overflow-wrap: break-word;
+      white-space: normal;
+    }
+
+    .txn-date {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--ink-soft);
+      flex-shrink: 0;
+    }
+
+    .posting-list {
+      border-top: 1px solid var(--rule);
+      padding-top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .posting-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      font-family: var(--mono);
+      font-size: 15px;
+      gap: 8px;
+    }
+
+    .posting-item.credit {
+      color: #059669;
+    }
+
+    .posting-item.debit {
+      color: #dc2626;
+    }
+
+    .posting-item.neutral {
+      color: var(--ink);
+    }
+
+    .posting-account {
+      color: inherit;
+      font-weight: 500;
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      word-break: break-word;
+      overflow-wrap: break-word;
+      white-space: normal;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .posting-account::before {
+      content: "•";
+      color: var(--ink-soft);
+      opacity: 0.5;
+      flex-shrink: 0;
+    }
+
+    .posting-amount {
+      font-weight: 600;
+      color: inherit;
+      flex-shrink: 0;
+    }
+
+
+
+    .hamburger-btn {
+      display: none;
+      /* Hidden by default on desktop */
+      background: none;
+      border: none;
+      color: var(--ink);
+      cursor: pointer;
+      padding: 4px;
+      min-height: auto;
+    }
+
+    .hamburger-btn:focus-visible {
+      outline: none;
+      box-shadow: none;
+    }
+
+    .mobile-close-container {
+      display: none;
+      /* Hidden by default on desktop */
+    }
+
+
+    /* --- Universal Table UI (Adapter Output) --- */
+    .table-container {
+      overflow-x: auto;
+      background: var(--panel);
+      border: 1px solid var(--rule);
+      border-radius: 6px;
+      margin-bottom: 10px;
+    }
+
+    .table-ui {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--mono);
+      font-size: 12px;
+      text-align: left;
+    }
+
+    .table-ui th {
+      padding: 8px 12px;
+      font-weight: 600;
+      color: var(--ink-soft);
+      background: var(--paper);
+      border-bottom: 2px solid var(--rule);
+    }
+
+    .table-ui td {
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--rule);
+    }
+
+    .table-ui tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* --- Universal Tree UI (Adapter Output) --- */
+    .tree-container {
+      font-family: var(--mono);
+      font-size: 13px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      background: var(--panel);
+      padding: 12px;
+      border: 1px solid var(--rule);
+      border-radius: 6px;
+    }
+
+    .tree-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .tree-row:hover {
+      background: var(--paper);
+    }
+
+    .tree-leaf {
+      padding-left: 20px;
+      cursor: default;
+    }
+
+    .tree-name {
+      font-weight: 500;
+      color: var(--ink);
+    }
+
+    .tree-amount {
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    .tree-children {
+      margin-left: 12px;
+      padding-left: 8px;
+      border-left: 1px solid var(--rule);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    summary.tree-row {
+      list-style-type: '▶ ';
+    }
+
+    details[open]>summary.tree-row {
+      list-style-type: '▼ ';
+    }
+
+    @media (max-width: 780px) {
+      main {
+        grid-template-columns: 1fr;
+        grid-template-rows: 1fr;
+        height: calc(100dvh - (2.4vw + 1px));
+        min-height: 0;
+      }
+
+      .pane-left {
+        height: 100%;
+      }
+
+      .pane-right {
+        display: none;
+        height: 100%;
+      }
+
+      .hamburger-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      #file-selector {
+        width: 60%;
+      }
+
+      .mobile-close-container {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 16px;
+      }
+
+      main.show-right-pane .pane-left {
+        display: none;
+      }
+
+      main.show-right-pane .pane-right {
+        display: flex;
+      }
+
+      .split-pane {
+        flex-direction: column;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        transition: none !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="status" class="status-banner" data-state="loading">
+    <span id="status-text">Loading WASM module...</span>
+  </div>
+  <main>
+    <section class="pane pane-left">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <div class="switch-container">
+          <span class="switch-label">GUI</span>
+          <label class="switch">
+            <input type="checkbox" id="gui-toggle" />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div style="display: flex; flex-direction: row;">
+          <div id="google-auth-container"></div>
+          <!-- Authenticated User Profile Container (Hidden by default) -->
+          <div id="user-profile-container" style="display: none; align-items: center; gap: 8px;">
+            <img id="user-avatar" src="" alt="Profile"
+              style="width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--rule);" />
+            <button type="button" id="logout-btn" class="secondary"
+              style="padding: 4px 8px; min-height: auto; font-size: 11px;">Logout</button>
+          </div>
+
+          <button type="button" id="settings-btn" class="secondary"
+            style="display: flex; align-items: center; gap: 6px; padding: 4px 8px; min-height: auto; border: none;"
+            aria-label="Settings">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path
+                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+              </path>
+            </svg>
+          </button>
+          <button type="button" id="mobile-menu-btn" class="hamburger-btn" aria-label="Open Menu">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="view-bar">
+        <div id="file-manager">
+          <select id="file-selector">
+            <option value="">-- No file selected --</option>
+          </select>
+          <button type="button" id="new-file-btn" class="secondary"
+            style="padding: 6px 10px; min-height: auto;">New</button>
+        </div>
+        <div class="view-bar-right">
+          <button type="button" id="addtxnbtn" style="flex: 1;" disabled>Add</button>
+          <button id="view-toggle" class="secondary" type="button">Output</button>
+        </div>
+      </div>
+
+      <div id="input-view">
+        <div id="journal-panel">
+          <textarea id="journal-text" spellcheck="false" disabled></textarea>
+        </div>
+        <div id="gui-panel" style="display: none;">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <div id="output-view" style="display: none;">
+        <textarea id="output" readonly spellcheck="false">Waiting for a journal to load.</textarea>
+        <div id="gui-output-panel" style="display: none; flex: 1;">
+          <!-- Populated by JS Adapters -->
+        </div>
+      </div>
+    </section>
+
+    <section class="pane pane-right">
+      <div style="display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 16px;">
+        <div class="mobile-close-container" style="margin-bottom: 0;">
+          <button type="button" id="mobile-close-btn" class="hamburger-btn" aria-label="Close Menu">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+        <button type="button" id="importcsvbtn" class="secondary" style="flex: 1;" disabled>Import from CSV</button>
+      </div>
+
+      <div class="field">
+        <label class="field-label" for="query-input">Query filter (optional)</label>
+        <input type="text" id="query-input" placeholder="e.g. acct:assets depth:2" />
+      </div>
+
+      <div class="toggle-row">
+        <label class="toggle"><input type="checkbox" id="forecast-toggle" /> Forecast</label>
+        <label class="toggle"><input type="checkbox" id="check-strict-toggle" /> Strict check</label>
+      </div>
+
+      <div id="report-groups"></div>
+
+      <button id="clear" class="secondary" style="margin-top: 4px;">Clear output</button>
+    </section>
+
+    <!-- Modal for Creating New File -->
+    <dialog id="new-file-modal" class="modal">
+      <h2>Create New Journal</h2>
+      <div class="field">
+        <label class="field-label" for="new-filename">Filename</label>
+        <input type="text" id="new-filename" placeholder="e.g. 2026.journal" />
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="secondary" id="cancel-new-file-btn">Cancel</button>
+        <button type="button" id="create-file-btn">Create</button>
+      </div>
+    </dialog>
+
+    <!-- Modal Form for CSV Import -->
+    <dialog id="csv-import-modal" class="modal modal-large">
+      <h2>Import from CSV</h2>
+      <div id="csv-modal-status" class="status-banner" data-state="info" style="margin-bottom: 16px;">
+        <span class="status-dot"></span>
+        <span id="csv-modal-status-text">Provide CSV data and rules</span>
+      </div>
+
+      <div class="split-pane">
+        <div class="csv-col">
+          <label class="field-label" for="csv-file-input">1. CSV Data</label>
+          <input type="file" id="csv-file-input" accept=".csv,.txt" />
+          <textarea id="csv-import-text" spellcheck="false"
+            placeholder='e.g.&#10;"Date","Notes","Amount"&#10;"2026/02/22","WHOLE FOODS","50.00"'></textarea>
+        </div>
+        <div class="csv-col">
+          <label class="field-label" for="rules-file-input">2. CSV Rules</label>
+          <input type="file" id="rules-file-input" accept=".rules,.txt" />
+          <textarea id="csv-import-rules" spellcheck="false"
+            placeholder="e.g. skip 1&#10;fields date, description, amount"></textarea>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="secondary" id="cancel-csv-btn">Cancel</button>
+        <button type="button" id="append-csv-btn">Append to Journal</button>
+        <button type="button" id="replace-csv-btn">Import as New File Data</button>
+      </div>
+    </dialog>
+
+    <!-- Modal Form for Adding/Editing Transaction -->
+    <dialog id="txn-modal" class="modal">
+      <form method="dialog" id="txn-form">
+        <div id="modal-status" class="status-banner" data-state="info" style="margin-bottom: 16px;">
+          <span class="status-dot"></span>
+          <span id="modal-status-text">Fill in transaction details</span>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <h2 id="modal-title" style="margin: 0;">Add New Transaction</h2>
+          <div class="switch-container">
+            <span class="switch-label">Raw Text</span>
+            <label class="switch">
+              <input type="checkbox" id="raw-toggle" />
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div id="visual-txn-ui">
+          <div class="field-row" style="grid-template-columns: 1fr 2fr;">
+            <div class="field" style="margin-bottom: 0;">
+              <label class="field-label" for="txn-date">Date</label>
+              <input type="date" id="txn-date" required />
+            </div>
+            <div class="field" style="margin-bottom: 0;">
+              <label class="field-label" for="txn-desc">Description</label>
+              <input type="text" id="txn-desc" placeholder="e.g. Groceries" required />
+            </div>
+          </div>
+
+          <div class="field" style="margin-bottom: 0;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <label class="field-label" style="margin: 0;">Postings</label>
+              <button type="button" class="secondary" id="add-posting-btn"
+                style="padding: 2px 8px; min-height: 24px; font-size: 11px;">+ Add Posting</button>
+            </div>
+            <div id="postings-container"
+              style="display: flex; flex-direction: column; gap: 8px; max-height: 220px; overflow-y: auto; padding-right: 4px;">
+            </div>
+          </div>
+        </div>
+
+        <div id="raw-txn-container" class="field" style="display: none; margin-bottom: 0;">
+          <label class="field-label" for="raw-txn-input">Raw Transaction Text</label>
+          <textarea id="raw-txn-input" readonly rows="8" spellcheck="false"
+            style="font-family: var(--mono); width: 100%;"></textarea>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="secondary" id="cancel-txn-btn">Cancel</button>
+          <button type="button" id="submit-txn-btn">Add Transaction</button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- Modal for Full Status Message -->
+    <dialog id="status-modal" class="modal">
+      <h2>Full Message</h2>
+      <p id="status-modal-text"
+        style="font-family: var(--mono); font-size: 12px; white-space: pre-wrap; word-break: break-word;"></p>
+      <div class="modal-actions">
+        <button type="button" class="secondary" id="close-status-modal">Close</button>
+      </div>
+    </dialog>
+
+    <!-- Modal for Settings -->
+    <dialog id="settings-modal" class="modal">
+      <h2>Settings</h2>
+
+      <div class="field-row" style="margin-bottom: 16px;">
+        <div class="switch-container">
+          <span class="switch-label">Dark Mode</span>
+          <label class="switch">
+            <input type="checkbox" id="setting-dark-mode" />
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="field-row" style="margin-bottom: 16px;">
+        <div class="switch-container">
+          <span class="switch-label">Compact Typeface</span>
+          <label class="switch">
+            <input type="checkbox" id="setting-compact-mode" />
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="field-row" style="margin-bottom: 24px;">
+        <div class="switch-container">
+          <span class="switch-label">Hide Status Banner</span>
+          <label class="switch">
+            <input type="checkbox" id="setting-hide-banner" />
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="secondary" id="close-settings-modal">Close</button>
+      </div>
+    </dialog>
+
+  </main>
+
+  <script type="module">
+    const isLocalDev =
+      window.location.protocol === "file:" ||
+      window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1";
+    const libBaseUrl = isLocalDev
+      ? "http://localhost:5001/"
+      : "https://cdn.jsdelivr.net/gh/abelgeorgeantony/hledger-lib-wasm@main/";
+
+    const { HledgerSession } = await import(`${libBaseUrl}js/hledger.js`);
+    import { AppStorage } from "./index-storage.js";
+
+
+    function initGoogleAuth() {
+      // At this point, the Google library guarantees 'google' is available
+      google.accounts.id.initialize({
+        client_id: "408118209574-3iuogfe62siutig6ebiee8nq1c106lgf.apps.googleusercontent.com",
+        callback: handleCredentialResponse
+      });
+
+      // Render the visual button with Google's default styling
+      google.accounts.id.renderButton(
+        document.getElementById("google-auth-container"),
+        { theme: "outline", size: "medium", type: "standard" }
+      );
+
+      // Prompt the user for a one-tap login if they've authorized previously
+      google.accounts.id.prompt();
+    };
+
+
+    // --- State Manager --------------------------------------------------
+    const state = {
+      view: "input",   // "input" | "output"
+      isGui: true,
+      currentFilename: null,
+      user: null
+    };
+
+    let editingTxnId = null;
+
+    // --- Element Selectors ----------------------------------------------
+    const fileSelector = document.getElementById("file-selector");
+    const newFileBtn = document.getElementById("new-file-btn");
+    const newFileModal = document.getElementById("new-file-modal");
+    const newFilenameInput = document.getElementById("new-filename");
+    const cancelNewFileBtn = document.getElementById("cancel-new-file-btn");
+    const createFileBtn = document.getElementById("create-file-btn");
+
+    const journalText = document.querySelector("#journal-text");
+    const journalPanel = document.querySelector("#journal-panel");
+    const guiPanel = document.querySelector("#gui-panel");
+    const queryInput = document.querySelector("#query-input");
+    const forecastToggle = document.querySelector("#forecast-toggle");
+    const checkStrictToggle = document.querySelector("#check-strict-toggle");
+    const output = document.querySelector("#output");
+    const guiOutputPanel = document.querySelector("#gui-output-panel");
+    const statusBanner = document.querySelector("#status");
+    const statusText = document.querySelector("#status-text");
+    const statusModal = document.querySelector("#status-modal");
+    const statusModalText = document.querySelector("#status-modal-text");
+    const closeStatusModalBtn = document.querySelector("#close-status-modal");
+    const reportGroupsContainer = document.querySelector("#report-groups");
+    const clearButton = document.querySelector("#clear");
+    const viewToggleButton = document.querySelector("#view-toggle");
+    const inputView = document.querySelector("#input-view");
+    const outputView = document.querySelector("#output-view");
+    const guiToggle = document.getElementById("gui-toggle");
+    const mobileMenuBtn = document.getElementById("mobile-menu-btn");
+    const mobileCloseBtn = document.getElementById("mobile-close-btn");
+    const mainContent = document.querySelector("main");
+
+    const googleAuthContainer = document.getElementById("google-auth-container");
+    const userProfileContainer = document.getElementById("user-profile-container");
+    const userAvatar = document.getElementById("user-avatar");
+    const logoutBtn = document.getElementById("logout-btn");
+
+    const txnModal = document.getElementById("txn-modal");
+    const modalTitle = document.getElementById("modal-title");
+    const modalStatusBanner = document.getElementById("modal-status");
+    const rawToggle = document.getElementById("raw-toggle");
+    const visualTxnUi = document.getElementById("visual-txn-ui");
+    const rawTxnContainer = document.getElementById("raw-txn-container");
+    const rawTxnInput = document.getElementById("raw-txn-input");
+    const txnDate = document.getElementById("txn-date");
+    const txnDesc = document.getElementById("txn-desc");
+    const postingsContainer = document.getElementById("postings-container");
+    const addPostingBtn = document.getElementById("add-posting-btn");
+    const cancelTxnBtn = document.getElementById("cancel-txn-btn");
+    const submitTxnBtn = document.getElementById("submit-txn-btn");
+
+    const csvModal = document.getElementById("csv-import-modal");
+    const csvImportBtn = document.getElementById("importcsvbtn");
+    const csvCancelBtn = document.getElementById("cancel-csv-btn");
+    const csvAppendBtn = document.getElementById("append-csv-btn");
+    const csvReplaceBtn = document.getElementById("replace-csv-btn");
+
+    const settingsBtn = document.getElementById("settings-btn");
+    const settingsModal = document.getElementById("settings-modal");
+    const closeSettingsModal = document.getElementById("close-settings-modal");
+    const settingDarkMode = document.getElementById("setting-dark-mode");
+    const settingCompactMode = document.getElementById("setting-compact-mode");
+    const settingHideBanner = document.getElementById("setting-hide-banner");
+
+
+
+
+
+    function parseJwt(token) {
+      try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function (c) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        return JSON.parse(jsonPayload);
+      } catch (e) {
+        return null;
+      }
+    }
+    window.handleCredentialResponse = function (response) {
+      const decodedToken = parseJwt(response.credential);
+      if (!decodedToken) return;
+
+      // Update global state
+      state.user = {
+        name: decodedToken.name,
+        email: decodedToken.email,
+        picture: decodedToken.picture
+      };
+
+      // Update the UI
+      googleAuthContainer.style.display = "none";
+      userProfileContainer.style.display = "flex";
+      userAvatar.src = state.user.picture;
+      userAvatar.title = state.user.name;
+
+      setStatus(`Welcome, ${state.user.name}!`, "ok");
+
+      // (Optional) Here you can trigger logic to load user-specific files 
+      // from AppStorage based on their email.
+    }
+    logoutBtn.addEventListener("click", () => {
+      state.user = null;
+
+      // Disable automatic sign-in loop for this session
+      google.accounts.id.disableAutoSelect();
+
+      // Revert UI to logged-out state
+      userProfileContainer.style.display = "none";
+      userAvatar.src = "";
+      googleAuthContainer.style.display = "block";
+
+      setStatus("Logged out successfully.", "info");
+
+      // (Optional) Clear the current journal and lock down the UI 
+      // until the user signs back in.
+    });
+
+
+
+    // --- Adapters & UI Renderers (Strategy + Adapter Pattern) ---------
+    function escapeHtml(str) {
+      return String(str || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    function adaptGenericList(data) {
+      if (typeof data === 'string') return [];
+      if (data && typeof data.data === 'string') return [];
+      if (Array.isArray(data)) return data;
+      if (data && Array.isArray(data.data)) return data.data;
+      return [];
+    }
+
+    function adaptGenericListToTable(rawData) {
+      const list = adaptGenericList(rawData);
+      if (list.length === 0) return { type: "table", columns: ["Result"], rows: [["No data found or returned plain text."]] };
+
+      if (typeof list[0] !== 'object' || list[0] === null) {
+        return { type: "table", columns: ["Item"], rows: list.map(item => [String(item)]) };
+      }
+
+      const colSet = new Set();
+      list.forEach(item => Object.keys(item).forEach(k => colSet.add(k)));
+      const columns = Array.from(colSet);
+
+      const rows = list.map(item => columns.map(col => {
+        const val = item[col];
+        if (typeof val === 'object') return JSON.stringify(val);
+        return String(val !== undefined && val !== null ? val : "");
+      }));
+      return { type: "table", columns, rows };
+    }
+
+    function buildTreeFromFlatList(rawData) {
+      const flatList = adaptGenericList(rawData);
+      const rootNodes = [];
+
+      flatList.forEach(item => {
+        const acctName = item.account || item.name || item.a || "";
+        if (!acctName) return;
+
+        const amountStr = item.amount || item.balance || item.total || item.b || "";
+        const parts = String(acctName).split(":");
+        let currentLevel = rootNodes;
+
+        parts.forEach((part, index) => {
+          let node = currentLevel.find(n => n.name === part);
+          if (!node) {
+            node = { name: part, amount: (index === parts.length - 1) ? amountStr : "", children: [] };
+            currentLevel.push(node);
+          } else if (index === parts.length - 1 && amountStr) {
+            node.amount = amountStr;
+          }
+          currentLevel = node.children;
+        });
+      });
+
+      function rollUpTotals(node) {
+        if (!node.children || node.children.length === 0) {
+          const match = (node.amount || "").match(/^([^\d-]*)([-0-9.]+)/);
+          return { symbol: match ? match[1] : "", val: match ? parseFloat(match[2]) : 0 };
+        }
+
+        let totalVal = 0;
+        let symbol = "";
+
+        node.children.forEach(child => {
+          const childTotal = rollUpTotals(child);
+          totalVal += childTotal.val;
+          if (!symbol) symbol = childTotal.symbol;
+        });
+
+        if (totalVal !== 0) {
+          const formattedVal = Number.isInteger(totalVal) ? totalVal : totalVal.toFixed(2);
+          node.amount = `${symbol}${formattedVal}`;
+        }
+        return { symbol, val: totalVal };
+      }
+
+      rootNodes.forEach(rollUpTotals);
+      return rootNodes;
+    }
+
+    function renderUniversalTable(tableData) {
+      const container = document.createElement("div");
+      container.className = "table-container";
+
+      const table = document.createElement("table");
+      table.className = "table-ui";
+
+      const thead = document.createElement("thead");
+      thead.innerHTML = `<tr>${tableData.columns.map(c => `<th>${escapeHtml(c)}</th>`).join('')}</tr>`;
+      table.appendChild(thead);
+
+      const tbody = document.createElement("tbody");
+      tbody.innerHTML = tableData.rows.map(row =>
+        `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join('')}</tr>`
+      ).join('');
+      table.appendChild(tbody);
+
+      container.appendChild(table);
+      return container;
+    }
+
+    function renderTree(nodeList) {
+      const container = document.createElement("div");
+      container.className = "tree-container";
+
+      if (nodeList.length === 0) {
+        container.innerHTML = `<div style="padding: 12px; color: var(--ink-soft); font-family: var(--mono); font-size: 12px;">No hierarchical data found. Switch to raw view if this is unexpected.</div>`;
+        return container;
+      }
+
+      nodeList.forEach(node => container.appendChild(renderTreeNode(node)));
+      return container;
+    }
+
+    function renderTreeNode(node) {
+      if (node.children && node.children.length > 0) {
+        const details = document.createElement("details");
+        details.className = "tree-branch";
+        details.open = true;
+
+        const summary = document.createElement("summary");
+        summary.className = "tree-row";
+        summary.innerHTML = `<span class="tree-name">${escapeHtml(node.name)}</span><span class="tree-amount">${escapeHtml(node.amount)}</span>`;
+
+        const childrenGroup = document.createElement("div");
+        childrenGroup.className = "tree-children";
+        node.children.forEach(child => childrenGroup.appendChild(renderTreeNode(child)));
+
+        details.appendChild(summary);
+        details.appendChild(childrenGroup);
+        return details;
+      }
+
+      const leafRow = document.createElement("div");
+      leafRow.className = "tree-row tree-leaf";
+      leafRow.innerHTML = `<span class="tree-name">${escapeHtml(node.name)}</span><span class="tree-amount">${escapeHtml(node.amount)}</span>`;
+      return leafRow;
+    }
+
+    function renderText(data) {
+      const pre = document.createElement("pre");
+      pre.style.cssText = "font-family: var(--mono); font-size: 12px; padding: 12px; background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; overflow-x: auto; margin: 0;";
+
+      let text = "";
+      if (typeof data === 'string') text = data;
+      else if (data && typeof data.data === 'string') text = data.data;
+      else text = JSON.stringify(data, null, 2);
+
+      pre.textContent = text;
+      return pre;
+    }
+
+    function smartRender(data) {
+      const list = adaptGenericList(data);
+      if (list.length === 0) return renderText(data);
+
+      const first = list[0];
+      if (typeof first === 'object' && first !== null && (first.account !== undefined || first.name !== undefined || first.a !== undefined)) {
+        const hasHierarchy = list.some(item => String(item.account || item.name || item.a || "").includes(":"));
+        if (hasHierarchy) return renderTree(buildTreeFromFlatList(data));
+      }
+      return renderUniversalTable(adaptGenericListToTable(data));
+    }
+
+    function adaptBalanceReport(rawData) {
+      const payload = rawData.data || rawData;
+      if (!payload || !Array.isArray(payload) || !Array.isArray(payload[0])) return [];
+      const rows = payload[0];
+      return rows.map(row => {
+        const fullName = row[0];
+        const amounts = row[3] || [];
+        const formattedAmount = amounts.map(amt => `${amt.acommodity || ""}${amt.aquantity?.floatingPoint || 0}`).join(", ");
+        return { account: fullName, amount: formattedAmount };
+      });
+    }
+
+    function formatHledgerAmount(amountArray) {
+      if (!amountArray || !Array.isArray(amountArray)) return "";
+      return amountArray.map(amt => `${amt.acommodity || ""}${amt.aquantity?.floatingPoint || 0}`).join(", ");
+    }
+
+    function adaptRegisterReport(rawData) {
+      const payload = rawData.data || rawData;
+      if (!payload || !Array.isArray(payload)) return [];
+      let lastDate = "";
+      let lastDesc = "";
+      return payload.map(row => {
+        if (row[0] !== null) lastDate = row[0];
+        if (row[2] !== null) lastDesc = row[2];
+        const posting = row[3] || {};
+        return {
+          "Date": lastDate,
+          "Description": lastDesc,
+          "Account": posting.paccount || "",
+          "Amount": formatHledgerAmount(posting.pamount),
+          "Balance": formatHledgerAmount(row[4])
+        };
+      });
+    }
+
+    function adaptBalanceSheetReport(rawData) {
+      const payload = rawData.data || rawData;
+      if (!payload || !payload.cbrSubreports) return [];
+      const flatList = [];
+      payload.cbrSubreports.forEach(subreport => {
+        const sectionData = subreport[1];
+        if (sectionData && sectionData.prRows) {
+          sectionData.prRows.forEach(row => flatList.push({ account: row.prrName, amount: formatHledgerAmount(row.prrTotal) }));
+        }
+      });
+      return flatList;
+    }
+
+    function adaptPeriodicReport(rawData) {
+      const payload = rawData.data || rawData;
+      if (!payload || !payload.prRows || payload.prRows.length === 0) return null;
+      const headers = ["Account"];
+      if (payload.prDates && payload.prDates.length > 0) {
+        payload.prDates.forEach(datePair => {
+          const startDate = datePair[0]?.contents || "";
+          const endDate = datePair[1]?.contents || startDate;
+          headers.push(startDate === endDate ? startDate : `${startDate} to ${endDate}`);
+        });
+      }
+      headers.push("Total");
+      const rows = [];
+      payload.prRows.forEach(prRow => {
+        const rowData = [prRow.prrName || ""];
+        if (Array.isArray(prRow.prrAmounts)) {
+          prRow.prrAmounts.forEach(amtList => rowData.push(Array.isArray(amtList) && amtList.length > 0 ? formatHledgerAmount(amtList[0]) : ""));
+        }
+        rowData.push(formatHledgerAmount(prRow.prrTotal));
+        rows.push(rowData);
+      });
+      return { type: "table", columns: headers, rows };
+    }
+
+    const reportStrategies = {
+      balance: (data) => renderTree(buildTreeFromFlatList(adaptBalanceReport(data))),
+      register: (data) => renderUniversalTable(adaptGenericListToTable(adaptRegisterReport(data))),
+      balancesheet: (data) => {
+        const flat = adaptBalanceSheetReport(data);
+        return flat.length === 0 ? renderText("No data found.") : renderTree(buildTreeFromFlatList(flat));
+      },
+      incomestatement: (data) => {
+        const flat = adaptBalanceSheetReport(data);
+        return flat.length === 0 ? renderText("No data found.") : renderTree(buildTreeFromFlatList(flat));
+      },
+      cashflow: (data) => {
+        const flat = adaptBalanceSheetReport(data);
+        return flat.length === 0 ? renderText("No data found.") : renderTree(buildTreeFromFlatList(flat));
+      },
+      budget: (data) => {
+        const tableData = adaptPeriodicReport(data);
+        return !tableData ? renderText("No budget data found.") : renderUniversalTable(tableData);
+      },
+      accounts: (data) => renderUniversalTable(adaptGenericListToTable(data)),
+      payees: (data) => renderUniversalTable(adaptGenericListToTable(data)),
+      printtext: (data) => renderText(data),
+      print: (data) => renderText(data),
+      check: (data) => renderText(data),
+    };
+
+    // --- File Storage Sync & Management ---------------------------------
+
+    function syncFilesystem() {
+      const files = AppStorage.listFiles();
+      files.forEach(f => {
+        const content = AppStorage.getFile(f) || "";
+        session.fs.setFile(f, content);
+      });
+      return files;
+    }
+
+    function updateFileSelector() {
+      const files = AppStorage.listFiles();
+      fileSelector.innerHTML = '<option value="">-- No file selected --</option>';
+      files.forEach(f => {
+        const opt = document.createElement("option");
+        opt.value = f;
+        opt.textContent = f;
+        fileSelector.appendChild(opt);
+      });
+      if (state.currentFilename) fileSelector.value = state.currentFilename;
+    }
+
+    function enforceFileLockdown() {
+      const hasFile = !!state.currentFilename;
+      journalText.disabled = !hasFile;
+      document.getElementById("addtxnbtn").disabled = !hasFile;
+      document.getElementById("importcsvbtn").disabled = !hasFile;
+
+      if (!hasFile) {
+        journalText.value = "Please create or select a journal file to begin.";
+        guiPanel.innerHTML = '<span>Please create or select a journal file to begin.</span>';
+        output.value = "Waiting for a journal to load.";
+        setReportButtonsEnabled(false);
+      }
+    }
+
+    function saveCurrentFile() {
+      if (!state.currentFilename) return;
+      const content = journalText.value;
+      AppStorage.saveFile(state.currentFilename, content);
+      session.fs.setFile(state.currentFilename, content);
+    }
+
+    fileSelector.addEventListener("change", async (e) => {
+      const selected = e.target.value;
+      if (!selected) {
+        state.currentFilename = null;
+        enforceFileLockdown();
+        return;
+      }
+      state.currentFilename = selected;
+      const content = AppStorage.getFile(selected) || "";
+      journalText.value = content;
+      session.fs.setFile(selected, content);
+      enforceFileLockdown();
+      await reparse();
+    });
+
+    newFileBtn.addEventListener("click", () => {
+      newFilenameInput.value = "";
+      newFileModal.showModal();
+    });
+
+    cancelNewFileBtn.addEventListener("click", () => newFileModal.close());
+
+    createFileBtn.addEventListener("click", async () => {
+      let name = newFilenameInput.value.trim();
+      if (!name) return;
+      if (!name.endsWith(".journal")) name += ".journal";
+
+      if (AppStorage.getFile(name) !== null) {
+        alert("A file with this name already exists.");
+        return;
+      }
+
+      AppStorage.saveFile(name, "");
+      session.fs.setFile(name, "");
+      state.currentFilename = name;
+      updateFileSelector();
+
+      journalText.value = "";
+      enforceFileLockdown();
+      newFileModal.close();
+      await reparse();
+    });
+
+    // --- Global UI Behaviors --------------------------------------------
+
+    let currentStatusMessage = "";
+    let isOpenStatusModalAttached = false;
+
+    function setStatus(text, stateType = "info", banner = statusBanner) {
+      currentStatusMessage = text;
+      const textEl = banner.querySelector("#status-text");
+      if (textEl) textEl.textContent = text;
+      banner.dataset.state = stateType;
+
+      if (textEl) {
+        if (textEl.scrollWidth > textEl.clientWidth) {
+          banner.addEventListener("click", openStatusModal);
+          isOpenStatusModalAttached = true;
+        } else if (isOpenStatusModalAttached) {
+          banner.removeEventListener("click", openStatusModal);
+          isOpenStatusModalAttached = false;
+        }
+      }
+    }
+
+    function openStatusModal() {
+      statusModalText.textContent = currentStatusMessage;
+      statusModal.showModal();
+    }
+    closeStatusModalBtn.addEventListener("click", () => statusModal.close());
+
+    function syncUIState() {
+      inputView.style.display = state.view === "input" ? "flex" : "none";
+      outputView.style.display = state.view === "output" ? "flex" : "none";
+      viewToggleButton.textContent = state.view === "input" ? "Output" : "Input";
+
+      guiToggle.checked = state.isGui;
+
+      if (state.isGui) {
+        journalPanel.style.display = "none";
+        guiPanel.style.display = "flex";
+        output.style.display = "none";
+        guiOutputPanel.style.display = "flex";
+      } else {
+        guiPanel.style.display = "none";
+        journalPanel.style.display = "flex";
+        guiOutputPanel.style.display = "none";
+        output.style.display = "";
+      }
+      closeRightMenuOnMobile();
+    }
+
+    async function syncJournalTextToState() {
+      const printResult = await session.printText("");
+      let newText = "";
+      if (printResult && typeof printResult.data === 'string') newText = printResult.data;
+      else if (printResult) newText = String(printResult);
+
+      journalText.value = newText;
+      saveCurrentFile(); // Robust saving enforced here
+
+      syncUIState();
+      await reparse();
+    }
+
+    // --- GUI Input Journal Renderer -------------------------------------
+    async function renderGuiJournal() {
+      if (!session.isLoaded || !state.currentFilename) return;
+      guiPanel.innerHTML = '<div class="status-banner" data-state="loading" style="position: static; margin-top: 20px;"><span class="status-dot"></span><span>Loading GUI view...</span></div>';
+
+      try {
+        const result = await session.getJournalJSON();
+
+        if (!result.ok) {
+          guiPanel.innerHTML = `<div class="status-banner" data-state="error" style="position: static; margin-top: 20px;"><span class="status-dot"></span><span>${escapeHtml(result.error)}</span></div>`;
+          return;
+        }
+
+        if (!result.data || result.data.length === 0) {
+          guiPanel.innerHTML = '<div class="status-banner" data-state="info" style="position: static; margin-top: 20px;"><span class="status-dot"></span><span>No transactions found.</span></div>';
+          return;
+        }
+
+        guiPanel.innerHTML = "";
+        result.data.forEach(txn => guiPanel.appendChild(renderTransactionCard(txn)));
+      } catch (error) {
+        guiPanel.innerHTML = `<div class="status-banner" data-state="error" style="position: static; margin-top: 20px;"><span class="status-dot"></span><span>Failed to load GUI view</span></div>`;
+      }
+    }
+
+    function renderTransactionCard(txn) {
+      const card = document.createElement("div");
+      card.className = "txn-card";
+
+      const postingsHtml = txn.postings.map(p => {
+        let colorClass = 'neutral';
+        if (p.amount) colorClass = p.amount.includes('-') ? 'debit' : 'credit';
+        return `
+      <div class="posting-item ${colorClass}">
+        <span class="posting-account">${escapeHtml(p.account)}</span>
+        <span class="posting-amount">${escapeHtml(p.amount || '')}</span>
+      </div>`;
+      }).join("");
+
+      card.innerHTML = `
+    <div class="txn-content">
+      <div class="txn-main">
+        <div class="txn-info">
+          <div class="txn-title-row">
+            <span class="txn-desc">${escapeHtml(txn.description)}</span>
+            <span class="txn-date">${escapeHtml(txn.date)}</span>
+          </div>
+        </div>
+      </div>
+      <div class="posting-list">${postingsHtml}</div>
+    </div>
+    <div class="txn-actions-container">
+      <button class="secondary edit-btn" data-id="${txn.id}">Edit</button>
+      <button class="secondary delete-btn" data-id="${txn.id}" style="color: #900c0c; border-color: #f5c2c2; background: #fdf2f2;">Delete</button>
+    </div>`;
+
+      card.querySelector(".edit-btn").addEventListener("click", () => {
+        editingTxnId = txn.id;
+        modalTitle.textContent = "Edit Transaction";
+        submitTxnBtn.textContent = "Save Changes";
+        txnDate.value = txn.date;
+        txnDesc.value = txn.description;
+
+        postingsContainer.innerHTML = "";
+        txn.postings.forEach(p => {
+          const row = document.createElement("div");
+          row.className = "posting-row";
+          row.style.cssText = "display: grid; grid-template-columns: 2fr 1fr auto; gap: 8px; align-items: center;";
+          row.innerHTML = `
+        <input type="text" class="post-acct" placeholder="Account" value="${escapeHtml(p.account)}" required />
+        <input type="text" class="post-amt" placeholder="Amount" value="${escapeHtml(p.amount || '')}" />
+        <button type="button" class="secondary remove-post-btn" style="padding: 0 8px; min-height: 34px; color: #900c0c;">×</button>
+      `;
+          attachRemoveRowListener(row.querySelector(".remove-post-btn"));
+          postingsContainer.appendChild(row);
+        });
+
+        rawTxnInput.value = txn.rawText;
+        rawToggle.checked = false;
+        visualTxnUi.style.display = "block";
+        rawTxnContainer.style.display = "none";
+
+        setStatus("Edit transaction details", "info", modalStatusBanner);
+        txnModal.showModal();
+      });
+
+      card.querySelector(".delete-btn").addEventListener("click", async () => {
+        if (!confirm("Are you sure you want to delete this transaction?")) return;
+        setStatus("Deleting transaction...", "loading");
+
+        try {
+          const result = await session.deleteTransaction(txn.id);
+          if (result && result.error) {
+            setStatus(`Error: ${result.error}`, "error");
+            return;
+          }
+          await syncJournalTextToState();
+          setStatus("Transaction deleted successfully.", "ok");
+        } catch (error) {
+          setStatus("Failed to delete transaction.", "error");
+        }
+      });
+
+      return card;
+    }
+
+    // --- Reparse Engine -------------------------------------------------
+    let debounceTimer = null;
+
+    function scheduleReparse() {
+      setStatus("Waiting for typing...", "loading");
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(reparse, 300);
+    }
+
+    async function reparse() {
+      if (!state.currentFilename) return;
+
+      setReportButtonsEnabled(false);
+      setStatus(`Parsing journal...`, "loading");
+      const forecast = forecastToggle.checked;
+
+      const result = await session.loadJournal(journalText.value, forecast);
+
+      if (result.ok) {
+        setStatus(`Journal parsed successfully.`, "ok");
+        if (state.isGui) await renderGuiJournal();
+      } else {
+        setStatus(`Journal error: ${result.error}`, "error");
+        if (state.isGui) {
+          guiPanel.innerHTML = `<div class="status-banner" data-state="error" style="position: static; margin-top: 20px;"><span class="status-dot"></span><span>${escapeHtml(result.error)}</span></div>`;
+        }
+      }
+      setReportButtonsEnabled(session.isLoaded);
+    }
+
+    // --- CSV Import Handlers --------------------------------------------
+    function setupFileReader(inputId, textareaId) {
+      document.getElementById(inputId).addEventListener("change", function (e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          document.getElementById(textareaId).value = e.target.result;
+        };
+        reader.readAsText(file);
+      });
+    }
+
+    setupFileReader("csv-file-input", "csv-import-text");
+    setupFileReader("rules-file-input", "csv-import-rules");
+
+    csvImportBtn.addEventListener("click", () => csvModal.showModal());
+    csvCancelBtn.addEventListener("click", () => csvModal.close());
+
+    async function processCsvImport(mode) {
+      const csvData = document.getElementById("csv-import-text").value;
+      const rulesData = document.getElementById("csv-import-rules").value;
+      const forecast = forecastToggle.checked;
+      const modalBanner = document.getElementById("csv-modal-status");
+
+      csvAppendBtn.disabled = true;
+      csvReplaceBtn.disabled = true;
+      csvCancelBtn.disabled = true;
+
+      setStatus("Parsing CSV data...", "loading", modalBanner);
+
+      try {
+        const result = await session.parseCsv(csvData, rulesData, forecast);
+
+        if (!result.ok) {
+          setStatus(`Error: ${result.error}`, "error", modalBanner);
+          csvAppendBtn.disabled = false;
+          csvReplaceBtn.disabled = false;
+          csvCancelBtn.disabled = false;
+          return;
+        }
+
+        const printResult = await session.printText("");
+        let newJournalText = "";
+        if (printResult && typeof printResult.data === 'string') newJournalText = printResult.data;
+        else if (printResult) newJournalText = String(printResult);
+
+        if (mode === 'append') {
+          const currentText = journalText.value.trim();
+          journalText.value = currentText ? currentText + "\n\n" + newJournalText : newJournalText;
+        } else {
+          journalText.value = newJournalText;
+        }
+
+        saveCurrentFile(); // Robust saving enforced here too
+        await reparse();
+        setStatus("Import successful.", "ok", modalBanner);
+
+        setTimeout(() => {
+          csvModal.close();
+          closeRightMenuOnMobile();
+          setStatus("Provide CSV data and rules", "info", modalBanner);
+
+          csvAppendBtn.disabled = false;
+          csvReplaceBtn.disabled = false;
+          csvCancelBtn.disabled = false;
+        }, 500);
+
+      } catch (err) {
+        setStatus(`Import failed: ${err.message}`, "error", modalBanner);
+        csvAppendBtn.disabled = false;
+        csvReplaceBtn.disabled = false;
+        csvCancelBtn.disabled = false;
+      }
+    }
+
+    csvAppendBtn.addEventListener("click", () => processCsvImport('append'));
+    csvReplaceBtn.addEventListener("click", () => processCsvImport('replace'));
+
+    // --- Standard Event Handlers ----------------------------------------
+    guiToggle.addEventListener("change", async () => {
+      state.isGui = guiToggle.checked;
+      syncUIState();
+      if (state.isGui) await renderGuiJournal();
+    });
+
+    viewToggleButton.addEventListener("click", () => {
+      state.view = state.view === "input" ? "output" : "input";
+      syncUIState();
+    });
+
+    function openRightMenuOnMobile() { mainContent.classList.add("show-right-pane"); }
+    function closeRightMenuOnMobile() { mainContent.classList.remove("show-right-pane"); }
+
+    if (mobileMenuBtn && mobileCloseBtn) {
+      mobileMenuBtn.addEventListener("click", openRightMenuOnMobile);
+      mobileCloseBtn.addEventListener("click", closeRightMenuOnMobile);
+    }
+
+    journalText.addEventListener("input", () => {
+      saveCurrentFile(); // Robust direct save on key strokes
+      scheduleReparse();
+    });
+
+    forecastToggle.addEventListener("change", reparse);
+
+    clearButton.addEventListener("click", () => {
+      output.value = "";
+      guiOutputPanel.innerHTML = "";
+      setStatus("Output cleared.", "info");
+      state.view = "output";
+      syncUIState();
+    });
+
+    // --- Settings Event Handlers ----------------------------------------
+    settingsBtn.addEventListener("click", () => {
+      settingDarkMode.checked = document.documentElement.classList.contains("dark-mode");
+      settingsModal.showModal();
+    });
+
+    closeSettingsModal.addEventListener("click", () => settingsModal.close());
+
+    settingDarkMode.addEventListener("change", (e) => {
+      if (e.target.checked) document.documentElement.classList.add("dark-mode");
+      else document.documentElement.classList.remove("dark-mode");
+    });
+
+    settingCompactMode.addEventListener("change", (e) => {
+      if (e.target.checked) {
+        document.documentElement.style.setProperty('--sans', 'var(--mono)');
+        document.documentElement.style.fontSize = '12px';
+      } else {
+        document.documentElement.style.removeProperty('--sans');
+        document.documentElement.style.removeProperty('font-size');
+      }
+    });
+
+    settingHideBanner.addEventListener("change", (e) => {
+      if (e.target.checked) {
+        statusBanner.style.display = 'none';
+        document.body.style.paddingTop = '0';
+        mainContent.style.height = '100dvh';
+      } else {
+        statusBanner.style.display = 'flex';
+        document.body.style.paddingTop = 'calc(2.4vw + 1px)';
+        mainContent.style.height = 'calc(100dvh - (2.4vw + 1px))';
+      }
+    });
+
+    // --- Transaction Modal Handler --------------------------------------
+    function buildTransactionText() {
+      const dateVal = txnDate.value;
+      const descVal = txnDesc.value.trim();
+      const postingRows = postingsContainer.querySelectorAll(".posting-row");
+
+      let rawTxnText = `${dateVal} ${descVal}`;
+      for (const row of postingRows) {
+        const acct = row.querySelector(".post-acct").value.trim();
+        const amt = row.querySelector(".post-amt").value.trim();
+        if (acct) {
+          rawTxnText += `\n    ${acct}`;
+          if (amt) rawTxnText += `    ${amt}`;
+        }
+      }
+      return rawTxnText;
+    }
+
+    rawToggle.addEventListener("change", () => {
+      if (rawToggle.checked) {
+        rawTxnInput.value = buildTransactionText();
+        visualTxnUi.style.display = "none";
+        rawTxnContainer.style.display = "grid";
+      } else {
+        visualTxnUi.style.display = "block";
+        rawTxnContainer.style.display = "none";
+      }
+    });
+
+    document.getElementById("addtxnbtn").addEventListener("click", () => {
+      editingTxnId = null;
+      modalTitle.textContent = "Add New Transaction";
+      submitTxnBtn.textContent = "Add Transaction";
+
+      txnDate.value = new Date().toISOString().split("T")[0];
+      txnDesc.value = "";
+      postingsContainer.innerHTML = "";
+
+      const defaultRows = [
+        { acct: "", placeholder: "Account (e.g. expenses:food)" },
+        { acct: "", placeholder: "Account (e.g. assets:bank)" }
+      ];
+
+      defaultRows.forEach(def => {
+        const row = document.createElement("div");
+        row.className = "posting-row";
+        row.style.cssText = "display: grid; grid-template-columns: 2fr 1fr auto; gap: 8px; align-items: center;";
+        row.innerHTML = `
+          <input type="text" class="post-acct" placeholder="${def.placeholder}" required />
+          <input type="text" class="post-amt" placeholder="Amount (optional)" />
+          <button type="button" class="secondary remove-post-btn" style="padding: 0 8px; min-height: 34px; color: #900c0c;">×</button>
+        `;
+        attachRemoveRowListener(row.querySelector(".remove-post-btn"));
+        postingsContainer.appendChild(row);
+      });
+
+      rawToggle.checked = false;
+      visualTxnUi.style.display = "block";
+      rawTxnContainer.style.display = "none";
+      rawTxnInput.value = "";
+
+      setStatus("Fill in transaction details", "info", modalStatusBanner);
+      txnModal.showModal();
+    });
+
+    function attachRemoveRowListener(btn) {
+      btn.addEventListener("click", (e) => {
+        const row = e.target.closest(".posting-row");
+        if (postingsContainer.children.length > 2) row.remove();
+        else setStatus("A transaction must have at least 2 postings.", "error", modalStatusBanner);
+      });
+    }
+
+    addPostingBtn.addEventListener("click", () => {
+      const row = document.createElement("div");
+      row.className = "posting-row";
+      row.style.cssText = "display: grid; grid-template-columns: 2fr 1fr auto; gap: 8px; align-items: center;";
+      row.innerHTML = `
+        <input type="text" class="post-acct" placeholder="Account (e.g. expenses:food)" required />
+        <input type="text" class="post-amt" placeholder="Amount (optional)" />
+        <button type="button" class="secondary remove-post-btn" style="padding: 0 8px; min-height: 34px; color: #900c0c;">×</button>
+      `;
+      attachRemoveRowListener(row.querySelector(".remove-post-btn"));
+      postingsContainer.appendChild(row);
+    });
+
+    cancelTxnBtn.addEventListener("click", () => txnModal.close());
+
+    submitTxnBtn.addEventListener("click", async () => {
+      let rawTxnText = "";
+
+      if (rawToggle.checked) {
+        rawTxnText = rawTxnInput.value.trim();
+        if (!rawTxnText) {
+          setStatus("Transaction text cannot be empty.", "error", modalStatusBanner);
+          return;
+        }
+      } else {
+        const dateVal = txnDate.value;
+        const descVal = txnDesc.value.trim();
+
+        if (!dateVal || !descVal) {
+          setStatus("Please fill in Date and Description.", "error", modalStatusBanner);
+          return;
+        }
+
+        const postingRows = postingsContainer.querySelectorAll(".posting-row");
+        if (postingRows.length < 2) {
+          setStatus("A transaction requires at least 2 postings.", "error", modalStatusBanner);
+          return;
+        }
+
+        for (const row of postingRows) {
+          if (!row.querySelector(".post-acct").value.trim()) {
+            setStatus("All posting rows must have an account specified.", "error", modalStatusBanner);
+            return;
+          }
+        }
+        rawTxnText = buildTransactionText();
+      }
+
+      setStatus(editingTxnId !== null ? "Saving changes..." : "Adding transaction...", "loading", modalStatusBanner);
+      setReportButtonsEnabled(false);
+
+      try {
+        let result;
+        if (editingTxnId !== null) result = await session.updateTransaction(editingTxnId, rawTxnText);
+        else result = await session.balanceTransaction(rawTxnText);
+
+        if (result && result.error) {
+          setStatus(`Error: ${result.error}`, "error", modalStatusBanner);
+          setReportButtonsEnabled(true);
+          return;
+        }
+
+        await syncJournalTextToState(); // Save to files internally happens in here
+
+        setStatus(editingTxnId !== null ? "Transaction updated successfully." : "Transaction added successfully.", "ok");
+        txnModal.close();
+      } catch (error) {
+        console.error(error);
+        setStatus("Failed to process transaction.", "error", modalStatusBanner);
+        setReportButtonsEnabled(true);
+      }
+    });
+
+    // --- Report Builder Setup --------------------------------------
+    const reportGroups = [
+      {
+        label: "Validate",
+        items: [
+          { id: "check", label: "Check", run: (q) => checkStrictToggle.checked ? session.checkStrict(q) : session.check(q) },
+        ],
+      },
+      {
+        label: "Listings",
+        items: [
+          { id: "accounts", label: "Accounts", run: (q) => session.accounts(q) },
+          { id: "payees", label: "Payees", run: (q) => session.payees(q) },
+          { id: "commodities", label: "Commodities", run: (q) => session.commodities(q) },
+          { id: "tags", label: "Tags", run: (q) => session.tags(q) },
+        ],
+      },
+      {
+        label: "Reports",
+        items: [
+          { id: "balance", label: "Balance", run: (q) => session.balance(q) },
+          { id: "register", label: "Register", run: (q) => session.register(q) },
+          { id: "print", label: "Print", run: (q) => session.print(q) },
+          { id: "prices", label: "Prices", run: (q) => session.prices(q) },
+        ],
+      },
+      {
+        label: "Statements",
+        items: [
+          { id: "balancesheet", label: "Balance sheet", run: (q) => session.balancesheet(q) },
+          { id: "incomestatement", label: "Income statement", run: (q) => session.incomestatement(q) },
+          { id: "cashflow", label: "Cash flow", run: (q) => session.cashflow(q) },
+          { id: "budget", label: "Budget report", run: (q) => session.budget(q) },
+        ],
+      },
+      {
+        label: "Export",
+        items: [
+          { id: "printtext", label: ".journal", run: (q) => session.printText(q) },
+        ],
+      },
+    ];
+
+    const reportButtons = [];
+
+    for (const group of reportGroups) {
+      const groupEl = document.createElement("div");
+      groupEl.className = "report-group";
+
+      const labelEl = document.createElement("div");
+      labelEl.className = "report-group-label";
+      labelEl.textContent = group.label;
+      groupEl.appendChild(labelEl);
+
+      const buttonsEl = document.createElement("div");
+      buttonsEl.className = "buttons";
+
+      for (const item of group.items) {
+        const btn = document.createElement("button");
+        btn.id = item.id;
+        btn.textContent = item.label;
+        btn.disabled = true;
+        btn.addEventListener("click", () => {
+          if (!session.isLoaded || !state.currentFilename) { setStatus("No valid journal loaded.", "error"); return; }
+          runReport(item.id, item.label, () => item.run(queryInput.value));
+        });
+        buttonsEl.appendChild(btn);
+        reportButtons.push(btn);
+      }
+
+      groupEl.appendChild(buttonsEl);
+      reportGroupsContainer.appendChild(groupEl);
+    }
+
+    function setReportButtonsEnabled(enabled) {
+      for (const btn of reportButtons) {
+        if (!state.currentFilename) btn.disabled = true;
+        else btn.disabled = !enabled;
+      }
+    }
+
+    async function runReport(reportId, label, action) {
+      state.view = "output";
+      syncUIState();
+      setReportButtonsEnabled(false);
+      setStatus(`Running ${label}...`, "loading");
+
+      try {
+        const result = await action();
+
+        output.value = (result && typeof result.data === 'string')
+          ? result.data
+          : JSON.stringify(result, null, 2);
+
+        guiOutputPanel.innerHTML = "";
+        const strategy = reportStrategies[reportId] || smartRender;
+        const uiElement = strategy(result);
+        guiOutputPanel.appendChild(uiElement);
+
+        setStatus(`${label} report finished.`, "ok");
+      } catch (error) {
+        output.value = error.stack || String(error);
+        guiOutputPanel.innerHTML = `<div class="status-banner" data-state="error" style="position: static; margin-top: 20px;"><span class="status-dot"></span><span>Error running ${label}: ${escapeHtml(error.message || String(error))}</span></div>`;
+        setStatus(`${label} report failed.`, "error");
+      } finally {
+        setReportButtonsEnabled(session.isLoaded);
+      }
+    }
+
+    // --- Init -----------------------------------------------------------
+    setStatus("Initializing WASM module...", "loading");
+    const session = await HledgerSession.init();
+    window.session = session;
+
+    // Load physical memory mapped FS layer files
+    const files = syncFilesystem();
+    updateFileSelector();
+
+    if (files.length === 1) {
+      state.currentFilename = files[0];
+      fileSelector.value = files[0];
+      journalText.value = AppStorage.getFile(files[0]) || "";
+    } else if (files.length === 0) {
+      state.currentFilename = null;
+      setTimeout(() => newFileModal.showModal(), 500);
+    }
+
+    enforceFileLockdown();
+    syncUIState();
+
+    if (state.currentFilename) {
+      await reparse();
+    } else {
+      setStatus("Please create or select a file.", "info");
+    }
+
+    // Programmatically load the Google library
+    const script = document.createElement("script");
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.defer = true;
+    // Tell it to run your init function ONLY after it has fully loaded
+    script.onload = initGoogleAuth;
+    // Append it to the document to start the download
+    document.head.appendChild(script);
+  </script>
+</body>
+
+</html>
