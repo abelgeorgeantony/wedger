@@ -1095,7 +1095,7 @@
       window.location.hostname === "127.0.0.1";
     const libBaseUrl = isLocalDev
       ? "http://localhost:5001/"
-      : "https://cdn.jsdelivr.net/gh/abelgeorgeantony/hledger-lib-wasm@main/wasm/";
+      : "https://cdn.jsdelivr.net/gh/abelgeorgeantony/hledger-lib-wasm@main/";
 
     const { HledgerSession } = await import(`${libBaseUrl}js/hledger.js`);
     import { AppStorage } from "./index-storage.js";
