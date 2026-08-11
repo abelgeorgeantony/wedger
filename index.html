@@ -17,11 +17,21 @@
       --accent-ink: #16332a;
       --mono: ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, Consolas, monospace;
       --sans: "Iowan Old Style", "Source Serif 4", Georgia, ui-serif, serif;
+      --base-font-size: 12.5px;
     }
 
-    * { box-sizing: border-box; }
-    html, body { height: 100%; }
-    html.dark-mode { filter: invert(1) hue-rotate(160deg); }
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      height: 100%;
+    }
+
+    html.dark-mode {
+      filter: invert(1) hue-rotate(160deg);
+    }
 
     body {
       margin: 0;
@@ -39,267 +49,813 @@
       height: calc(100dvh - (2.4vw + 1px));
     }
 
-    .pane { background: var(--panel); min-width: 0; min-height: 0; }
-    .pane-right { display: flex; flex-direction: column; padding: 24px; overflow-y: auto; }
-    .pane-left { display: flex; flex-direction: column; padding: 24px; min-height: 0; }
+    .pane {
+      background: var(--panel);
+      min-width: 0;
+      min-height: 0;
+    }
+
+    .pane-right {
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+      overflow-y: auto;
+    }
+
+    .pane-left {
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+      min-height: 0;
+    }
 
     h2 {
-      margin: 0 0 8px; font-family: var(--mono); font-size: 11px;
-      font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em;
-      color: var(--ink-soft); flex: none;
+      margin: 0 0 8px;
+      font-family: var(--mono);
+      font-size: calc(var(--base-font-size) * 0.88);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--ink-soft);
+      flex: none;
     }
 
-    .field { display: grid; gap: 6px; margin: 0 0 16px; }
-    .field-row { display: grid; gap: 12px; margin-bottom: 12px; }
+    .field {
+      display: grid;
+      gap: 6px;
+      margin: 0 0 16px;
+    }
+
+    .field-row {
+      display: grid;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
     .field-label {
-      font-family: var(--mono); font-size: 11px; font-weight: 600;
-      text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-soft);
+      font-family: var(--mono);
+      font-size: calc(var(--base-font-size) * 0.88);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--ink-soft);
     }
 
-    input[type="text"], input[type="date"], textarea, input[type="file"], select {
-      font-family: var(--mono); font-size: 12.5px; line-height: 1.5;
-      width: 100%; border: 1px solid var(--rule); border-radius: 4px;
-      background: var(--paper); color: inherit; transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    input[type="text"],
+    input[type="date"],
+    textarea,
+    input[type="file"],
+    select {
+      font-family: var(--mono);
+      font-size: var(--base-font-size);
+      line-height: 1.5;
+      width: 100%;
+      border: 1px solid var(--rule);
+      border-radius: 4px;
+      background: var(--paper);
+      color: inherit;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
     }
 
-    input[type="text"]:hover, input[type="date"]:hover, textarea:hover, input[type="file"]:hover, select:hover {
-      border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent);
+    input[type="text"]:hover,
+    input[type="date"]:hover,
+    textarea:hover,
+    input[type="file"]:hover,
+    select:hover {
+      border-color: var(--accent);
+      box-shadow: inset 0 0 0 1px var(--accent);
     }
 
-    input[type="text"]:disabled, textarea:disabled, button:disabled {
-      background: var(--rule); opacity: 0.6; cursor: not-allowed;
+    input[type="text"]:disabled,
+    textarea:disabled,
+    button:disabled {
+      background: var(--rule);
+      opacity: 0.6;
+      cursor: not-allowed;
     }
 
-    input[type="text"], input[type="date"], select { padding: 8px 10px; }
-    input[type="file"] { padding: 5px; background: var(--panel); cursor: pointer; }
+    input[type="text"],
+    input[type="date"],
+    select {
+      padding: 8px 10px;
+    }
+
+    input[type="file"] {
+      padding: 5px;
+      background: var(--panel);
+      cursor: pointer;
+    }
 
     input[type="file"]::file-selector-button {
-      font-family: var(--mono); font-size: 11px; font-weight: 600;
-      border: 1px solid var(--rule); border-radius: 4px; background: var(--paper);
-      color: var(--ink); padding: 4px 8px; margin-right: 10px; cursor: pointer;
+      font-family: var(--mono);
+      font-size: calc(var(--base-font-size) * 0.88);
+      font-weight: 600;
+      border: 1px solid var(--rule);
+      border-radius: 4px;
+      background: var(--paper);
+      color: var(--ink);
+      padding: 4px 8px;
+      margin-right: 10px;
+      cursor: pointer;
       transition: background 0.15s ease;
     }
 
-    input[type="file"]::file-selector-button:hover { background: var(--rule); }
-    textarea { resize: none; overflow-y: auto; padding: 12px; }
+    input[type="file"]::file-selector-button:hover {
+      background: var(--rule);
+    }
+
+    textarea {
+      resize: none;
+      overflow-y: auto;
+      padding: 12px;
+    }
 
     /* --- Status Banner --- */
     .status-banner {
-      position: fixed; top: 0; left: 0; width: 100vw; z-index: 1000;
-      border-radius: 0; border-top: none; border-left: none; border-right: none;
-      display: flex; align-items: center; justify-content: center; gap: 10px;
-      padding: 0.6vw 1vw; font-family: var(--mono); font-size: auto; font-weight: 500;
-      border-bottom: 1px solid var(--rule); background: var(--paper); color: var(--ink);
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      z-index: 1000;
+      border-radius: 0;
+      border-top: none;
+      border-left: none;
+      border-right: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 0.6vw 1vw;
+      font-family: var(--mono);
+      font-weight: 500;
+      border-bottom: 1px solid var(--rule);
+      background: var(--paper);
+      color: var(--ink);
       transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
-      flex: none; overflow: hidden; white-space: nowrap;
+      flex: none;
+      overflow: hidden;
+      white-space: nowrap;
     }
 
     #status-text {
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: calc(100vw - 80px);
+      font-size: calc(var(--base-font-size) * 0.96);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: calc(100vw - 80px);
     }
 
-    .status-banner[data-state="ok"] { background: #edf7f2; border-color: #a8d5ba; color: var(--accent-ink); }
-    .status-banner[data-state="error"] { background: #fdf2f2; border-color: #f5c2c2; color: #900c0c; }
-    .status-banner[data-state="loading"] { background: var(--paper); border-color: var(--rule); color: var(--ink-soft); }
-    .status-banner[data-state="info"] { background: var(--paper); border-color: var(--rule); color: var(--ink-soft); }
+    .status-banner[data-state="ok"] {
+      background: #edf7f2;
+      border-color: #a8d5ba;
+      color: var(--accent-ink);
+    }
+
+    .status-banner[data-state="error"] {
+      background: #fdf2f2;
+      border-color: #f5c2c2;
+      color: #900c0c;
+    }
+
+    .status-banner[data-state="loading"] {
+      background: var(--paper);
+      border-color: var(--rule);
+      color: var(--ink-soft);
+    }
+
+    .status-banner[data-state="info"] {
+      background: var(--paper);
+      border-color: var(--rule);
+      color: var(--ink-soft);
+    }
 
     /* --- View bar & Top Controls --- */
     .view-bar {
-      display: flex; align-items: center; justify-content: space-between;
-      flex: none; margin-bottom: 16px; gap: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex: none;
+      margin-bottom: 16px;
+      gap: 12px;
     }
 
-    #file-manager { display: flex; align-items: center; gap: 6px; flex: 1; max-width: 50%; }
-    #file-selector { width: fit-content; }
-    .view-bar-right { display: flex; gap: 8px; }
-    #input-view, #output-view { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; }
-    #journal-panel, #gui-panel { flex: 1; min-height: 0; display: flex; gap: 10px; }
-    #journal-panel { flex-direction: column; }
-    
-    #gui-panel, #gui-output-panel {
-      flex-direction: column; overflow-y: auto; scrollbar-width: thin;
-      scrollbar-color: transparent transparent; gap: 10px; padding-top: 2px;
+    #file-manager {
+      display: flex;
+      gap: 6px;
+      flex: 1;
+      max-width: 50%;
     }
 
-    #gui-panel:hover, #gui-output-panel:hover {
+    #file-selector {
+      width: fit-content;
+    }
+
+    .view-bar-right {
+      display: flex;
+      gap: 8px;
+    }
+
+    #input-view,
+    #output-view {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    #journal-panel,
+    #gui-panel {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      gap: 10px;
+    }
+
+    #journal-panel {
+      flex-direction: column;
+    }
+
+    #gui-panel,
+    #gui-output-panel {
+      flex-direction: column;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: transparent transparent;
+      gap: 10px;
+      padding-top: 2px;
+    }
+
+    #gui-panel:hover,
+    #gui-output-panel:hover {
       scrollbar-color: color-mix(in srgb, var(--rule) 70%, transparent) transparent;
     }
 
-    #gui-panel::-webkit-scrollbar, #gui-output-panel::-webkit-scrollbar { width: 8px; }
-    #gui-panel::-webkit-scrollbar-track, #gui-output-panel::-webkit-scrollbar-track { background: transparent; }
-    #gui-panel::-webkit-scrollbar-thumb, #gui-output-panel::-webkit-scrollbar-thumb { background: transparent; border-radius: 999px; }
-    #gui-panel:hover::-webkit-scrollbar-thumb, #gui-output-panel:hover::-webkit-scrollbar-thumb { background: var(--rule); }
-    #journal-panel textarea { flex: 1; min-height: 0; }
-    
-    #output {
-      flex: 1; min-height: 0; background: var(--paper); color: var(--ink);
-      border: 1px solid var(--accent); box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.03);
+    #gui-panel::-webkit-scrollbar,
+    #gui-output-panel::-webkit-scrollbar {
+      width: 8px;
     }
 
-    .toggle-row { display: flex; gap: 18px; margin: 4px 0 18px; }
-    .toggle { display: flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 12px; color: var(--ink-soft); }
-    .report-group { margin-bottom: 14px; }
-    .report-group-label {
-      font-family: var(--mono); font-size: 10px; font-weight: 600;
-      text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-soft); margin-bottom: 6px;
+    #gui-panel::-webkit-scrollbar-track,
+    #gui-output-panel::-webkit-scrollbar-track {
+      background: transparent;
     }
-    .report-group .buttons { display: flex; flex-wrap: wrap; gap: 6px; }
+
+    #gui-panel::-webkit-scrollbar-thumb,
+    #gui-output-panel::-webkit-scrollbar-thumb {
+      background: transparent;
+      border-radius: 999px;
+    }
+
+    #gui-panel:hover::-webkit-scrollbar-thumb,
+    #gui-output-panel:hover::-webkit-scrollbar-thumb {
+      background: var(--rule);
+    }
+
+    #journal-panel textarea {
+      flex: 1;
+      min-height: 0;
+    }
+
+    #output {
+      flex: 1;
+      min-height: 0;
+      background: var(--paper);
+      color: var(--ink);
+      border: 1px solid var(--accent);
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.03);
+    }
+
+    .toggle-row {
+      display: flex;
+      gap: 18px;
+      margin: 4px 0 18px;
+    }
+
+    .toggle {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--mono);
+      font-size: calc(var(--base-font-size) * 0.96);
+      color: var(--ink-soft);
+    }
+
+    .report-group {
+      margin-bottom: 14px;
+    }
+
+    .report-group-label {
+      font-family: var(--mono);
+      font-size: calc(var(--base-font-size) * 0.8);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--ink-soft);
+      margin-bottom: 6px;
+    }
+
+    .report-group .buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
 
     button {
-      font-family: var(--mono); font-size: 12px; font-weight: 600;
-      border: 1px solid var(--accent-ink); border-radius: 4px;
-      background: var(--accent); color: #fff; cursor: pointer;
-      padding: 7px 12px; min-height: 34px; width: fit-content;
+      font-family: var(--mono);
+      font-size: calc(var(--base-font-size) * 0.96);
+      font-weight: 600;
+      border: 1px solid var(--accent-ink);
+      border-radius: 4px;
+      background: var(--accent);
+      color: #fff;
+      cursor: pointer;
+      padding: 7px 12px;
+      min-height: 34px;
+      width: fit-content;
     }
 
-    button.secondary { background: var(--panel); color: var(--ink); border-color: var(--rule); }
-    button:disabled { cursor: not-allowed; opacity: 0.4; }
-    
-    button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
-      outline: none; border-color: var(--accent);
+    button.secondary {
+      background: var(--panel);
+      color: var(--ink);
+      border-color: var(--rule);
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.4;
+    }
+
+    button:focus-visible,
+    input:focus-visible,
+    textarea:focus-visible,
+    select:focus-visible {
+      outline: none;
+      border-color: var(--accent);
       box-shadow: inset 0 0 0 1px var(--accent), 0 0 0 2px color-mix(in srgb, var(--accent) 22%, transparent);
     }
 
     /* --- Modal Dialogs --- */
     .modal {
-      border: 1px solid var(--rule); border-radius: 6px; background: var(--panel);
-      color: var(--ink); padding: 24px; width: 90%; max-width: 500px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      border: 1px solid var(--rule);
+      border-radius: 6px;
+      background: var(--panel);
+      color: var(--ink);
+      padding: 24px;
+      width: 90%;
+      max-width: 500px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
     }
-    .modal-large { width: 95%; max-width: 1000px; height: 90dvh; max-height: 800px; }
-    .modal-large[open] { display: flex; flex-direction: column; }
-    .modal::backdrop { background: rgba(26, 36, 32, 0.4); backdrop-filter: blur(2px); }
-    .modal h2 { font-size: 14px; margin-bottom: 20px; color: var(--ink); }
-    .split-pane { display: flex; gap: 20px; flex: 1; min-height: 0; margin-bottom: auto; }
-    .csv-col { flex: 1; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
-    .csv-col textarea { flex: 1; min-height: 100px; }
+
+    .modal-large {
+      width: 95%;
+      max-width: 1000px;
+      height: 90dvh;
+      max-height: 800px;
+    }
+
+    .modal-large[open] {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal::backdrop {
+      background: rgba(26, 36, 32, 0.4);
+      backdrop-filter: blur(2px);
+    }
+
+    .modal h2 {
+      font-size: calc(var(--base-font-size) * 1.12);
+      margin-bottom: 20px;
+      color: var(--ink);
+    }
+
+    .split-pane {
+      display: flex;
+      gap: 20px;
+      flex: 1;
+      min-height: 0;
+      margin-bottom: auto;
+    }
+
+    .csv-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .csv-col textarea {
+      flex: 1;
+      min-height: 100px;
+    }
 
     /* --- Toggle Switch --- */
-    .switch-container { display: flex; align-items: center; gap: 8px; }
+    .switch-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
     .switch-label {
-      font-family: var(--mono); font-size: 11px; font-weight: 600;
-      text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-soft);
+      font-family: var(--mono);
+      font-size: calc(var(--base-font-size) * 0.88);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--ink-soft);
     }
-    .switch { position: relative; display: inline-block; width: 36px; height: 20px; }
-    .switch input { opacity: 0; width: 0; height: 0; }
-    
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 36px;
+      height: 20px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
     .slider {
-      position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
-      background-color: #ccc; transition: background-color 0.2s ease; border-radius: 20px;
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: background-color 0.2s ease;
+      border-radius: 20px;
     }
-    
+
     .slider:before {
-      position: absolute; content: ""; height: 16px; width: 16px; left: 2px; bottom: 2px;
-      background-color: white; transition: transform 0.2s ease; border-radius: 50%;
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 16px;
+      left: 2px;
+      bottom: 2px;
+      background-color: white;
+      transition: transform 0.2s ease;
+      border-radius: 50%;
     }
-    
-    .switch input:checked+.slider { background-color: var(--accent); }
-    .switch input:checked+.slider:before { transform: translateX(16px); }
-    .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+
+    .switch input:checked+.slider {
+      background-color: var(--accent);
+    }
+
+    .switch input:checked+.slider:before {
+      transform: translateX(16px);
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 12px;
+    }
 
     /* --- Enhanced GUI Transaction Cards --- */
     .txn-card {
-      background: var(--panel, #ffffff); border: 1px solid var(--rule); border-radius: 10px;
-      display: flex; flex-direction: row; transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02); margin: 0 8px 8px 0; overflow: hidden; flex-shrink: 0;
+      background: var(--panel, #ffffff);
+      border: 1px solid var(--rule);
+      border-radius: 10px;
+      display: flex;
+      flex-direction: row;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+      margin: 0 8px 8px 0;
+      overflow: hidden;
+      flex-shrink: 0;
     }
-    .txn-card:hover { border-color: var(--accent); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); transform: translateY(-1px); }
-    .txn-content { flex: 1; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+
+    .txn-card:hover {
+      border-color: var(--accent);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      transform: translateY(-1px);
+    }
+
+    .txn-content {
+      flex: 1;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-width: 0;
+    }
+
     .txn-actions-container {
-      display: flex; flex-direction: column; gap: 8px; padding: 12px; background: var(--paper);
-      border-left: 1px solid var(--rule); justify-content: center; flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 12px;
+      background: var(--paper);
+      border-left: 1px solid var(--rule);
+      justify-content: center;
+      flex-shrink: 0;
     }
-    .txn-actions-container button { padding: 4px 10px; min-height: 28px; font-size: 11px; width: 100%; }
-    .txn-main { display: flex; align-items: flex-start; gap: 12px; }
-    .txn-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-    .txn-title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
-    
+
+    .txn-actions-container button {
+      padding: 4px 10px;
+      min-height: 28px;
+      font-size: calc(var(--base-font-size) * 0.88);
+      width: 100%;
+    }
+
+    .txn-main {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .txn-info {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .txn-title-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
     .txn-desc {
       font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      font-size: 18px; font-weight: 700; color: var(--ink); word-break: break-word; overflow-wrap: break-word; white-space: normal;
+      font-size: calc(var(--base-font-size) * 1.44);
+      font-weight: 700;
+      color: var(--ink);
+      word-break: break-word;
+      overflow-wrap: break-word;
+      white-space: normal;
     }
-    
-    .txn-date { font-family: var(--mono); font-size: 13px; color: var(--ink-soft); flex-shrink: 0; }
-    .posting-list { border-top: 1px solid var(--rule); padding-top: 10px; display: flex; flex-direction: column; gap: 4px; }
-    .posting-item { display: flex; justify-content: space-between; align-items: flex-start; font-family: var(--mono); font-size: 15px; gap: 8px; }
-    .posting-item.credit { color: #059669; }
-    .posting-item.debit { color: #dc2626; }
-    .posting-item.neutral { color: var(--ink); }
-    
+
+    .txn-date {
+      font-family: var(--mono);
+      font-size: calc(var(--base-font-size) * 1.04);
+      color: var(--ink-soft);
+      flex-shrink: 0;
+    }
+
+    .posting-list {
+      border-top: 1px solid var(--rule);
+      padding-top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .posting-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      font-family: var(--mono);
+      font-size: calc(var(--base-font-size) * 1.2);
+      gap: 8px;
+    }
+
+    .posting-item.credit {
+      color: #059669;
+    }
+
+    .posting-item.debit {
+      color: #dc2626;
+    }
+
+    .posting-item.neutral {
+      color: var(--ink);
+    }
+
     .posting-account {
-      color: inherit; font-weight: 500; display: flex; align-items: flex-start;
-      gap: 6px; word-break: break-word; overflow-wrap: break-word; white-space: normal; flex: 1; min-width: 0;
+      color: inherit;
+      font-weight: 500;
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      word-break: break-word;
+      overflow-wrap: break-word;
+      white-space: normal;
+      flex: 1;
+      min-width: 0;
     }
-    .posting-account::before { content: "•"; color: var(--ink-soft); opacity: 0.5; flex-shrink: 0; }
-    .posting-amount { font-weight: 600; color: inherit; flex-shrink: 0; }
+
+    .posting-account::before {
+      content: "•";
+      color: var(--ink-soft);
+      opacity: 0.5;
+      flex-shrink: 0;
+    }
+
+    .posting-amount {
+      font-weight: 600;
+      color: inherit;
+      flex-shrink: 0;
+    }
 
     .hamburger-btn {
-      display: none; background: none; border: none; color: var(--ink); cursor: pointer; padding: 4px; min-height: auto;
+      display: none;
+      background: none;
+      border: none;
+      color: var(--ink);
+      cursor: pointer;
+      padding: 4px;
+      min-height: auto;
     }
-    .hamburger-btn:focus-visible { outline: none; box-shadow: none; }
-    .mobile-close-container { display: none; }
+
+    .hamburger-btn:focus-visible {
+      outline: none;
+      box-shadow: none;
+    }
+
+    .mobile-close-container {
+      display: none;
+    }
 
     /* --- Universal Table UI (Adapter Output) --- */
     .table-container {
-      overflow-x: auto; background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; margin-bottom: 10px;
+      overflow-x: auto;
+      background: var(--panel);
+      border: 1px solid var(--rule);
+      border-radius: 6px;
+      margin-bottom: 10px;
     }
-    .table-ui { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 12px; text-align: left; }
-    .table-ui th { padding: 8px 12px; font-weight: 600; color: var(--ink-soft); background: var(--paper); border-bottom: 2px solid var(--rule); }
-    .table-ui td { padding: 8px 12px; border-bottom: 1px solid var(--rule); }
-    .table-ui tr:last-child td { border-bottom: none; }
+
+    .table-ui {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--mono);
+      font-size: calc(var(--base-font-size) * 0.96);
+      text-align: left;
+    }
+
+    .table-ui th {
+      padding: 8px 12px;
+      font-weight: 600;
+      color: var(--ink-soft);
+      background: var(--paper);
+      border-bottom: 2px solid var(--rule);
+    }
+
+    .table-ui td {
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--rule);
+    }
+
+    .table-ui tr:last-child td {
+      border-bottom: none;
+    }
 
     /* --- Universal Tree UI (Adapter Output) --- */
     .tree-container {
-      font-family: var(--mono); font-size: 13px; display: flex; flex-direction: column;
-      gap: 2px; background: var(--panel); padding: 12px; border: 1px solid var(--rule); border-radius: 6px;
+      font-family: var(--mono);
+      font-size: calc(var(--base-font-size) * 1.04);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      background: var(--panel);
+      padding: 12px;
+      border: 1px solid var(--rule);
+      border-radius: 6px;
     }
-    .tree-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 8px; border-radius: 4px; cursor: pointer; }
-    .tree-row:hover { background: var(--paper); }
-    .tree-leaf { padding-left: 20px; cursor: default; }
-    .tree-name { font-weight: 500; color: var(--ink); }
-    .tree-amount { font-weight: 600; color: var(--accent); }
-    
+
+    .tree-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .tree-row:hover {
+      background: var(--paper);
+    }
+
+    .tree-leaf {
+      padding-left: 20px;
+      cursor: default;
+    }
+
+    .tree-name {
+      font-weight: 500;
+      color: var(--ink);
+    }
+
+    .tree-amount {
+      font-weight: 600;
+      color: var(--accent);
+    }
+
     .tree-children {
-      margin-left: 12px; padding-left: 8px; border-left: 1px solid var(--rule); display: flex; flex-direction: column; gap: 2px;
+      margin-left: 12px;
+      padding-left: 8px;
+      border-left: 1px solid var(--rule);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
     }
-    summary.tree-row { list-style-type: '▶ '; }
-    details[open]>summary.tree-row { list-style-type: '▼ '; }
+
+    summary.tree-row {
+      list-style-type: '▶ ';
+    }
+
+    details[open]>summary.tree-row {
+      list-style-type: '▼ ';
+    }
 
     #user-avatar-btn {
-      background: none; border: none; padding: 0; cursor: pointer; min-height: auto; border-radius: 50%; display: flex; align-items: center;
+      background: none;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      min-height: auto;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
     }
+
     #user-avatar-btn #user-avatar {
-      width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--rule); transition: border-color 0.15s ease;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 1px solid var(--rule);
+      transition: border-color 0.15s ease;
     }
-    #user-avatar-btn:hover #user-avatar { border-color: var(--accent); }
-    
-    .profile-dropdown-menu {
-      display: none; position: absolute; top: calc(100% + 8px); right: 0; background: var(--panel);
-      border: 1px solid var(--rule); border-radius: 6px; padding: 12px; min-width: 200px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12); z-index: 1000; font-family: var(--mono);
+
+    #user-avatar-btn:hover #user-avatar {
+      border-color: var(--accent);
     }
-    .user-info-header { display: flex; flex-direction: column; gap: 2px; }
-    #user-display-name { font-weight: 600; font-size: 13px; color: var(--ink); }
-    #user-display-email { font-size: 11px; color: var(--ink-soft); word-break: break-all; }
-    .dropdown-divider { border: none; border-top: 1px solid var(--rule); margin: 10px 0; }
-    
-    #profile-dropdown #logout-btn {
-      width: 100%; text-align: center; padding: 6px 10px; font-size: 12px; color: #900c0c;
-      background: #fdf2f2; border-color: #f5c2c2;
+
+    .user-info-header {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
     }
-    #profile-dropdown #logout-btn:hover { background: #f8d7d7; }
+
+    .dropdown-divider {
+      border: none;
+      border-top: 1px solid var(--rule);
+      margin: 10px 0;
+    }
 
     @media (max-width: 780px) {
-      main { grid-template-columns: 1fr; grid-template-rows: 1fr; height: calc(100dvh - (2.4vw + 1px)); min-height: 0; }
-      .pane-left { height: 100%; }
-      .pane-right { display: none; height: 100%; }
-      .hamburger-btn { display: flex; align-items: center; justify-content: center; }
-      #file-selector { width: 60%; }
-      .mobile-close-container { display: flex; justify-content: flex-end; margin-bottom: 16px; }
-      main.show-right-pane .pane-left { display: none; }
-      main.show-right-pane .pane-right { display: flex; }
-      .split-pane { flex-direction: column; }
+      main {
+        grid-template-columns: 1fr;
+        grid-template-rows: 1fr;
+        height: calc(100dvh - (2.4vw + 1px));
+        min-height: 0;
+      }
+
+      .pane-left {
+        height: 100%;
+      }
+
+      .pane-right {
+        display: none;
+        height: 100%;
+      }
+
+      .hamburger-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      #file-selector {
+        width: 60%;
+      }
+
+      .mobile-close-container {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 16px;
+      }
+
+      main.show-right-pane .pane-left {
+        display: none;
+      }
+
+      main.show-right-pane .pane-right {
+        display: flex;
+      }
+
+      .split-pane {
+        flex-direction: column;
+      }
     }
-    @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        transition: none !important;
+      }
+    }
   </style>
 </head>
 
@@ -317,45 +873,48 @@
             <span class="slider"></span>
           </label>
         </div>
-        
+
         <div style="display: flex; flex-direction: row; align-items: center; gap: 12px;">
-          
+
           <!-- Unified Google Login/Sync Button -->
-          <button type="button" id="google-login-btn" class="secondary" style="display: flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid var(--rule); border-radius: 4px; background: var(--panel);">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path>
-              <line x1="4" y1="22" x2="4" y2="15"></line>
+          <button type="button" id="google-login-btn" class="secondary"
+            style="display: flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid var(--rule); border-radius: 4px; background: var(--panel);">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18">
+              <path fill="#4285F4"
+                d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z" />
+              <path fill="#34A853"
+                d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.11 0-5.74-2.1-6.68-4.92H1.2v3.15C3.18 21.31 7.27 24 12 24z" />
+              <path fill="#FBBC05"
+                d="M5.32 14.28c-.24-.72-.38-1.5-.38-2.28s.14-1.56.38-2.28V6.57H1.2C.43 8.12 0 9.99 0 12s.43 3.88 1.2 5.43l4.12-3.15z" />
+              <path fill="#EA4335"
+                d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.27 0 3.18 2.69 1.2 6.57l4.12 3.15c.94-2.82 3.57-4.97 6.68-4.97z" />
             </svg>
-            Login & Sync Drive
+
+            Sign in with google
           </button>
 
-          <!-- Authenticated User Profile Container with Interactive Dropdown -->
+          <!-- Authenticated User Profile Trigger Button -->
           <div id="user-profile-container" style="display: none; position: relative; align-items: center;">
             <button type="button" id="user-avatar-btn" aria-label="User profile menu">
               <img id="user-avatar" src="" alt="Profile" referrerpolicy="no-referrer" />
             </button>
-
-            <!-- Interactive Dropdown Menu -->
-            <div id="profile-dropdown" class="profile-dropdown-menu">
-              <div class="user-info-header">
-                <div id="user-display-name"></div>
-                <div id="user-display-email"></div>
-              </div>
-              <hr class="dropdown-divider" />
-              <button type="button" id="logout-btn" class="secondary">Logout</button>
-            </div>
           </div>
 
           <button type="button" id="settings-btn" class="secondary"
-            style="display: flex; align-items: center; gap: 6px; padding: 4px 8px; min-height: auto; border: none; flex-shrink: 0;" aria-label="Settings">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            style="display: flex; align-items: center; gap: 6px; padding: 4px 8px; min-height: auto; border: none; flex-shrink: 0;"
+            aria-label="Settings">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="3"></circle>
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+              <path
+                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+              </path>
             </svg>
           </button>
 
           <button type="button" id="mobile-menu-btn" class="hamburger-btn" aria-label="Open Menu">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
               <line x1="3" y1="12" x2="21" y2="12"></line>
               <line x1="3" y1="6" x2="21" y2="6"></line>
               <line x1="3" y1="18" x2="21" y2="18"></line>
@@ -365,11 +924,20 @@
       </div>
 
       <div class="view-bar">
-        <div id="file-manager">
+        <div id="file-manager" style="display: flex; flex-direction: column;">
+          <div>
           <select id="file-selector">
             <option value="">-- No file selected --</option>
           </select>
-          <button type="button" id="new-file-btn" class="secondary" style="padding: 6px 10px; min-height: auto;">New</button>
+          <button type="button" id="new-file-btn" class="secondary"
+              style="padding: 6px 10px; min-height: auto;">New</button>
+          </div>
+          <div style="display: flex; flex-direction: row; gap: 4px;">
+            <button type="button" id="rename-file-btn" class="secondary"
+              style="padding: 6px 10px; min-height: auto; display: none;">Rename</button>
+            <button type="button" id="delete-file-btn" class="secondary"
+              style="padding: 6px 10px; min-height: auto; display: none; color: #900c0c; border-color: #f5c2c2; background: #fdf2f2;">Delete</button>
+          </div>
         </div>
         <div class="view-bar-right">
           <button type="button" id="addtxnbtn" style="flex: 1;" disabled>Add</button>
@@ -394,7 +962,8 @@
       <div style="display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 16px;">
         <div class="mobile-close-container" style="margin-bottom: 0;">
           <button type="button" id="mobile-close-btn" class="hamburger-btn" aria-label="Close Menu">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"></line>
               <line x1="6" y1="6" x2="18" y2="18"></line>
             </svg>
@@ -420,6 +989,39 @@
     </section>
 
     <!-- Modals -->
+
+    <!-- Interactive Google Profile -->
+    <dialog id="profile-modal" class="modal">
+      <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 16px;">
+        <img id="modal-user-avatar" src="" alt="Profile"
+          style="width: 48px; height: 48px; border-radius: 50%; border: 1px solid var(--rule); flex-shrink: 0;" />
+        <div style="min-width: 0;">
+          <div id="modal-user-display-name" style="font-size: 15px; font-weight: 700; color: var(--ink);"></div>
+          <div id="modal-user-display-email" style="font-size: 12px; color: var(--ink-soft); word-break: break-all;">
+          </div>
+        </div>
+      </div>
+
+      <hr class="dropdown-divider" style="margin-bottom: 16px;" />
+
+      <!-- Detailed File List Information -->
+      <div style="margin-bottom: 16px; flex: 1; min-height: 0; display: flex; flex-direction: column;">
+        <div class="field-label" style="margin-bottom: 8px;">Drive Journal Files</div>
+        <div id="synced-files-list"
+          style="max-height: 180px; overflow-y: auto; border: 1px solid var(--rule); border-radius: 6px; background: var(--panel);">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <div class="modal-actions" style="display: flex; justify-content: flex-end; align-items: center; width: 100%;">
+        <div style="display: flex; gap: 8px;">
+          <button type="button" id="logout-btn" class="secondary"
+            style="color: #900c0c; border-color: #f5c2c2; background: #fdf2f2;">Logout</button>
+          <button type="button" id="close-profile-modal" class="secondary">Close</button>
+        </div>
+      </div>
+    </dialog>
+
     <dialog id="new-file-modal" class="modal">
       <h2>Create New Journal</h2>
       <div class="field">
@@ -429,6 +1031,18 @@
       <div class="modal-actions">
         <button type="button" class="secondary" id="cancel-new-file-btn">Cancel</button>
         <button type="button" id="create-file-btn">Create</button>
+      </div>
+    </dialog>
+
+    <dialog id="rename-file-modal" class="modal">
+      <h2>Rename Journal</h2>
+      <div class="field">
+        <label class="field-label" for="rename-filename">New Filename</label>
+        <input type="text" id="rename-filename" placeholder="e.g. 2027.journal" />
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="secondary" id="cancel-rename-file-btn">Cancel</button>
+        <button type="button" id="submit-rename-file-btn">Rename</button>
       </div>
     </dialog>
 
@@ -442,12 +1056,14 @@
         <div class="csv-col">
           <label class="field-label" for="csv-file-input">1. CSV Data</label>
           <input type="file" id="csv-file-input" accept=".csv,.txt" />
-          <textarea id="csv-import-text" spellcheck="false" placeholder='e.g.&#10;"Date","Notes","Amount"&#10;"2026/02/22","WHOLE FOODS","50.00"'></textarea>
+          <textarea id="csv-import-text" spellcheck="false"
+            placeholder='e.g.&#10;"Date","Notes","Amount"&#10;"2026/02/22","WHOLE FOODS","50.00"'></textarea>
         </div>
         <div class="csv-col">
           <label class="field-label" for="rules-file-input">2. CSV Rules</label>
           <input type="file" id="rules-file-input" accept=".rules,.txt" />
-          <textarea id="csv-import-rules" spellcheck="false" placeholder="e.g. skip 1&#10;fields date, description, amount"></textarea>
+          <textarea id="csv-import-rules" spellcheck="false"
+            placeholder="e.g. skip 1&#10;fields date, description, amount"></textarea>
         </div>
       </div>
       <div class="modal-actions">
@@ -487,14 +1103,18 @@
           <div class="field" style="margin-bottom: 0;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
               <label class="field-label" style="margin: 0;">Postings</label>
-              <button type="button" class="secondary" id="add-posting-btn" style="padding: 2px 8px; min-height: 24px; font-size: 11px;">+ Add Posting</button>
+              <button type="button" class="secondary" id="add-posting-btn"
+                style="padding: 2px 8px; min-height: 24px; font-size: 11px;">+ Add Posting</button>
             </div>
-            <div id="postings-container" style="display: flex; flex-direction: column; gap: 8px; max-height: 220px; overflow-y: auto; padding-right: 4px;"></div>
+            <div id="postings-container"
+              style="display: flex; flex-direction: column; gap: 8px; max-height: 220px; overflow-y: auto; padding-right: 4px;">
+            </div>
           </div>
         </div>
         <div id="raw-txn-container" class="field" style="display: none; margin-bottom: 0;">
           <label class="field-label" for="raw-txn-input">Raw Transaction Text</label>
-          <textarea id="raw-txn-input" readonly rows="8" spellcheck="false" style="font-family: var(--mono); width: 100%;"></textarea>
+          <textarea id="raw-txn-input" readonly rows="8" spellcheck="false"
+            style="font-family: var(--mono); width: 100%;"></textarea>
         </div>
         <div class="modal-actions">
           <button type="button" class="secondary" id="cancel-txn-btn">Cancel</button>
@@ -505,7 +1125,8 @@
 
     <dialog id="status-modal" class="modal">
       <h2>Full Message</h2>
-      <p id="status-modal-text" style="font-family: var(--mono); font-size: 12px; white-space: pre-wrap; word-break: break-word;"></p>
+      <p id="status-modal-text"
+        style="font-family: var(--mono); font-size: 12px; white-space: pre-wrap; word-break: break-word;"></p>
       <div class="modal-actions">
         <button type="button" class="secondary" id="close-status-modal">Close</button>
       </div>
@@ -523,12 +1144,13 @@
         </div>
       </div>
       <div class="field-row" style="margin-bottom: 16px;">
-        <div class="switch-container">
-          <span class="switch-label">Compact Typeface</span>
-          <label class="switch">
-            <input type="checkbox" id="setting-compact-mode" />
-            <span class="slider"></span>
-          </label>
+        <div class="field" style="margin-bottom: 0;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <span class="switch-label">Typeface Size</span>
+            <span id="font-size-display"
+              style="font-family: var(--mono); font-size: 11px; color: var(--ink-soft);">12.5px</span>
+          </div>
+          <input type="range" id="setting-font-size" min="10" max="24" value="12.5" step="0.5" style="width: 100%;">
         </div>
       </div>
       <div class="field-row" style="margin-bottom: 24px;">
@@ -544,6 +1166,24 @@
         <button type="button" class="secondary" id="close-settings-modal">Close</button>
       </div>
     </dialog>
+
+    <dialog id="startup-modal" class="modal">
+      <h2>Welcome to Wedger</h2>
+      <div id="startup-status" class="status-banner" data-state="info" style="margin-bottom: 16px; position: static;">
+        <span class="status-dot"></span>
+        <span id="startup-status-text">Select a journal to open</span>
+      </div>
+      <div class="field">
+        <label class="field-label" for="startup-file-selector">Available Files</label>
+        <select id="startup-file-selector" style="margin-bottom: 16px;">
+          <option value="">-- No files available --</option>
+        </select>
+      </div>
+      <div class="modal-actions" style="justify-content: space-between;">
+        <button type="button" class="secondary" id="startup-new-btn">Create New File</button>
+        <button type="button" id="startup-open-btn">Open Journal</button>
+      </div>
+    </dialog>
   </main>
 
   <script type="module">
@@ -551,8 +1191,7 @@
     const libBaseUrl = isLocalDev ? "http://localhost:5001/" : "https://cdn.jsdelivr.net/gh/abelgeorgeantony/hledger-lib-wasm@main/";
 
     const { HledgerSession } = await import(`${libBaseUrl}js/hledger.js`);
-    import { AppStorage } from "./index-storage.js";
-    import { GoogleCloud } from "./google-cloud.js";
+    import { StorageManager } from "./storage.js";
 
     // --- State Manager --------------------------------------------------
     const state = {
@@ -564,8 +1203,9 @@
 
     let editingTxnId = null;
     let driveSyncTimer = null;
-    let currentDriveFileId = null;
-    let driveFilesList = []; // Array of {id, name}
+    const driveSyncQueue = new Map(); // filename -> content queue for debouncing
+    let isDriveSyncing = false;
+    let driveFilesList = []; // Array of synced file objects
 
     // --- Element Selectors ----------------------------------------------
     const fileSelector = document.getElementById("file-selector");
@@ -574,6 +1214,12 @@
     const newFilenameInput = document.getElementById("new-filename");
     const cancelNewFileBtn = document.getElementById("cancel-new-file-btn");
     const createFileBtn = document.getElementById("create-file-btn");
+    const renameFileBtn = document.getElementById("rename-file-btn");
+    const deleteFileBtn = document.getElementById("delete-file-btn");
+    const renameFileModal = document.getElementById("rename-file-modal");
+    const renameFilenameInput = document.getElementById("rename-filename");
+    const cancelRenameFileBtn = document.getElementById("cancel-rename-file-btn");
+    const submitRenameFileBtn = document.getElementById("submit-rename-file-btn");
 
     const journalText = document.querySelector("#journal-text");
     const journalPanel = document.querySelector("#journal-panel");
@@ -603,9 +1249,11 @@
     const userAvatar = document.getElementById("user-avatar");
     const logoutBtn = document.getElementById("logout-btn");
     const userAvatarBtn = document.getElementById("user-avatar-btn");
-    const profileDropdown = document.getElementById("profile-dropdown");
-    const userDisplayName = document.getElementById("user-display-name");
-    const userDisplayEmail = document.getElementById("user-display-email");
+    const profileModal = document.getElementById("profile-modal");
+    const modalUserAvatar = document.getElementById("modal-user-avatar");
+    const modalUserDisplayName = document.getElementById("modal-user-display-name");
+    const modalUserDisplayEmail = document.getElementById("modal-user-display-email");
+    const closeProfileModalBtn = document.getElementById("close-profile-modal");
 
     const txnModal = document.getElementById("txn-modal");
     const modalTitle = document.getElementById("modal-title");
@@ -631,111 +1279,278 @@
     const settingsModal = document.getElementById("settings-modal");
     const closeSettingsModal = document.getElementById("close-settings-modal");
     const settingDarkMode = document.getElementById("setting-dark-mode");
-    const settingCompactMode = document.getElementById("setting-compact-mode");
+    const settingFontSize = document.getElementById("setting-font-size");
+    const fontSizeDisplay = document.getElementById("font-size-display");
     const settingHideBanner = document.getElementById("setting-hide-banner");
 
-    // --- Google Cloud & Sync Handlers -----------------------------------
 
-    GoogleCloud.init(async (user) => {
+    let currentStatusMessage = "";
+    let isOpenStatusModalAttached = false;
+
+    function setStatus(text, stateType = "info", banner = statusBanner) {
+      if (!text) {
+        text = "";
+        banner.dataset.state = "info";
+      } else {
+        banner.dataset.state = stateType;
+      }
+
+      currentStatusMessage = text;
+      const textEl = banner.querySelector("#status-text");
+      if (textEl) textEl.textContent = text;
+
+      if (textEl && text) {
+        if (textEl.scrollWidth > textEl.clientWidth) {
+          banner.addEventListener("click", openStatusModal);
+          isOpenStatusModalAttached = true;
+        } else if (isOpenStatusModalAttached) {
+          banner.removeEventListener("click", openStatusModal);
+          isOpenStatusModalAttached = false;
+        }
+      }
+    }
+
+    function openStatusModal() {
+      statusModalText.textContent = currentStatusMessage;
+      statusModal.showModal();
+    }
+
+
+    // --- Unified File State & Sync Handlers -----------------------------
+
+    /**
+     * Unified Simultaneous Committer: Updates UI, Memory FS, and LocalStorage simultaneously, 
+     * then queues a graceful background sync for Google Drive.
+     */
+    function commitFileState(filename, content, triggerDriveSync = true) {
+      if (!filename) return;
+
+      // 1. Bonded UI Textarea
+      if (state.currentFilename === filename && journalText.value !== content) {
+        journalText.value = content;
+      }
+
+      // 2. Synchronous Virtual FS update
+      session.fs.setFile(filename, content);
+
+      // 3. Synchronous Local Storage update - Updates modifiedTime to NOW
+      StorageManager.saveLocalFile(filename, content);
+
+      // 4. Graceful Background Cloud Sync (debounced queue)
+      if (triggerDriveSync) {
+        queueDriveSync(filename, content);
+      }
+    }
+
+    function queueDriveSync(filename, content) {
+      if (!StorageManager.accessToken) return;
+      driveSyncQueue.set(filename, content);
+
+      clearTimeout(driveSyncTimer);
+      driveSyncTimer = setTimeout(processDriveSync, 2000);
+    }
+
+    async function processDriveSync() {
+      if (isDriveSyncing || driveSyncQueue.size === 0) return;
+      isDriveSyncing = true;
+
+      // Extract and lock current queue
+      const itemsToSync = Array.from(driveSyncQueue.entries());
+      driveSyncQueue.clear();
+
+      for (const [filename, content] of itemsToSync) {
+        try {
+          const driveFile = driveFilesList.find(f => f.name === filename);
+          const fileId = driveFile ? driveFile.id : null;
+
+          const res = await StorageManager.saveToDrive(filename, content, fileId);
+
+          if (!fileId && res.id) {
+            driveFilesList.push({ id: res.id, name: filename, status: 'synced', modifiedTime: new Date().toISOString() });
+          } else if (driveFile) {
+            // Update the modified time for existing files
+            driveFile.modifiedTime = new Date().toISOString();
+          }
+
+          // Refresh the modal UI if it is currently open
+          if (document.getElementById('profile-modal').hasAttribute('open')) {
+            updateProfileModalUI();
+          }
+        } catch (e) {
+          console.error("Drive sync failed for", filename, e);
+
+          if (e.message === "401" || e.message.includes("401")) {
+            try {
+              // Attempt automatic background refresh without user prompting
+              await StorageManager.refreshToken();
+              // Requeue and retry sync seamlessly
+              if (!driveSyncQueue.has(filename)) driveSyncQueue.set(filename, content);
+              isDriveSyncing = false;
+              processDriveSync();
+              return;
+            } catch (refreshErr) {
+              // Only fallback to manual if silent background refresh fails
+              setStatus("Session expired. Please sign in to sync.", "error");
+              StorageManager.accessToken = null;
+              document.getElementById("google-login-btn").style.display = "flex";
+              document.getElementById("user-profile-container").style.display = "none";
+              if (!driveSyncQueue.has(filename)) driveSyncQueue.set(filename, content); // Keep it queued
+              isDriveSyncing = false;
+              return; // Break out to prevent endless loop on bad token
+            }
+          }
+
+          // Requeue if failed and hasn't been overwritten since
+          if (!driveSyncQueue.has(filename)) {
+            driveSyncQueue.set(filename, content);
+          }
+        }
+      }
+
+      isDriveSyncing = false;
+
+      // Loop queue if more items were added during upload
+      if (driveSyncQueue.size > 0 && StorageManager.accessToken) {
+        driveSyncTimer = setTimeout(processDriveSync, 2000);
+      } else if (driveSyncQueue.size === 0) {
+        setStatus("Changes synced to Drive.", "ok");
+      }
+    }
+
+    StorageManager.init(async (user) => {
       applyAuthenticatedState(user);
       await performInitialSync();
     });
 
-    googleLoginBtn.addEventListener("click", () => GoogleCloud.promptLogin());
+    googleLoginBtn.addEventListener("click", () => StorageManager.promptLogin());
 
     function applyAuthenticatedState(user) {
       state.user = user;
-      AppStorage.setUser(user.email);
-      
+
       googleLoginBtn.style.display = "none";
       userProfileContainer.style.display = "flex";
       userAvatar.src = user.picture;
       userAvatar.title = user.name;
-      userDisplayName.textContent = user.name;
-      userDisplayEmail.textContent = user.email;
+
+      modalUserAvatar.src = user.picture;
+      modalUserDisplayName.textContent = user.name;
+      modalUserDisplayEmail.textContent = user.email;
 
       setStatus(`Welcome, ${user.name}! Connected to Drive.`, "ok");
     }
 
     logoutBtn.addEventListener("click", () => {
-      GoogleCloud.logout();
+      StorageManager.logout();
       state.user = null;
-      AppStorage.setUser("guest");
-      currentDriveFileId = null;
       driveFilesList = [];
+      driveSyncQueue.clear();
 
-      profileDropdown.style.display = "none";
+      profileModal.close();
       userProfileContainer.style.display = "none";
       userAvatar.src = "";
       googleLoginBtn.style.display = "flex";
 
+      state.currentFilename = null;
       updateFileSelector();
+      journalText.value = "";
+      enforceFileLockdown();
+
       setStatus("Logged out successfully.", "info");
     });
 
-    userAvatarBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const isVisible = profileDropdown.style.display === "block";
-      profileDropdown.style.display = isVisible ? "none" : "block";
+    userAvatarBtn.addEventListener("click", () => {
+      updateProfileModalUI();
+      profileModal.showModal();
     });
 
-    document.addEventListener("click", (e) => {
-      if (!userProfileContainer.contains(e.target)) {
-        profileDropdown.style.display = "none";
-      }
+    closeProfileModalBtn.addEventListener("click", () => {
+      profileModal.close();
     });
 
     async function performInitialSync() {
       try {
-        setStatus("Loading Drive files...", "loading");
-        driveFilesList = await GoogleCloud.listDriveFiles();
+        setStatus("Syncing all Google Drive files...", "loading");
+
+        const syncedResults = await StorageManager.syncAllDriveFiles();
+        driveFilesList = syncedResults.filter(f => f.status === "synced" || f.status === "synced_local_newer");
+
+        // Populate locally
+        syncedResults.forEach(file => {
+          if (file.status === "synced" && file.content !== undefined) {
+            // Apply drive content safely (local wasn't modified or drive is newer)
+            commitFileState(file.name, file.content, false);
+          } else if (file.status === "synced_local_newer" && file.content !== undefined) {
+            // Local file is newer! Keep local memory but trigger sync up to Drive
+            commitFileState(file.name, file.content, true);
+          }
+        });
+
         updateFileSelector();
 
-        if (state.currentFilename) {
-          const matchedDriveFile = driveFilesList.find(f => f.name === state.currentFilename);
-          if (matchedDriveFile) {
-            currentDriveFileId = matchedDriveFile.id;
-            const content = await GoogleCloud.getFileFromDrive(currentDriveFileId);
-            AppStorage.saveFile(state.currentFilename, content);
-            session.fs.setFile(state.currentFilename, content);
-            journalText.value = content;
-            await reparse();
-            setStatus(`Synced ${state.currentFilename} from Drive.`, "ok");
-          } else {
-            queueDriveSync();
-          }
-        } else {
-           setStatus("Ready.", "ok");
+        if (!state.currentFilename && syncedResults.length > 0) {
+          state.currentFilename = syncedResults[0].name;
+          fileSelector.value = state.currentFilename;
         }
+
+        if (state.currentFilename) {
+          const content = StorageManager.getLocalFile(state.currentFilename) || "";
+          commitFileState(state.currentFilename, content, false);
+          enforceFileLockdown();
+          await reparse();
+        } else {
+          enforceFileLockdown();
+        }
+
+        setStatus("All Drive files synced smoothly.", "ok");
       } catch (e) {
-        console.error(e);
-        setStatus("Drive sync failed.", "error");
+        console.error("Initial Sync Error:", e);
+        if (e.message === "401" || e.message.includes("401")) {
+          setStatus("Session expired. Working offline.", "error");
+          document.getElementById("google-login-btn").style.display = "flex";
+          document.getElementById("user-profile-container").style.display = "none";
+        } else {
+          setStatus("Drive sync failed. Working offline.", "error");
+        }
+
+        // Ensure local files are loaded anyway
+        updateFileSelector();
+        const localFiles = StorageManager.listLocalFiles();
+        if (!state.currentFilename && localFiles.length > 0) {
+          state.currentFilename = localFiles[0];
+          fileSelector.value = state.currentFilename;
+        }
+
+        if (state.currentFilename) {
+          const content = StorageManager.getLocalFile(state.currentFilename) || "";
+          commitFileState(state.currentFilename, content, false);
+          enforceFileLockdown();
+          await reparse();
+        } else {
+          enforceFileLockdown();
+        }
       }
     }
 
-    function queueDriveSync() {
-      if (!GoogleCloud.accessToken || !state.currentFilename) return;
-      clearTimeout(driveSyncTimer);
-      driveSyncTimer = setTimeout(async () => {
-        try {
-          const content = AppStorage.getFile(state.currentFilename);
-          const res = await GoogleCloud.saveToDrive(state.currentFilename, content, currentDriveFileId);
-          if (!currentDriveFileId && res.id) {
-            currentDriveFileId = res.id;
-            driveFilesList.push({ id: res.id, name: state.currentFilename });
-          }
-          // Brief subtle confirmation 
-          if (document.getElementById("status-text").textContent.includes("Parsing")) {
-             // Let reparse UI take precedence if typing
-          } else {
-             setStatus("Saved to Drive.", "info");
-             setTimeout(() => { if (document.getElementById("status-text").textContent === "Saved to Drive.") setStatus("Ready", "info"); }, 1500);
-          }
-        } catch (e) {
-          console.error(e);
-          setStatus("Background Drive sync failed.", "error");
+    function updateProfileModalUI() {
+      const filesListEl = document.getElementById("synced-files-list");
+
+      if (filesListEl) {
+        if (driveFilesList.length === 0) {
+          filesListEl.innerHTML = `<div style="padding: 12px; font-family: var(--mono); font-size: 11px; color: var(--ink-soft); text-align: center;">No Drive files found.</div>`;
+        } else {
+          filesListEl.innerHTML = driveFilesList.map(f => `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--rule); font-family: var(--mono); font-size: 12px;">
+              <div>
+                <strong style="color: var(--ink);">${escapeHtml(f.name)}</strong>
+                <div style="font-size: 10px; color: var(--ink-soft);">${f.modifiedTime ? new Date(f.modifiedTime).toLocaleString() : 'Synced'}</div>
+              </div>
+              <span style="font-size: 10px; padding: 2px 6px; border-radius: 4px; background: #edf7f2; color: var(--accent-ink); border: 1px solid #a8d5ba;">
+                ${f.status === 'error' ? 'Error' : 'Synced'}
+              </span>
+            </div>
+          `).join('');
         }
-      }, 1500);
+      }
     }
 
     // --- Adapters & UI Renderers ----------------------------------------
@@ -820,7 +1635,7 @@
     function renderTree(nodeList) {
       const container = document.createElement("div"); container.className = "tree-container";
       if (nodeList.length === 0) {
-        container.innerHTML = `<div style="padding: 12px; color: var(--ink-soft); font-family: var(--mono); font-size: 12px;">No hierarchical data found. Switch to raw view if this is unexpected.</div>`;
+        container.innerHTML = `<div style="padding: 12px; color: var(--ink-soft); font-family: var(--mono); font-size: calc(var(--base-font-size) * 0.96);">No hierarchical data found. Switch to raw view if this is unexpected.</div>`;
         return container;
       }
       nodeList.forEach(node => container.appendChild(renderTreeNode(node)));
@@ -844,7 +1659,7 @@
 
     function renderText(data) {
       const pre = document.createElement("pre");
-      pre.style.cssText = "font-family: var(--mono); font-size: 12px; padding: 12px; background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; overflow-x: auto; margin: 0;";
+      pre.style.cssText = "font-family: var(--mono); font-size: calc(var(--base-font-size) * 0.96); padding: 12px; background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; overflow-x: auto; margin: 0;";
       let text = "";
       if (typeof data === 'string') text = data;
       else if (data && typeof data.data === 'string') text = data.data;
@@ -947,19 +1762,25 @@
       check: (data) => renderText(data),
     };
 
-    // --- File Storage & Management --------------------------------------
+    // --- File Management UI Wrappers --------------------------------------
 
     function syncFilesystem() {
-      const files = AppStorage.listFiles();
+      const files = StorageManager.listLocalFiles();
       files.forEach(f => {
-        const content = AppStorage.getFile(f) || "";
+        const content = StorageManager.getLocalFile(f) || "";
         session.fs.setFile(f, content);
       });
       return files;
     }
 
+    function updateStartupSelector() {
+      const startupSelector = document.getElementById("startup-file-selector");
+      if (startupSelector) {
+        startupSelector.innerHTML = fileSelector.innerHTML;
+      }
+    }
     function updateFileSelector() {
-      const localFiles = AppStorage.listFiles();
+      const localFiles = StorageManager.listLocalFiles();
       const driveNames = driveFilesList.map(f => f.name);
       const allFiles = Array.from(new Set([...localFiles, ...driveNames])).sort();
 
@@ -970,13 +1791,21 @@
         fileSelector.appendChild(opt);
       });
       if (state.currentFilename) fileSelector.value = state.currentFilename;
+
+      updateStartupSelector();
     }
+
 
     function enforceFileLockdown() {
       const hasFile = !!state.currentFilename;
+
       journalText.disabled = !hasFile;
       document.getElementById("addtxnbtn").disabled = !hasFile;
       document.getElementById("importcsvbtn").disabled = !hasFile;
+
+      // Toggle Visibility
+      renameFileBtn.style.display = hasFile ? "" : "none";
+      deleteFileBtn.style.display = hasFile ? "" : "none";
 
       if (!hasFile) {
         journalText.value = "Please create or select a journal file to begin.";
@@ -986,45 +1815,16 @@
       }
     }
 
-    function saveCurrentFile() {
-      if (!state.currentFilename) return;
-      const content = journalText.value;
-      AppStorage.saveFile(state.currentFilename, content);
-      session.fs.setFile(state.currentFilename, content);
-      
-      // Auto-trigger sync to Drive whenever locally saved
-      queueDriveSync();
-    }
-
     fileSelector.addEventListener("change", async (e) => {
       const selected = e.target.value;
       if (!selected) {
         state.currentFilename = null;
-        currentDriveFileId = null;
         enforceFileLockdown();
         return;
       }
       state.currentFilename = selected;
-      
-      const matchedDriveFile = driveFilesList.find(f => f.name === selected);
-      if (matchedDriveFile && GoogleCloud.accessToken) {
-        currentDriveFileId = matchedDriveFile.id;
-        try {
-          setStatus(`Loading ${selected} from Drive...`, "loading");
-          const content = await GoogleCloud.getFileFromDrive(currentDriveFileId);
-          AppStorage.saveFile(selected, content);
-          setStatus(`Loaded ${selected}`, "ok");
-        } catch (err) {
-          console.error(err);
-          setStatus(`Error loading from Drive. Using local copy.`, "error");
-        }
-      } else {
-        currentDriveFileId = null; 
-      }
-
-      const content = AppStorage.getFile(selected) || "";
-      journalText.value = content;
-      session.fs.setFile(selected, content);
+      const content = StorageManager.getLocalFile(selected) || "";
+      commitFileState(selected, content, false);
       enforceFileLockdown();
       await reparse();
     });
@@ -1041,51 +1841,132 @@
       if (!name) return;
       if (!name.endsWith(".journal")) name += ".journal";
 
-      if (AppStorage.getFile(name) !== null) {
+      if (StorageManager.getLocalFile(name) !== null) {
         alert("A file with this name already exists.");
         return;
       }
 
-      AppStorage.saveFile(name, "");
-      session.fs.setFile(name, "");
       state.currentFilename = name;
-      currentDriveFileId = null; 
-      
+      commitFileState(name, "", true);
+
       updateFileSelector();
-      journalText.value = "";
       enforceFileLockdown();
       newFileModal.close();
-      
-      queueDriveSync(); 
       await reparse();
+    });
+
+    // --- Rename Flow ---
+    renameFileBtn.addEventListener("click", () => {
+      renameFilenameInput.value = state.currentFilename;
+      renameFileModal.showModal();
+    });
+
+    cancelRenameFileBtn.addEventListener("click", () => renameFileModal.close());
+
+    submitRenameFileBtn.addEventListener("click", async () => {
+      let newName = renameFilenameInput.value.trim();
+      if (!newName) return;
+      if (!newName.endsWith(".journal")) newName += ".journal";
+
+      if (newName === state.currentFilename) {
+        renameFileModal.close();
+        return;
+      }
+      if (StorageManager.getLocalFile(newName) !== null) {
+        alert("A file with this name already exists.");
+        return;
+      }
+
+      const oldName = state.currentFilename;
+      const content = StorageManager.getLocalFile(oldName) || "";
+
+      setStatus("Renaming file...", "loading");
+
+      // 1. Memory VFS Sync
+      session.fs.setFile(newName, content);
+      session.fs.deleteFile(oldName);
+
+      // 2. Local Storage Sync
+      StorageManager.renameLocalFile(oldName, newName);
+
+      // 3. Google Drive Native Rename (PATCH metadata)
+      const driveFile = driveFilesList.find(f => f.name === oldName);
+      if (driveFile && StorageManager.accessToken) {
+        try {
+          await StorageManager.renameInDrive(driveFile.id, newName);
+          driveFile.name = newName;
+          driveFile.modifiedTime = new Date().toISOString();
+        } catch (e) {
+          console.error("Failed to rename in Drive", e);
+        }
+      } else if (driveFile) {
+        driveFile.name = newName; // optimistic update
+      }
+
+      // Handle in-progress debounced queues
+      if (driveSyncQueue.has(oldName)) {
+        driveSyncQueue.set(newName, driveSyncQueue.get(oldName));
+        driveSyncQueue.delete(oldName);
+      }
+
+      state.currentFilename = newName;
+      updateFileSelector();
+      enforceFileLockdown();
+      renameFileModal.close();
+      setStatus("File renamed successfully.", "ok");
+
+      await reparse();
+    });
+
+    // --- Delete Flow ---
+    deleteFileBtn.addEventListener("click", async () => {
+      if (!confirm(`Are you sure you want to delete ${state.currentFilename}? This will permanently remove it from local storage and Google Drive.`)) return;
+
+      const targetName = state.currentFilename;
+      setStatus("Deleting file...", "loading");
+
+      // 1. Memory VFS Sync
+      session.fs.deleteFile(targetName);
+
+      // 2. Local Storage Sync
+      StorageManager.deleteLocalFile(targetName);
+
+      // 3. Google Drive Native Delete
+      const driveFileIndex = driveFilesList.findIndex(f => f.name === targetName);
+      if (driveFileIndex > -1) {
+        const driveFile = driveFilesList[driveFileIndex];
+        if (StorageManager.accessToken) {
+          try {
+            await StorageManager.deleteFromDrive(driveFile.id);
+          } catch (e) {
+            console.error("Failed to delete from Drive", e);
+          }
+        }
+        driveFilesList.splice(driveFileIndex, 1);
+      }
+
+      // Cancel any pending writes for this file
+      driveSyncQueue.delete(targetName);
+
+      // Resolve UI State
+      const remainingFiles = StorageManager.listLocalFiles();
+      state.currentFilename = remainingFiles.length > 0 ? remainingFiles[0] : null;
+
+      updateFileSelector();
+      if (state.currentFilename) {
+        const content = StorageManager.getLocalFile(state.currentFilename) || "";
+        commitFileState(state.currentFilename, content, false);
+        enforceFileLockdown();
+        await reparse();
+      } else {
+        enforceFileLockdown();
+      }
+
+      setStatus("File deleted successfully.", "ok");
     });
 
     // --- Global UI Behaviors --------------------------------------------
 
-    let currentStatusMessage = "";
-    let isOpenStatusModalAttached = false;
-
-    function setStatus(text, stateType = "info", banner = statusBanner) {
-      currentStatusMessage = text;
-      const textEl = banner.querySelector("#status-text");
-      if (textEl) textEl.textContent = text;
-      banner.dataset.state = stateType;
-
-      if (textEl) {
-        if (textEl.scrollWidth > textEl.clientWidth) {
-          banner.addEventListener("click", openStatusModal);
-          isOpenStatusModalAttached = true;
-        } else if (isOpenStatusModalAttached) {
-          banner.removeEventListener("click", openStatusModal);
-          isOpenStatusModalAttached = false;
-        }
-      }
-    }
-
-    function openStatusModal() {
-      statusModalText.textContent = currentStatusMessage;
-      statusModal.showModal();
-    }
     closeStatusModalBtn.addEventListener("click", () => statusModal.close());
 
     function syncUIState() {
@@ -1110,8 +1991,7 @@
       if (printResult && typeof printResult.data === 'string') newText = printResult.data;
       else if (printResult) newText = String(printResult);
 
-      journalText.value = newText;
-      saveCurrentFile();
+      commitFileState(state.currentFilename, newText, true);
 
       syncUIState();
       await reparse();
@@ -1176,7 +2056,7 @@
         txnDate.value = txn.date;
         txnDesc.value = txn.description;
         postingsContainer.innerHTML = "";
-        
+
         txn.postings.forEach(p => {
           const row = document.createElement("div"); row.className = "posting-row";
           row.style.cssText = "display: grid; grid-template-columns: 2fr 1fr auto; gap: 8px; align-items: center;";
@@ -1210,7 +2090,6 @@
     let debounceTimer = null;
 
     function scheduleReparse() {
-      setStatus("Parsing...", "loading");
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(reparse, 300);
     }
@@ -1218,12 +2097,14 @@
     async function reparse() {
       if (!state.currentFilename) return;
       setReportButtonsEnabled(false);
-      
+
       const forecast = forecastToggle.checked;
       const result = await session.loadJournal(journalText.value, forecast);
 
       if (result.ok) {
-        setStatus(`Ready.`, "info");
+        if (statusBanner.dataset.state === "error") {
+          setStatus("", "info"); // Clear the error status smoothly without "Ready" spam
+        }
         if (state.isGui) await renderGuiJournal();
       } else {
         setStatus(`Journal error: ${result.error}`, "error");
@@ -1271,12 +2152,12 @@
 
         if (mode === 'append') {
           const currentText = journalText.value.trim();
-          journalText.value = currentText ? currentText + "\n\n" + newJournalText : newJournalText;
+          const finalMergedContent = currentText ? currentText + "\n\n" + newJournalText : newJournalText;
+          commitFileState(state.currentFilename, finalMergedContent, true);
         } else {
-          journalText.value = newJournalText;
+          commitFileState(state.currentFilename, newJournalText, true);
         }
 
-        saveCurrentFile(); 
         await reparse();
         setStatus("Import successful.", "ok", modalBanner);
 
@@ -1313,7 +2194,7 @@
     }
 
     journalText.addEventListener("input", () => {
-      saveCurrentFile(); 
+      commitFileState(state.currentFilename, journalText.value, true);
       scheduleReparse();
     });
 
@@ -1335,10 +2216,21 @@
       if (e.target.checked) document.documentElement.classList.add("dark-mode");
       else document.documentElement.classList.remove("dark-mode");
     });
-    settingCompactMode.addEventListener("change", (e) => {
-      if (e.target.checked) { document.documentElement.style.setProperty('--sans', 'var(--mono)'); document.documentElement.style.fontSize = '12px'; }
-      else { document.documentElement.style.removeProperty('--sans'); document.documentElement.style.removeProperty('font-size'); }
+
+    settingFontSize.addEventListener("input", (e) => {
+      const size = e.target.value;
+      document.documentElement.style.setProperty('--base-font-size', `${size}px`);
+      fontSizeDisplay.textContent = `${size}px`;
+      localStorage.setItem('wedger_font_size', size);
     });
+
+    const savedSize = localStorage.getItem('wedger_font_size');
+    if (savedSize) {
+      settingFontSize.value = savedSize;
+      document.documentElement.style.setProperty('--base-font-size', `${savedSize}px`);
+      if (fontSizeDisplay) fontSizeDisplay.textContent = `${savedSize}px`;
+    }
+
     settingHideBanner.addEventListener("change", (e) => {
       if (e.target.checked) { statusBanner.style.display = 'none'; document.body.style.paddingTop = '0'; mainContent.style.height = '100dvh'; }
       else { statusBanner.style.display = 'flex'; document.body.style.paddingTop = 'calc(2.4vw + 1px)'; mainContent.style.height = 'calc(100dvh - (2.4vw + 1px))'; }
@@ -1430,7 +2322,7 @@
       try {
         let result = editingTxnId !== null ? await session.updateTransaction(editingTxnId, rawTxnText) : await session.balanceTransaction(rawTxnText);
         if (result && result.error) { setStatus(`Error: ${result.error}`, "error", modalStatusBanner); setReportButtonsEnabled(true); return; }
-        await syncJournalTextToState(); 
+        await syncJournalTextToState();
         setStatus(editingTxnId !== null ? "Transaction updated successfully." : "Transaction added successfully.", "ok");
         txnModal.close();
       } catch (error) {
@@ -1486,6 +2378,7 @@
       } finally { setReportButtonsEnabled(session.isLoaded); }
     }
 
+
     // --- Init -----------------------------------------------------------
     setStatus("Initializing WASM module...", "loading");
     const session = await HledgerSession.init();
@@ -1494,18 +2387,62 @@
     const files = syncFilesystem();
     updateFileSelector();
 
-    if (files.length === 1) {
-      state.currentFilename = files[0]; fileSelector.value = files[0]; journalText.value = AppStorage.getFile(files[0]) || "";
-    } else if (files.length === 0) {
-      state.currentFilename = null; setTimeout(() => newFileModal.showModal(), 500);
-    }
+    const startupModal = document.getElementById("startup-modal");
+    const startupFileSelector = document.getElementById("startup-file-selector");
+    const startupOpenBtn = document.getElementById("startup-open-btn");
+    const startupNewBtn = document.getElementById("startup-new-btn");
 
     enforceFileLockdown();
     syncUIState();
 
-    if (state.currentFilename) { await reparse(); } 
-    else { setStatus("Please create or select a file.", "info"); }
+    // Check if we have files to show, otherwise go straight to the "New File" modal
+    if (files.length === 0) {
+      state.currentFilename = null;
+      setTimeout(() => newFileModal.showModal(), 500);
+    } else if (files.length === 1) {
+      // Automatically open the file if there is only one available
+      state.currentFilename = files[0];
+      fileSelector.value = state.currentFilename;
 
+      const content = StorageManager.getLocalFile(state.currentFilename) || "";
+      commitFileState(state.currentFilename, content, false);
+      enforceFileLockdown();
+      await reparse();
+    } else {
+      // Show the startup modal if there are multiple files to choose from
+      state.currentFilename = null;
+      setTimeout(() => startupModal.showModal(), 500);
+    }
+
+
+    // Handle opening a file from the startup modal
+    startupOpenBtn.addEventListener("click", async () => {
+      const selected = startupFileSelector.value;
+      if (!selected) {
+        const startupStatusText = document.getElementById("startup-status-text");
+        const startupStatusBanner = document.getElementById("startup-status");
+        startupStatusBanner.dataset.state = "error";
+        startupStatusText.textContent = "Please select a file to open.";
+        return;
+      }
+
+      startupModal.close();
+      fileSelector.value = selected;
+      state.currentFilename = selected;
+
+      const content = StorageManager.getLocalFile(selected) || "";
+      commitFileState(selected, content, false);
+      enforceFileLockdown();
+      await reparse();
+    });
+
+    // Handle creating a new file from the startup modal
+    startupNewBtn.addEventListener("click", () => {
+      startupModal.close();
+      newFilenameInput.value = "";
+      newFileModal.showModal();
+    });
   </script>
 </body>
+
 </html>
