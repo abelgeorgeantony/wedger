@@ -41,6 +41,45 @@
       padding-top: calc(2.4vw + 1px);
     }
 
+    /* --- Loading Overlay --- */
+    #loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: var(--paper);
+      z-index: 10000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      transition: opacity 0.4s ease, visibility 0.4s ease;
+    }
+
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid var(--rule);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    #loading-details {
+      font-family: var(--mono);
+      font-size: calc(var(--base-font-size) * 1.1);
+      color: var(--ink-soft);
+      font-weight: 500;
+    }
+
     main {
       display: grid;
       grid-template-columns: minmax(360px, 1fr) minmax(240px, 320px);
@@ -805,6 +844,45 @@
       margin: 10px 0;
     }
 
+    /* --- File List Selectors (Modal) --- */
+    .file-list-container {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 200px;
+      overflow-y: auto;
+      border: 1px solid var(--rule);
+      border-radius: 4px;
+      background: var(--paper);
+      padding: 4px;
+    }
+
+    .file-list-item {
+      padding: 10px 12px;
+      cursor: pointer;
+      border-radius: 4px;
+      font-family: var(--mono);
+      font-size: calc(var(--base-font-size) * 0.96);
+      color: var(--ink);
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+
+    .file-list-item:hover {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .file-list-item.empty-state {
+      color: var(--ink-soft);
+      cursor: default;
+      text-align: center;
+    }
+
+    .file-list-item.empty-state:hover {
+      background: transparent;
+      color: var(--ink-soft);
+    }
+
     @media (max-width: 780px) {
       main {
         grid-template-columns: 1fr;
@@ -860,6 +938,12 @@
 </head>
 
 <body>
+  <!-- Global Loading Overlay -->
+  <div id="loading-overlay">
+    <div class="spinner"></div>
+    <div id="loading-details">Initializing runtime...</div>
+  </div>
+
   <div id="status" class="status-banner" data-state="loading">
     <span id="status-text">Loading WASM module...</span>
   </div>
@@ -926,10 +1010,10 @@
       <div class="view-bar">
         <div id="file-manager" style="display: flex; flex-direction: column;">
           <div>
-          <select id="file-selector">
-            <option value="">-- No file selected --</option>
-          </select>
-          <button type="button" id="new-file-btn" class="secondary"
+            <select id="file-selector">
+              <option value="">-- No file selected --</option>
+            </select>
+            <button type="button" id="new-file-btn" class="secondary"
               style="padding: 6px 10px; min-height: auto;">New</button>
           </div>
           <div style="display: flex; flex-direction: row; gap: 4px;">
@@ -1174,19 +1258,56 @@
         <span id="startup-status-text">Select a journal to open</span>
       </div>
       <div class="field">
-        <label class="field-label" for="startup-file-selector">Available Files</label>
-        <select id="startup-file-selector" style="margin-bottom: 16px;">
-          <option value="">-- No files available --</option>
-        </select>
+        <label class="field-label" style="margin-bottom: 4px; display: block;">Available Files</label>
+        <div id="startup-file-list" class="file-list-container" style="margin-bottom: 16px;">
+          <!-- Populated dynamically via JS -->
+        </div>
       </div>
-      <div class="modal-actions" style="justify-content: space-between;">
+      <div class="modal-actions" style="justify-content: flex-end;">
         <button type="button" class="secondary" id="startup-new-btn">Create New File</button>
-        <button type="button" id="startup-open-btn">Open Journal</button>
       </div>
     </dialog>
   </main>
 
   <script type="module">
+    // --- Detailed Fetch Monitor logic for tracking Resource Loading ---
+    const originalFetch = window.fetch;
+    window.fetch = async (...args) => {
+      const response = await originalFetch(...args);
+      
+      // Skip tracking API calls or opaque responses to prevent CORS issues
+      const url = typeof args[0] === 'string' ? args[0] : (args[0] && args[0].url ? args[0].url : '');
+      if (!response.body || response.type === 'opaque' || url.includes('googleapis.com')) {
+        return response;
+      }
+
+      const contentLength = response.headers.get('content-length');
+      const total = contentLength ? parseInt(contentLength, 10) : 0;
+      let loaded = 0;
+      
+      const reader = response.body.getReader();
+      const stream = new ReadableStream({
+        async start(controller) {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) {
+              controller.close();
+              break;
+            }
+            loaded += value.length;
+            const details = document.getElementById('loading-details');
+            if (details) {
+              const resourceName = url.split('/').pop() || 'resource data';
+              details.textContent = `Fetching ${resourceName}: ${loaded} bytes ${total ? `/ ${total} bytes` : ''}`;
+            }
+            controller.enqueue(value);
+          }
+        }
+      });
+      return new Response(stream, { headers: response.headers, status: response.status, statusText: response.statusText });
+    };
+
+
     const isLocalDev = window.location.protocol === "file:" || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
     const libBaseUrl = isLocalDev ? "http://localhost:5001/" : "https://cdn.jsdelivr.net/gh/abelgeorgeantony/hledger-lib-wasm@main/";
 
@@ -1774,11 +1895,43 @@
     }
 
     function updateStartupSelector() {
-      const startupSelector = document.getElementById("startup-file-selector");
-      if (startupSelector) {
-        startupSelector.innerHTML = fileSelector.innerHTML;
+      const startupList = document.getElementById("startup-file-list");
+      if (!startupList) return;
+      
+      startupList.innerHTML = "";
+
+      const localFiles = StorageManager.listLocalFiles();
+      const driveNames = driveFilesList.map(f => f.name);
+      const allFiles = Array.from(new Set([...localFiles, ...driveNames])).sort();
+
+      if (allFiles.length === 0) {
+        startupList.innerHTML = '<div class="file-list-item empty-state">-- No files available --</div>';
+        return;
       }
+
+      allFiles.forEach(f => {
+        const item = document.createElement("div");
+        item.className = "file-list-item";
+        item.textContent = f;
+        
+        // Let the list item open the file instantly
+        item.addEventListener("click", async () => {
+          const startupModal = document.getElementById("startup-modal");
+          startupModal.close();
+          
+          fileSelector.value = f;
+          state.currentFilename = f;
+
+          const content = StorageManager.getLocalFile(f) || "";
+          commitFileState(f, content, false);
+          enforceFileLockdown();
+          await reparse();
+        });
+        
+        startupList.appendChild(item);
+      });
     }
+    
     function updateFileSelector() {
       const localFiles = StorageManager.listLocalFiles();
       const driveNames = driveFilesList.map(f => f.name);
@@ -2388,8 +2541,6 @@
     updateFileSelector();
 
     const startupModal = document.getElementById("startup-modal");
-    const startupFileSelector = document.getElementById("startup-file-selector");
-    const startupOpenBtn = document.getElementById("startup-open-btn");
     const startupNewBtn = document.getElementById("startup-new-btn");
 
     enforceFileLockdown();
@@ -2399,6 +2550,7 @@
     if (files.length === 0) {
       state.currentFilename = null;
       setTimeout(() => newFileModal.showModal(), 500);
+      setStatus("Ready", "ok");
     } else if (files.length === 1) {
       // Automatically open the file if there is only one available
       state.currentFilename = files[0];
@@ -2408,33 +2560,13 @@
       commitFileState(state.currentFilename, content, false);
       enforceFileLockdown();
       await reparse();
+      setStatus("Ready", "ok");
     } else {
       // Show the startup modal if there are multiple files to choose from
       state.currentFilename = null;
       setTimeout(() => startupModal.showModal(), 500);
+      setStatus("Ready", "ok");
     }
-
-
-    // Handle opening a file from the startup modal
-    startupOpenBtn.addEventListener("click", async () => {
-      const selected = startupFileSelector.value;
-      if (!selected) {
-        const startupStatusText = document.getElementById("startup-status-text");
-        const startupStatusBanner = document.getElementById("startup-status");
-        startupStatusBanner.dataset.state = "error";
-        startupStatusText.textContent = "Please select a file to open.";
-        return;
-      }
-
-      startupModal.close();
-      fileSelector.value = selected;
-      state.currentFilename = selected;
-
-      const content = StorageManager.getLocalFile(selected) || "";
-      commitFileState(selected, content, false);
-      enforceFileLockdown();
-      await reparse();
-    });
 
     // Handle creating a new file from the startup modal
     startupNewBtn.addEventListener("click", () => {
@@ -2442,6 +2574,15 @@
       newFilenameInput.value = "";
       newFileModal.showModal();
     });
+
+    // Dismiss the full screen loading overlay now that everything has spun up completely.
+    const globalOverlay = document.getElementById("loading-overlay");
+    if (globalOverlay) {
+        globalOverlay.style.opacity = "0";
+        globalOverlay.style.visibility = "hidden";
+        setTimeout(() => globalOverlay.remove(), 400); // 400ms matching css transition
+    }
+
   </script>
 </body>
 
