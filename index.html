@@ -1274,7 +1274,7 @@
     const originalFetch = window.fetch;
     window.fetch = async (...args) => {
       const response = await originalFetch(...args);
-      
+
       // Skip tracking API calls or opaque responses to prevent CORS issues
       const url = typeof args[0] === 'string' ? args[0] : (args[0] && args[0].url ? args[0].url : '');
       if (!response.body || response.type === 'opaque' || url.includes('googleapis.com')) {
@@ -1284,7 +1284,7 @@
       const contentLength = response.headers.get('content-length');
       const total = contentLength ? parseInt(contentLength, 10) : 0;
       let loaded = 0;
-      
+
       const reader = response.body.getReader();
       const stream = new ReadableStream({
         async start(controller) {
@@ -1298,7 +1298,9 @@
             const details = document.getElementById('loading-details');
             if (details) {
               const resourceName = url.split('/').pop() || 'resource data';
-              details.textContent = `Fetching ${resourceName}: ${loaded} bytes ${total ? `/ ${total} bytes` : ''}`;
+              const toMB = (bytes) => (bytes / (1024 * 1024)).toFixed(3);
+
+              details.textContent = `Fetching ${resourceName}: ${toMB(loaded)} MB ${total ? `/ ${toMB(total)} MB` : ''}`;
             }
             controller.enqueue(value);
           }
@@ -1897,7 +1899,7 @@
     function updateStartupSelector() {
       const startupList = document.getElementById("startup-file-list");
       if (!startupList) return;
-      
+
       startupList.innerHTML = "";
 
       const localFiles = StorageManager.listLocalFiles();
@@ -1913,12 +1915,12 @@
         const item = document.createElement("div");
         item.className = "file-list-item";
         item.textContent = f;
-        
+
         // Let the list item open the file instantly
         item.addEventListener("click", async () => {
           const startupModal = document.getElementById("startup-modal");
           startupModal.close();
-          
+
           fileSelector.value = f;
           state.currentFilename = f;
 
@@ -1927,11 +1929,11 @@
           enforceFileLockdown();
           await reparse();
         });
-        
+
         startupList.appendChild(item);
       });
     }
-    
+
     function updateFileSelector() {
       const localFiles = StorageManager.listLocalFiles();
       const driveNames = driveFilesList.map(f => f.name);
@@ -2578,9 +2580,9 @@
     // Dismiss the full screen loading overlay now that everything has spun up completely.
     const globalOverlay = document.getElementById("loading-overlay");
     if (globalOverlay) {
-        globalOverlay.style.opacity = "0";
-        globalOverlay.style.visibility = "hidden";
-        setTimeout(() => globalOverlay.remove(), 400); // 400ms matching css transition
+      globalOverlay.style.opacity = "0";
+      globalOverlay.style.visibility = "hidden";
+      setTimeout(() => globalOverlay.remove(), 400); // 400ms matching css transition
     }
 
   </script>
