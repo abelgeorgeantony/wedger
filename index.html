@@ -1,6 +1,5 @@
 <!doctype html>
 <html lang="en">
-
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -173,6 +172,13 @@
       cursor: not-allowed;
     }
 
+    textarea[readonly] {
+      background: var(--paper);
+      color: var(--ink);
+      cursor: default;
+      opacity: 1;
+    }
+
     input[type="text"],
     input[type="date"],
     select {
@@ -291,7 +297,28 @@
 
     .view-bar-right {
       display: flex;
+      flex-direction: column;
       gap: 8px;
+      align-items: end;
+    }
+
+    .view-bar-right div {
+      display: flex;
+      flex-direction: row;
+      width: fit-content;
+      gap: 8px;
+    }
+
+    .view-bar-right .field {
+      margin: 0;
+    }
+
+    .view-bar-right .field input {
+      padding: 4px 10px;
+    }
+
+    .view-bar-right .field button {
+      padding: 7px 7px;
     }
 
     #input-view,
@@ -621,7 +648,7 @@
 
     .txn-title-row {
       display: flex;
-      align-items: flex-start;
+      align-items: center;
       justify-content: space-between;
       gap: 8px;
     }
@@ -649,6 +676,9 @@
       display: flex;
       flex-direction: column;
       gap: 4px;
+      list-style-type: none;
+      padding-left: 0;
+      margin: 0;
     }
 
     .posting-item {
@@ -658,6 +688,14 @@
       font-family: var(--mono);
       font-size: calc(var(--base-font-size) * 1.2);
       gap: 8px;
+      padding: 8px 12px 8px 4px;
+      background-color: transparent;
+      transition: background-color 0.2s ease-in-out;
+      cursor: default;
+    }
+
+    .posting-item:hover {
+      background-color: rgba(0, 0, 0, 0.04);
     }
 
     .posting-item.credit {
@@ -683,13 +721,6 @@
       white-space: normal;
       flex: 1;
       min-width: 0;
-    }
-
-    .posting-account::before {
-      content: "•";
-      color: var(--ink-soft);
-      opacity: 0.5;
-      flex-shrink: 0;
     }
 
     .posting-amount {
@@ -883,6 +914,16 @@
       color: var(--ink-soft);
     }
 
+    /* --- Raw Editor Modal --- */
+    #raw-edit-textarea {
+      flex: 1;
+      min-height: 200px;
+      font-family: var(--mono);
+      font-size: calc(var(--base-font-size) * 1.04);
+      line-height: 1.6;
+      resize: none;
+    }
+
     @media (max-width: 780px) {
       main {
         grid-template-columns: 1fr;
@@ -927,6 +968,31 @@
       .split-pane {
         flex-direction: column;
       }
+
+      .txn-card {
+        position: relative;
+        overflow: hidden;
+      }
+
+      .txn-content {
+        width: 100%;
+      }
+
+      .txn-actions-container {
+        position: absolute;
+        right: 0;
+        top: 0;
+        height: 100%;
+        width: 90px;
+        transform: translateX(100%);
+        transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+        z-index: 2;
+        box-shadow: -4px 0 12px rgba(0, 0, 0, 0.15);
+      }
+
+      .txn-card.show-actions .txn-actions-container {
+        transform: translateX(0);
+      }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -936,7 +1002,6 @@
     }
   </style>
 </head>
-
 <body>
   <!-- Global Loading Overlay -->
   <div id="loading-overlay">
@@ -947,6 +1012,7 @@
   <div id="status" class="status-banner" data-state="loading">
     <span id="status-text">Loading WASM module...</span>
   </div>
+
   <main>
     <section class="pane pane-left">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
@@ -957,9 +1023,7 @@
             <span class="slider"></span>
           </label>
         </div>
-
         <div style="display: flex; flex-direction: row; align-items: center; gap: 12px;">
-
           <!-- Unified Google Login/Sync Button -->
           <button type="button" id="google-login-btn" class="secondary"
             style="display: flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid var(--rule); border-radius: 4px; background: var(--panel);">
@@ -973,17 +1037,14 @@
               <path fill="#EA4335"
                 d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.27 0 3.18 2.69 1.2 6.57l4.12 3.15c.94-2.82 3.57-4.97 6.68-4.97z" />
             </svg>
-
             Sign in with google
           </button>
-
           <!-- Authenticated User Profile Trigger Button -->
           <div id="user-profile-container" style="display: none; position: relative; align-items: center;">
             <button type="button" id="user-avatar-btn" aria-label="User profile menu">
               <img id="user-avatar" src="" alt="Profile" referrerpolicy="no-referrer" />
             </button>
           </div>
-
           <button type="button" id="settings-btn" class="secondary"
             style="display: flex; align-items: center; gap: 6px; padding: 4px 8px; min-height: auto; border: none; flex-shrink: 0;"
             aria-label="Settings">
@@ -995,7 +1056,6 @@
               </path>
             </svg>
           </button>
-
           <button type="button" id="mobile-menu-btn" class="hamburger-btn" aria-label="Open Menu">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
               stroke-linecap="round" stroke-linejoin="round">
@@ -1019,19 +1079,31 @@
           <div style="display: flex; flex-direction: row; gap: 4px;">
             <button type="button" id="rename-file-btn" class="secondary"
               style="padding: 6px 10px; min-height: auto; display: none;">Rename</button>
+            <button type="button" id="edit-file-btn" class="secondary"
+              style="padding: 6px 10px; min-height: auto; display: none;">Edit</button>
             <button type="button" id="delete-file-btn" class="secondary"
               style="padding: 6px 10px; min-height: auto; display: none; color: #900c0c; border-color: #f5c2c2; background: #fdf2f2;">Delete</button>
           </div>
         </div>
         <div class="view-bar-right">
-          <button type="button" id="addtxnbtn" style="flex: 1;" disabled>Add</button>
-          <button id="view-toggle" class="secondary" type="button">Output</button>
+          <div>
+            <button type="button" id="addtxnbtn" style="flex: 1;" disabled>Add</button>
+            <button id="view-toggle" class="secondary" type="button">Output</button>
+          </div>
+          <div>
+            <div class="field">
+              <input type="text" id="search-journal-input" placeholder="Search" />
+              <button type="button" class="secondary" id="searchjournalbtn" style="flex: 1;">
+                &#x1F50D;
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
       <div id="input-view">
         <div id="journal-panel">
-          <textarea id="journal-text" spellcheck="false" disabled></textarea>
+          <textarea id="journal-text" spellcheck="false" readonly disabled></textarea>
         </div>
         <div id="gui-panel" style="display: none;"></div>
       </div>
@@ -1054,6 +1126,7 @@
           </button>
         </div>
       </div>
+
       <div style="display: flex; gap: 8px; margin-bottom: 16px;">
         <button type="button" id="importcsvbtn" class="secondary" style="flex: 1;" disabled>Import from CSV</button>
       </div>
@@ -1069,11 +1142,16 @@
       </div>
 
       <div id="report-groups"></div>
+
       <button id="clear" class="secondary" style="margin-top: 4px;">Clear output</button>
     </section>
 
-    <!-- Modals -->
+    <!-- HIDDEN SOURCE OF TRUTH: the single canonical raw journal text holder.
+         All file I/O, VFS, localStorage, and Drive sync read/write ONLY this node.
+         hledger's AST is always parsed from this value. Never edit directly in UI. -->
+    <textarea id="source-of-truth" disabled style="display:none;" aria-hidden="true"></textarea>
 
+    <!-- Modals -->
     <!-- Interactive Google Profile -->
     <dialog id="profile-modal" class="modal">
       <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 16px;">
@@ -1085,18 +1163,14 @@
           </div>
         </div>
       </div>
-
       <hr class="dropdown-divider" style="margin-bottom: 16px;" />
-
       <!-- Detailed File List Information -->
       <div style="margin-bottom: 16px; flex: 1; min-height: 0; display: flex; flex-direction: column;">
         <div class="field-label" style="margin-bottom: 8px;">Drive Journal Files</div>
         <div id="synced-files-list"
           style="max-height: 180px; overflow-y: auto; border: 1px solid var(--rule); border-radius: 6px; background: var(--panel);">
-          <!-- Populated dynamically -->
         </div>
       </div>
-
       <div class="modal-actions" style="display: flex; justify-content: flex-end; align-items: center; width: 100%;">
         <div style="display: flex; gap: 8px;">
           <button type="button" id="logout-btn" class="secondary"
@@ -1127,6 +1201,20 @@
       <div class="modal-actions">
         <button type="button" class="secondary" id="cancel-rename-file-btn">Cancel</button>
         <button type="button" id="submit-rename-file-btn">Rename</button>
+      </div>
+    </dialog>
+
+    <!-- RAW SOURCE EDITOR MODAL: opens the hidden source-of-truth as a big editable popup -->
+    <dialog id="raw-edit-modal" class="modal modal-large">
+      <h2>Edit Journal Source</h2>
+      <div id="raw-edit-status" class="status-banner" data-state="info" style="margin-bottom: 16px; position: static;">
+        <span id="raw-edit-status-text">Edit the raw journal text below. Changes are parsed and validated on save.</span>
+      </div>
+      <textarea id="raw-edit-textarea" spellcheck="false"
+        placeholder="2026-01-01 opening&#10;    assets:bank        $100&#10;    equity:opening"></textarea>
+      <div class="modal-actions">
+        <button type="button" class="secondary" id="cancel-raw-edit-btn">Cancel</button>
+        <button type="button" id="save-raw-edit-btn">Save &amp; Parse</button>
       </div>
     </dialog>
 
@@ -1260,7 +1348,6 @@
       <div class="field">
         <label class="field-label" style="margin-bottom: 4px; display: block;">Available Files</label>
         <div id="startup-file-list" class="file-list-container" style="margin-bottom: 16px;">
-          <!-- Populated dynamically via JS -->
         </div>
       </div>
       <div class="modal-actions" style="justify-content: flex-end;">
@@ -1274,17 +1361,13 @@
     const originalFetch = window.fetch;
     window.fetch = async (...args) => {
       const response = await originalFetch(...args);
-
-      // Skip tracking API calls or opaque responses to prevent CORS issues
       const url = typeof args[0] === 'string' ? args[0] : (args[0] && args[0].url ? args[0].url : '');
       if (!response.body || response.type === 'opaque' || url.includes('googleapis.com')) {
         return response;
       }
-
       const contentLength = response.headers.get('content-length');
       const total = contentLength ? parseInt(contentLength, 10) : 0;
       let loaded = 0;
-
       const reader = response.body.getReader();
       const stream = new ReadableStream({
         async start(controller) {
@@ -1299,7 +1382,6 @@
             if (details) {
               const resourceName = url.split('/').pop() || 'resource data';
               const toMB = (bytes) => (bytes / (1024 * 1024)).toFixed(3);
-
               details.textContent = `Fetching ${resourceName}: ${toMB(loaded)} MB ${total ? `/ ${toMB(total)} MB` : ''}`;
             }
             controller.enqueue(value);
@@ -1309,10 +1391,8 @@
       return new Response(stream, { headers: response.headers, status: response.status, statusText: response.statusText });
     };
 
-
     const isLocalDev = window.location.protocol === "file:" || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
     const libBaseUrl = isLocalDev ? "http://localhost:5001/" : "https://cdn.jsdelivr.net/gh/abelgeorgeantony/hledger-lib-wasm@main/";
-
     const { HledgerSession } = await import(`${libBaseUrl}js/hledger.js`);
     import { StorageManager } from "./storage.js";
 
@@ -1321,16 +1401,17 @@
       view: "input",
       isGui: true,
       currentFilename: null,
-      user: null
+      user: null,
+      searchQuery: ""
     };
-
     let editingTxnId = null;
     let driveSyncTimer = null;
-    const driveSyncQueue = new Map(); // filename -> content queue for debouncing
+    const driveSyncQueue = new Map();
     let isDriveSyncing = false;
-    let driveFilesList = []; // Array of synced file objects
+    let driveFilesList = [];
 
     // --- Element Selectors ----------------------------------------------
+    const sourceOfTruth = document.getElementById("source-of-truth");
     const fileSelector = document.getElementById("file-selector");
     const newFileBtn = document.getElementById("new-file-btn");
     const newFileModal = document.getElementById("new-file-modal");
@@ -1338,12 +1419,12 @@
     const cancelNewFileBtn = document.getElementById("cancel-new-file-btn");
     const createFileBtn = document.getElementById("create-file-btn");
     const renameFileBtn = document.getElementById("rename-file-btn");
+    const editFileBtn = document.getElementById("edit-file-btn");
     const deleteFileBtn = document.getElementById("delete-file-btn");
     const renameFileModal = document.getElementById("rename-file-modal");
     const renameFilenameInput = document.getElementById("rename-filename");
     const cancelRenameFileBtn = document.getElementById("cancel-rename-file-btn");
     const submitRenameFileBtn = document.getElementById("submit-rename-file-btn");
-
     const journalText = document.querySelector("#journal-text");
     const journalPanel = document.querySelector("#journal-panel");
     const guiPanel = document.querySelector("#gui-panel");
@@ -1366,7 +1447,6 @@
     const mobileMenuBtn = document.getElementById("mobile-menu-btn");
     const mobileCloseBtn = document.getElementById("mobile-close-btn");
     const mainContent = document.querySelector("main");
-
     const googleLoginBtn = document.getElementById("google-login-btn");
     const userProfileContainer = document.getElementById("user-profile-container");
     const userAvatar = document.getElementById("user-avatar");
@@ -1377,7 +1457,6 @@
     const modalUserDisplayName = document.getElementById("modal-user-display-name");
     const modalUserDisplayEmail = document.getElementById("modal-user-display-email");
     const closeProfileModalBtn = document.getElementById("close-profile-modal");
-
     const txnModal = document.getElementById("txn-modal");
     const modalTitle = document.getElementById("modal-title");
     const modalStatusBanner = document.getElementById("modal-status");
@@ -1391,13 +1470,11 @@
     const addPostingBtn = document.getElementById("add-posting-btn");
     const cancelTxnBtn = document.getElementById("cancel-txn-btn");
     const submitTxnBtn = document.getElementById("submit-txn-btn");
-
     const csvModal = document.getElementById("csv-import-modal");
     const csvImportBtn = document.getElementById("importcsvbtn");
     const csvCancelBtn = document.getElementById("cancel-csv-btn");
     const csvAppendBtn = document.getElementById("append-csv-btn");
     const csvReplaceBtn = document.getElementById("replace-csv-btn");
-
     const settingsBtn = document.getElementById("settings-btn");
     const settingsModal = document.getElementById("settings-modal");
     const closeSettingsModal = document.getElementById("close-settings-modal");
@@ -1405,7 +1482,13 @@
     const settingFontSize = document.getElementById("setting-font-size");
     const fontSizeDisplay = document.getElementById("font-size-display");
     const settingHideBanner = document.getElementById("setting-hide-banner");
-
+    const searchInput = document.getElementById("search-journal-input");
+    const searchBtn = document.getElementById("searchjournalbtn");
+    const rawEditModal = document.getElementById("raw-edit-modal");
+    const rawEditTextarea = document.getElementById("raw-edit-textarea");
+    const rawEditStatusText = document.getElementById("raw-edit-status-text");
+    const cancelRawEditBtn = document.getElementById("cancel-raw-edit-btn");
+    const saveRawEditBtn = document.getElementById("save-raw-edit-btn");
 
     let currentStatusMessage = "";
     let isOpenStatusModalAttached = false;
@@ -1417,11 +1500,9 @@
       } else {
         banner.dataset.state = stateType;
       }
-
       currentStatusMessage = text;
-      const textEl = banner.querySelector("#status-text");
+      const textEl = banner.querySelector("#status-text") || banner.querySelector("#raw-edit-status-text") || banner.querySelector("#csv-modal-status-text") || banner.querySelector("#modal-status-text");
       if (textEl) textEl.textContent = text;
-
       if (textEl && text) {
         if (textEl.scrollWidth > textEl.clientWidth) {
           banner.addEventListener("click", openStatusModal);
@@ -1438,27 +1519,32 @@
       statusModal.showModal();
     }
 
+    let activeTxnCard = null;
+
+    document.addEventListener("touchstart", (e) => {
+      if (window.innerWidth > 780 || !activeTxnCard) return;
+      if (!activeTxnCard.contains(e.target)) {
+        activeTxnCard.classList.remove("show-actions");
+        activeTxnCard = null;
+      }
+    }, { passive: true });
 
     // --- Unified File State & Sync Handlers -----------------------------
-
-    /**
-     * Unified Simultaneous Committer: Updates UI, Memory FS, and LocalStorage simultaneously, 
-     * then queues a graceful background sync for Google Drive.
-     */
+    // SOURCE OF TRUTH ARCHITECTURE:
+    // commitFileState writes ONLY to the hidden source-of-truth textarea,
+    // the virtual filesystem, localStorage, and the Drive sync queue.
+    // The visible journal-text textarea is NEVER written to here — it is
+    // exclusively a readonly renderer for the printtext report.
     function commitFileState(filename, content, triggerDriveSync = true) {
       if (!filename) return;
-
-      // 1. Bonded UI Textarea
-      if (state.currentFilename === filename && journalText.value !== content) {
-        journalText.value = content;
+      // 1. Source of truth (hidden canonical holder)
+      if (state.currentFilename === filename) {
+        sourceOfTruth.value = content;
       }
-
       // 2. Synchronous Virtual FS update
       session.fs.setFile(filename, content);
-
-      // 3. Synchronous Local Storage update - Updates modifiedTime to NOW
+      // 3. Synchronous Local Storage update
       StorageManager.saveLocalFile(filename, content);
-
       // 4. Graceful Background Cloud Sync (debounced queue)
       if (triggerDriveSync) {
         queueDriveSync(filename, content);
@@ -1468,7 +1554,6 @@
     function queueDriveSync(filename, content) {
       if (!StorageManager.accessToken) return;
       driveSyncQueue.set(filename, content);
-
       clearTimeout(driveSyncTimer);
       driveSyncTimer = setTimeout(processDriveSync, 2000);
     }
@@ -1476,63 +1561,46 @@
     async function processDriveSync() {
       if (isDriveSyncing || driveSyncQueue.size === 0) return;
       isDriveSyncing = true;
-
-      // Extract and lock current queue
       const itemsToSync = Array.from(driveSyncQueue.entries());
       driveSyncQueue.clear();
-
       for (const [filename, content] of itemsToSync) {
         try {
           const driveFile = driveFilesList.find(f => f.name === filename);
           const fileId = driveFile ? driveFile.id : null;
-
           const res = await StorageManager.saveToDrive(filename, content, fileId);
-
           if (!fileId && res.id) {
             driveFilesList.push({ id: res.id, name: filename, status: 'synced', modifiedTime: new Date().toISOString() });
           } else if (driveFile) {
-            // Update the modified time for existing files
             driveFile.modifiedTime = new Date().toISOString();
           }
-
-          // Refresh the modal UI if it is currently open
           if (document.getElementById('profile-modal').hasAttribute('open')) {
             updateProfileModalUI();
           }
         } catch (e) {
           console.error("Drive sync failed for", filename, e);
-
           if (e.message === "401" || e.message.includes("401")) {
             try {
-              // Attempt automatic background refresh without user prompting
               await StorageManager.refreshToken();
-              // Requeue and retry sync seamlessly
               if (!driveSyncQueue.has(filename)) driveSyncQueue.set(filename, content);
               isDriveSyncing = false;
               processDriveSync();
               return;
             } catch (refreshErr) {
-              // Only fallback to manual if silent background refresh fails
               setStatus("Session expired. Please sign in to sync.", "error");
               StorageManager.accessToken = null;
               document.getElementById("google-login-btn").style.display = "flex";
               document.getElementById("user-profile-container").style.display = "none";
-              if (!driveSyncQueue.has(filename)) driveSyncQueue.set(filename, content); // Keep it queued
+              if (!driveSyncQueue.has(filename)) driveSyncQueue.set(filename, content);
               isDriveSyncing = false;
-              return; // Break out to prevent endless loop on bad token
+              return;
             }
           }
-
-          // Requeue if failed and hasn't been overwritten since
           if (!driveSyncQueue.has(filename)) {
             driveSyncQueue.set(filename, content);
           }
         }
       }
-
       isDriveSyncing = false;
-
-      // Loop queue if more items were added during upload
       if (driveSyncQueue.size > 0 && StorageManager.accessToken) {
         driveSyncTimer = setTimeout(processDriveSync, 2000);
       } else if (driveSyncQueue.size === 0) {
@@ -1549,16 +1617,13 @@
 
     function applyAuthenticatedState(user) {
       state.user = user;
-
       googleLoginBtn.style.display = "none";
       userProfileContainer.style.display = "flex";
       userAvatar.src = user.picture;
       userAvatar.title = user.name;
-
       modalUserAvatar.src = user.picture;
       modalUserDisplayName.textContent = user.name;
       modalUserDisplayEmail.textContent = user.email;
-
       setStatus(`Welcome, ${user.name}! Connected to Drive.`, "ok");
     }
 
@@ -1567,17 +1632,15 @@
       state.user = null;
       driveFilesList = [];
       driveSyncQueue.clear();
-
       profileModal.close();
       userProfileContainer.style.display = "none";
       userAvatar.src = "";
       googleLoginBtn.style.display = "flex";
-
       state.currentFilename = null;
       updateFileSelector();
+      sourceOfTruth.value = "";
       journalText.value = "";
       enforceFileLockdown();
-
       setStatus("Logged out successfully.", "info");
     });
 
@@ -1593,28 +1656,20 @@
     async function performInitialSync() {
       try {
         setStatus("Syncing all Google Drive files...", "loading");
-
         const syncedResults = await StorageManager.syncAllDriveFiles();
         driveFilesList = syncedResults.filter(f => f.status === "synced" || f.status === "synced_local_newer");
-
-        // Populate locally
         syncedResults.forEach(file => {
           if (file.status === "synced" && file.content !== undefined) {
-            // Apply drive content safely (local wasn't modified or drive is newer)
             commitFileState(file.name, file.content, false);
           } else if (file.status === "synced_local_newer" && file.content !== undefined) {
-            // Local file is newer! Keep local memory but trigger sync up to Drive
             commitFileState(file.name, file.content, true);
           }
         });
-
         updateFileSelector();
-
         if (!state.currentFilename && syncedResults.length > 0) {
           state.currentFilename = syncedResults[0].name;
           fileSelector.value = state.currentFilename;
         }
-
         if (state.currentFilename) {
           const content = StorageManager.getLocalFile(state.currentFilename) || "";
           commitFileState(state.currentFilename, content, false);
@@ -1623,7 +1678,6 @@
         } else {
           enforceFileLockdown();
         }
-
         setStatus("All Drive files synced smoothly.", "ok");
       } catch (e) {
         console.error("Initial Sync Error:", e);
@@ -1634,15 +1688,12 @@
         } else {
           setStatus("Drive sync failed. Working offline.", "error");
         }
-
-        // Ensure local files are loaded anyway
         updateFileSelector();
         const localFiles = StorageManager.listLocalFiles();
         if (!state.currentFilename && localFiles.length > 0) {
           state.currentFilename = localFiles[0];
           fileSelector.value = state.currentFilename;
         }
-
         if (state.currentFilename) {
           const content = StorageManager.getLocalFile(state.currentFilename) || "";
           commitFileState(state.currentFilename, content, false);
@@ -1656,7 +1707,6 @@
 
     function updateProfileModalUI() {
       const filesListEl = document.getElementById("synced-files-list");
-
       if (filesListEl) {
         if (driveFilesList.length === 0) {
           filesListEl.innerHTML = `<div style="padding: 12px; font-family: var(--mono); font-size: 11px; color: var(--ink-soft); text-align: center;">No Drive files found.</div>`;
@@ -1678,6 +1728,65 @@
 
     // --- Adapters & UI Renderers ----------------------------------------
     function escapeHtml(str) { return String(str || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+    // Format a single hledger amount object from the print report JSON
+    function formatAmountObj(amt) {
+      const qty = amt.aquantity?.floatingPoint ?? 0;
+      const commodity = amt.acommodity || "";
+      const style = amt.astyle || {};
+      const side = style.ascommodityside || "L";
+      const spaced = style.ascommodityspaced ? " " : "";
+      const precision = style.asprecision ?? 2;
+      const isNeg = qty < 0;
+      const absStr = Math.abs(qty).toFixed(precision);
+      if (side === "L") {
+        return isNeg ? `-${commodity}${spaced}${absStr}` : `${commodity}${spaced}${absStr}`;
+      } else {
+        return isNeg ? `-${absStr}${spaced}${commodity}` : `${absStr}${spaced}${commodity}`;
+      }
+    }
+
+    // Format a posting's pamount array into a display string
+    function formatPostingAmount(pamount) {
+      if (!pamount || !Array.isArray(pamount) || pamount.length === 0) return "";
+      return pamount.map(formatAmountObj).join(", ");
+    }
+
+    // Reconstruct valid hledger transaction text from a print report transaction
+    function reconstructTransactionText(t) {
+      let header = t.tdate || "";
+      if (t.tstatus === "Cleared") header += " *";
+      else if (t.tstatus === "Pending") header += " !";
+      if (t.tcode) header += ` (${t.tcode})`;
+      if (t.tdescription) header += ` ${t.tdescription}`;
+      const lines = [header];
+      for (const p of (t.tpostings || [])) {
+        const acct = p.paccount || "";
+        const amtStr = formatPostingAmount(p.pamount);
+        if (amtStr) {
+          lines.push(`    ${acct}  ${amtStr}`);
+        } else {
+          lines.push(`    ${acct}`);
+        }
+      }
+      return lines.join("\n");
+    }
+
+    // Adapt a print report transaction into the shape the GUI card renderer expects
+    function adaptPrintTransaction(t) {
+      return {
+        id: t.tindex,
+        date: t.tdate,
+        description: t.tdescription,
+        postings: (t.tpostings || []).map(p => ({
+          account: p.paccount,
+          amount: formatPostingAmount(p.pamount)
+        })),
+        rawText: reconstructTransactionText(t),
+        _raw: t
+      };
+    }
+
     function adaptGenericList(data) {
       if (typeof data === 'string') return [];
       if (data && typeof data.data === 'string') return [];
@@ -1886,7 +1995,6 @@
     };
 
     // --- File Management UI Wrappers --------------------------------------
-
     function syncFilesystem() {
       const files = StorageManager.listLocalFiles();
       files.forEach(f => {
@@ -1899,37 +2007,28 @@
     function updateStartupSelector() {
       const startupList = document.getElementById("startup-file-list");
       if (!startupList) return;
-
       startupList.innerHTML = "";
-
       const localFiles = StorageManager.listLocalFiles();
       const driveNames = driveFilesList.map(f => f.name);
       const allFiles = Array.from(new Set([...localFiles, ...driveNames])).sort();
-
       if (allFiles.length === 0) {
         startupList.innerHTML = '<div class="file-list-item empty-state">-- No files available --</div>';
         return;
       }
-
       allFiles.forEach(f => {
         const item = document.createElement("div");
         item.className = "file-list-item";
         item.textContent = f;
-
-        // Let the list item open the file instantly
         item.addEventListener("click", async () => {
           const startupModal = document.getElementById("startup-modal");
           startupModal.close();
-
           fileSelector.value = f;
           state.currentFilename = f;
-
           const content = StorageManager.getLocalFile(f) || "";
           commitFileState(f, content, false);
           enforceFileLockdown();
           await reparse();
         });
-
         startupList.appendChild(item);
       });
     }
@@ -1938,7 +2037,6 @@
       const localFiles = StorageManager.listLocalFiles();
       const driveNames = driveFilesList.map(f => f.name);
       const allFiles = Array.from(new Set([...localFiles, ...driveNames])).sort();
-
       fileSelector.innerHTML = '<option value="">-- No file selected --</option>';
       allFiles.forEach(f => {
         const opt = document.createElement("option");
@@ -1946,22 +2044,16 @@
         fileSelector.appendChild(opt);
       });
       if (state.currentFilename) fileSelector.value = state.currentFilename;
-
       updateStartupSelector();
     }
 
-
     function enforceFileLockdown() {
       const hasFile = !!state.currentFilename;
-
-      journalText.disabled = !hasFile;
       document.getElementById("addtxnbtn").disabled = !hasFile;
       document.getElementById("importcsvbtn").disabled = !hasFile;
-
-      // Toggle Visibility
       renameFileBtn.style.display = hasFile ? "" : "none";
+      editFileBtn.style.display = hasFile ? "" : "none";
       deleteFileBtn.style.display = hasFile ? "" : "none";
-
       if (!hasFile) {
         journalText.value = "Please create or select a journal file to begin.";
         guiPanel.innerHTML = '<span>Please create or select a journal file to begin.</span>';
@@ -1995,15 +2087,12 @@
       let name = newFilenameInput.value.trim();
       if (!name) return;
       if (!name.endsWith(".journal")) name += ".journal";
-
       if (StorageManager.getLocalFile(name) !== null) {
         alert("A file with this name already exists.");
         return;
       }
-
       state.currentFilename = name;
       commitFileState(name, "", true);
-
       updateFileSelector();
       enforceFileLockdown();
       newFileModal.close();
@@ -2022,7 +2111,6 @@
       let newName = renameFilenameInput.value.trim();
       if (!newName) return;
       if (!newName.endsWith(".journal")) newName += ".journal";
-
       if (newName === state.currentFilename) {
         renameFileModal.close();
         return;
@@ -2031,20 +2119,12 @@
         alert("A file with this name already exists.");
         return;
       }
-
       const oldName = state.currentFilename;
       const content = StorageManager.getLocalFile(oldName) || "";
-
       setStatus("Renaming file...", "loading");
-
-      // 1. Memory VFS Sync
       session.fs.setFile(newName, content);
       session.fs.deleteFile(oldName);
-
-      // 2. Local Storage Sync
       StorageManager.renameLocalFile(oldName, newName);
-
-      // 3. Google Drive Native Rename (PATCH metadata)
       const driveFile = driveFilesList.find(f => f.name === oldName);
       if (driveFile && StorageManager.accessToken) {
         try {
@@ -2055,38 +2135,27 @@
           console.error("Failed to rename in Drive", e);
         }
       } else if (driveFile) {
-        driveFile.name = newName; // optimistic update
+        driveFile.name = newName;
       }
-
-      // Handle in-progress debounced queues
       if (driveSyncQueue.has(oldName)) {
         driveSyncQueue.set(newName, driveSyncQueue.get(oldName));
         driveSyncQueue.delete(oldName);
       }
-
       state.currentFilename = newName;
       updateFileSelector();
       enforceFileLockdown();
       renameFileModal.close();
       setStatus("File renamed successfully.", "ok");
-
       await reparse();
     });
 
     // --- Delete Flow ---
     deleteFileBtn.addEventListener("click", async () => {
       if (!confirm(`Are you sure you want to delete ${state.currentFilename}? This will permanently remove it from local storage and Google Drive.`)) return;
-
       const targetName = state.currentFilename;
       setStatus("Deleting file...", "loading");
-
-      // 1. Memory VFS Sync
       session.fs.deleteFile(targetName);
-
-      // 2. Local Storage Sync
       StorageManager.deleteLocalFile(targetName);
-
-      // 3. Google Drive Native Delete
       const driveFileIndex = driveFilesList.findIndex(f => f.name === targetName);
       if (driveFileIndex > -1) {
         const driveFile = driveFilesList[driveFileIndex];
@@ -2099,14 +2168,9 @@
         }
         driveFilesList.splice(driveFileIndex, 1);
       }
-
-      // Cancel any pending writes for this file
       driveSyncQueue.delete(targetName);
-
-      // Resolve UI State
       const remainingFiles = StorageManager.listLocalFiles();
       state.currentFilename = remainingFiles.length > 0 ? remainingFiles[0] : null;
-
       updateFileSelector();
       if (state.currentFilename) {
         const content = StorageManager.getLocalFile(state.currentFilename) || "";
@@ -2116,19 +2180,73 @@
       } else {
         enforceFileLockdown();
       }
-
       setStatus("File deleted successfully.", "ok");
     });
 
-    // --- Global UI Behaviors --------------------------------------------
+    // --- Raw Source Editor Modal (Edit button) ---
+    editFileBtn.addEventListener("click", () => {
+      if (!state.currentFilename) return;
+      rawEditTextarea.value = sourceOfTruth.value;
+      rawEditStatusText.textContent = "Edit the raw journal text below. Changes are parsed and validated on save.";
+      document.getElementById("raw-edit-status").dataset.state = "info";
+      rawEditModal.showModal();
+    });
 
+    cancelRawEditBtn.addEventListener("click", () => {
+      rawEditModal.close();
+    });
+
+    saveRawEditBtn.addEventListener("click", async () => {
+      const newText = rawEditTextarea.value;
+      const oldText = sourceOfTruth.value;
+      const forecast = forecastToggle.checked;
+
+      saveRawEditBtn.disabled = true;
+      rawEditStatusText.textContent = "Parsing...";
+      document.getElementById("raw-edit-status").dataset.state = "loading";
+
+      const result = await session.loadJournal(newText, forecast);
+
+      if (result.ok) {
+        // Parse succeeded: commit the new source of truth to all layers
+        sourceOfTruth.value = newText;
+        commitFileState(state.currentFilename, newText, true);
+        await renderRawOutput(state.searchQuery);
+        if (state.isGui) await renderGuiJournal(state.searchQuery);
+        rawEditModal.close();
+        setStatus("Journal saved and parsed successfully.", "ok");
+      } else {
+        // FAILSAFE: parse failed. Restore the old AST so the user doesn't
+        // lose their working state. The edited text stays in the modal
+        // textarea so the user can fix it and retry without re-typing.
+        await session.loadJournal(oldText, forecast);
+        rawEditStatusText.textContent = `Parse error: ${result.error}. Fix the text and try again. Your previous journal is still loaded.`;
+        document.getElementById("raw-edit-status").dataset.state = "error";
+        setStatus(`Journal error: ${result.error}`, "error");
+      }
+      saveRawEditBtn.disabled = false;
+    });
+
+    // --- Search Handlers ---
+    async function applySearch() {
+      state.searchQuery = searchInput.value.trim();
+      if (!session.isLoaded) return;
+      await renderRawOutput(state.searchQuery);
+      if (state.isGui) await renderGuiJournal(state.searchQuery);
+    }
+
+    searchBtn.addEventListener("click", applySearch);
+    searchInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") applySearch();
+    });
+
+    // --- Global UI Behaviors --------------------------------------------
     closeStatusModalBtn.addEventListener("click", () => statusModal.close());
 
     function syncUIState() {
       inputView.style.display = state.view === "input" ? "flex" : "none";
       outputView.style.display = state.view === "output" ? "flex" : "none";
       viewToggleButton.textContent = state.view === "input" ? "Output" : "Input";
-
       guiToggle.checked = state.isGui;
       if (state.isGui) {
         journalPanel.style.display = "none"; guiPanel.style.display = "flex";
@@ -2140,25 +2258,49 @@
       closeRightMenuOnMobile();
     }
 
-    async function syncJournalTextToState() {
+    // After any AST mutation (add/update/delete txn), pull the canonical
+    // text back out of hledger via printtext and write it to the source
+    // of truth + all filesystem layers. This is the AST→source sync path.
+    async function syncSourceOfTruthFromAST() {
       const printResult = await session.printText("");
       let newText = "";
-      if (printResult && typeof printResult.data === 'string') newText = printResult.data;
+      if (printResult && printResult.ok && typeof printResult.data === 'string') newText = printResult.data;
+      else if (printResult && typeof printResult.data === 'string') newText = printResult.data;
       else if (printResult) newText = String(printResult);
 
+      // Update source of truth + all filesystem layers
       commitFileState(state.currentFilename, newText, true);
-
-      syncUIState();
-      await reparse();
+      // Re-render both display layers from the (already-correct) AST
+      await renderRawOutput(state.searchQuery);
+      if (state.isGui) await renderGuiJournal(state.searchQuery);
     }
 
-    // --- GUI Input Journal Renderer -------------------------------------
-    async function renderGuiJournal() {
+    // --- Renderers for the two display layers ---
+
+    // Readonly raw text renderer: shows printtext report output
+    async function renderRawOutput(query = "") {
+      if (!session.isLoaded) {
+        journalText.value = "Waiting for a journal to load.";
+        return;
+      }
+      try {
+        const result = await session.printText(query);
+        if (result && result.ok && typeof result.data === 'string') {
+          journalText.value = result.data;
+        } else {
+          journalText.value = "No data available.";
+        }
+      } catch (e) {
+        journalText.value = `Error rendering printtext: ${e.message}`;
+      }
+    }
+
+    // GUI renderer: shows print report JSON as transaction cards
+    async function renderGuiJournal(query = "") {
       if (!session.isLoaded || !state.currentFilename) return;
       guiPanel.innerHTML = '<div class="status-banner" data-state="loading" style="position: static; margin-top: 20px;"><span class="status-dot"></span><span>Loading GUI view...</span></div>';
-
       try {
-        const result = await session.getJournalJSON();
+        const result = await session.print(query);
         if (!result.ok) {
           guiPanel.innerHTML = `<div class="status-banner" data-state="error" style="position: static; margin-top: 20px;"><span class="status-dot"></span><span>${escapeHtml(result.error)}</span></div>`;
           return;
@@ -2168,7 +2310,7 @@
           return;
         }
         guiPanel.innerHTML = "";
-        result.data.forEach(txn => guiPanel.appendChild(renderTransactionCard(txn)));
+        result.data.forEach(t => guiPanel.appendChild(renderTransactionCard(adaptPrintTransaction(t))));
       } catch (error) {
         guiPanel.innerHTML = `<div class="status-banner" data-state="error" style="position: static; margin-top: 20px;"><span class="status-dot"></span><span>Failed to load GUI view</span></div>`;
       }
@@ -2211,7 +2353,6 @@
         txnDate.value = txn.date;
         txnDesc.value = txn.description;
         postingsContainer.innerHTML = "";
-
         txn.postings.forEach(p => {
           const row = document.createElement("div"); row.className = "posting-row";
           row.style.cssText = "display: grid; grid-template-columns: 2fr 1fr auto; gap: 8px; align-items: center;";
@@ -2221,7 +2362,6 @@
           attachRemoveRowListener(row.querySelector(".remove-post-btn"));
           postingsContainer.appendChild(row);
         });
-
         rawTxnInput.value = txn.rawText; rawToggle.checked = false;
         visualTxnUi.style.display = "block"; rawTxnContainer.style.display = "none";
         setStatus("Edit transaction details", "info", modalStatusBanner);
@@ -2234,16 +2374,52 @@
         try {
           const result = await session.deleteTransaction(txn.id);
           if (result && result.error) { setStatus(`Error: ${result.error}`, "error"); return; }
-          await syncJournalTextToState();
+          await syncSourceOfTruthFromAST();
           setStatus("Transaction deleted successfully.", "ok");
         } catch (error) { setStatus("Failed to delete transaction.", "error"); }
       });
+
+      let startX = 0, startY = 0;
+      card.addEventListener("touchstart", (e) => {
+        if (window.innerWidth > 780) return;
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+      }, { passive: true });
+
+      card.addEventListener("touchend", (e) => {
+        if (window.innerWidth > 780) return;
+        const diffX = startX - e.changedTouches[0].clientX;
+        const diffY = startY - e.changedTouches[0].clientY;
+        if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 40) {
+          if (diffX > 0) {
+            if (activeTxnCard && activeTxnCard !== card) {
+              activeTxnCard.classList.remove("show-actions");
+            }
+            card.classList.add("show-actions");
+            activeTxnCard = card;
+          } else {
+            card.classList.remove("show-actions");
+            if (activeTxnCard === card) activeTxnCard = null;
+          }
+        }
+      });
+
+      card.addEventListener("click", (e) => {
+        if (window.innerWidth <= 780 && card.classList.contains("show-actions")) {
+          if (!e.target.closest(".txn-actions-container")) {
+            card.classList.remove("show-actions");
+            activeTxnCard = null;
+          }
+        }
+      });
+
       return card;
     }
 
     // --- Reparse Engine -------------------------------------------------
+    // Always parses from the hidden source-of-truth textarea.
+    // The visible journal-text textarea is NEVER read here.
     let debounceTimer = null;
-
     function scheduleReparse() {
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(reparse, 300);
@@ -2252,17 +2428,17 @@
     async function reparse() {
       if (!state.currentFilename) return;
       setReportButtonsEnabled(false);
-
       const forecast = forecastToggle.checked;
-      const result = await session.loadJournal(journalText.value, forecast);
-
+      const result = await session.loadJournal(sourceOfTruth.value, forecast);
       if (result.ok) {
         if (statusBanner.dataset.state === "error") {
-          setStatus("", "info"); // Clear the error status smoothly without "Ready" spam
+          setStatus("Journal Loaded", "info");
         }
-        if (state.isGui) await renderGuiJournal();
+        await renderRawOutput(state.searchQuery);
+        if (state.isGui) await renderGuiJournal(state.searchQuery);
       } else {
         setStatus(`Journal error: ${result.error}`, "error");
+        journalText.value = `Journal error: ${result.error}`;
         if (state.isGui) guiPanel.innerHTML = `<div class="status-banner" data-state="error" style="position: static; margin-top: 20px;"><span class="status-dot"></span><span>${escapeHtml(result.error)}</span></div>`;
       }
       setReportButtonsEnabled(session.isLoaded);
@@ -2290,10 +2466,8 @@
       const rulesData = document.getElementById("csv-import-rules").value;
       const forecast = forecastToggle.checked;
       const modalBanner = document.getElementById("csv-modal-status");
-
       csvAppendBtn.disabled = true; csvReplaceBtn.disabled = true; csvCancelBtn.disabled = true;
       setStatus("Parsing CSV data...", "loading", modalBanner);
-
       try {
         const result = await session.parseCsv(csvData, rulesData, forecast);
         if (!result.ok) {
@@ -2306,16 +2480,14 @@
         else if (printResult) newJournalText = String(printResult);
 
         if (mode === 'append') {
-          const currentText = journalText.value.trim();
+          const currentText = sourceOfTruth.value.trim();
           const finalMergedContent = currentText ? currentText + "\n\n" + newJournalText : newJournalText;
           commitFileState(state.currentFilename, finalMergedContent, true);
         } else {
           commitFileState(state.currentFilename, newJournalText, true);
         }
-
         await reparse();
         setStatus("Import successful.", "ok", modalBanner);
-
         setTimeout(() => {
           csvModal.close(); closeRightMenuOnMobile();
           setStatus("Provide CSV data and rules", "info", modalBanner);
@@ -2333,7 +2505,7 @@
     // --- Standard Event Handlers ----------------------------------------
     guiToggle.addEventListener("change", async () => {
       state.isGui = guiToggle.checked; syncUIState();
-      if (state.isGui) await renderGuiJournal();
+      if (state.isGui) await renderGuiJournal(state.searchQuery);
     });
 
     viewToggleButton.addEventListener("click", () => {
@@ -2348,10 +2520,9 @@
       mobileCloseBtn.addEventListener("click", closeRightMenuOnMobile);
     }
 
-    journalText.addEventListener("input", () => {
-      commitFileState(state.currentFilename, journalText.value, true);
-      scheduleReparse();
-    });
+    // NOTE: The old journalText input listener has been REMOVED.
+    // journal-text is now a readonly display of printtext output.
+    // Editing happens exclusively via the raw-edit-modal (source of truth).
 
     forecastToggle.addEventListener("change", reparse);
 
@@ -2365,6 +2536,7 @@
       settingDarkMode.checked = document.documentElement.classList.contains("dark-mode");
       settingsModal.showModal();
     });
+
     closeSettingsModal.addEventListener("click", () => settingsModal.close());
 
     settingDarkMode.addEventListener("change", (e) => {
@@ -2419,7 +2591,6 @@
     document.getElementById("addtxnbtn").addEventListener("click", () => {
       editingTxnId = null; modalTitle.textContent = "Add New Transaction"; submitTxnBtn.textContent = "Add Transaction";
       txnDate.value = new Date().toISOString().split("T")[0]; txnDesc.value = ""; postingsContainer.innerHTML = "";
-
       const defaultRows = [{ acct: "", placeholder: "Account (e.g. expenses:food)" }, { acct: "", placeholder: "Account (e.g. assets:bank)" }];
       defaultRows.forEach(def => {
         const row = document.createElement("div"); row.className = "posting-row";
@@ -2477,7 +2648,7 @@
       try {
         let result = editingTxnId !== null ? await session.updateTransaction(editingTxnId, rawTxnText) : await session.balanceTransaction(rawTxnText);
         if (result && result.error) { setStatus(`Error: ${result.error}`, "error", modalStatusBanner); setReportButtonsEnabled(true); return; }
-        await syncJournalTextToState();
+        await syncSourceOfTruthFromAST();
         setStatus(editingTxnId !== null ? "Transaction updated successfully." : "Transaction added successfully.", "ok");
         txnModal.close();
       } catch (error) {
@@ -2533,7 +2704,6 @@
       } finally { setReportButtonsEnabled(session.isLoaded); }
     }
 
-
     // --- Init -----------------------------------------------------------
     setStatus("Initializing WASM module...", "loading");
     const session = await HledgerSession.init();
@@ -2541,51 +2711,42 @@
 
     const files = syncFilesystem();
     updateFileSelector();
-
     const startupModal = document.getElementById("startup-modal");
     const startupNewBtn = document.getElementById("startup-new-btn");
-
     enforceFileLockdown();
     syncUIState();
 
-    // Check if we have files to show, otherwise go straight to the "New File" modal
     if (files.length === 0) {
       state.currentFilename = null;
       setTimeout(() => newFileModal.showModal(), 500);
       setStatus("Ready", "ok");
     } else if (files.length === 1) {
-      // Automatically open the file if there is only one available
       state.currentFilename = files[0];
       fileSelector.value = state.currentFilename;
-
       const content = StorageManager.getLocalFile(state.currentFilename) || "";
       commitFileState(state.currentFilename, content, false);
       enforceFileLockdown();
       await reparse();
       setStatus("Ready", "ok");
     } else {
-      // Show the startup modal if there are multiple files to choose from
       state.currentFilename = null;
       setTimeout(() => startupModal.showModal(), 500);
       setStatus("Ready", "ok");
     }
 
-    // Handle creating a new file from the startup modal
     startupNewBtn.addEventListener("click", () => {
       startupModal.close();
       newFilenameInput.value = "";
       newFileModal.showModal();
     });
 
-    // Dismiss the full screen loading overlay now that everything has spun up completely.
+    // Dismiss the full screen loading overlay
     const globalOverlay = document.getElementById("loading-overlay");
     if (globalOverlay) {
       globalOverlay.style.opacity = "0";
       globalOverlay.style.visibility = "hidden";
-      setTimeout(() => globalOverlay.remove(), 400); // 400ms matching css transition
+      setTimeout(() => globalOverlay.remove(), 400);
     }
-
   </script>
 </body>
-
 </html>

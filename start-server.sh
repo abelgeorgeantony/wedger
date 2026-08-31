@@ -14,19 +14,20 @@ cleanup() {
 }
 trap cleanup INT TERM
 
-# Use bundler if this Jekyll project has a Gemfile, otherwise call jekyll directly
+# Bind Jekyll to 0.0.0.0 so it is exposed to the local network
 if [ -f Gemfile ]; then
-  JEKYLL_CMD=(bundle exec jekyll serve --livereload)
+  JEKYLL_CMD=(bundle exec jekyll serve --livereload --host 0.0.0.0)
 else
-  JEKYLL_CMD=(jekyll serve --livereload)
+  JEKYLL_CMD=(jekyll serve --livereload --host 0.0.0.0)
 fi
 
-echo "Starting Jekyll (wedger)          -> http://localhost:4000"
+echo "Starting Jekyll (wedger)          -> http://0.0.0.0:4000"
 "${JEKYLL_CMD[@]}" &
 JEKYLL_PID=$!
 
-echo "Starting file server (hledger-lib-wasm) -> http://localhost:$WASM_PORT"
-npx --yes live-server "$WASM_DIR" --port="$WASM_PORT" --cors --no-browser &
+# Bind live-server to 0.0.0.0 so it is exposed to the local network
+echo "Starting file server (hledger-lib-wasm) -> http://0.0.0.0:$WASM_PORT"
+npx --yes live-server "$WASM_DIR" --port="$WASM_PORT" --cors --no-browser --host=0.0.0.0 &
 WASM_PID=$!
 
 wait
