@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Wedger</title>
+
+    <link rel="stylesheet" href="./assets/css/base.css">
+</head>
+
+<body>
+    <!-- Global Loading Overlay -->
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+        <div id="loading-details">Initializing runtime...</div>
+    </div>
+
+    <div id="status" class="status-banner" data-state="loading">
+        <span id="status-text">Loading WASM module...</span>
+    </div>
+
+    <main>
+        <section class="pane pane-left">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <div class="switch-container">
+                    <span class="switch-label">GUI</span>
+                    <label class="switch">
+                        <input type="checkbox" id="gui-toggle" />
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div style="display: flex; flex-direction: row; align-items: center; gap: 12px;">
+
+                    <!-- Unified Google Login/Sync Button -->
+                    <button type="button" id="google-login-btn" class="secondary"
+                        style="display: flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid var(--rule); border-radius: 4px; background: var(--panel);">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18">
+                            <path fill="#4285F4"
+                                d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z" />
+                            <path fill="#34A853"
+                                d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.11 0-5.74-2.1-6.68-4.92H1.2v3.15C3.18 21.31 7.27 24 12 24z" />
+                            <path fill="#FBBC05"
+                                d="M5.32 14.28c-.24-.72-.38-1.5-.38-2.28s.14-1.56.38-2.28V6.57H1.2C.43 8.12 0 9.99 0 12s.43 3.88 1.2 5.43l4.12-3.15z" />
+                            <path fill="#EA4335"
+                                d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.27 0 3.18 2.69 1.2 6.57l4.12 3.15c.94-2.82 3.57-4.97 6.68-4.97z" />
+                        </svg>
+
+                        Sign in with google
+                    </button>
+
+                    <!-- Authenticated User Profile Trigger Button -->
+                    <div id="user-profile-container" style="display: none; position: relative; align-items: center;">
+                        <button type="button" id="user-avatar-btn" aria-label="User profile menu">
+                            <img id="user-avatar" src="" alt="Profile" referrerpolicy="no-referrer" />
+                        </button>
+                    </div>
+
+                    <button type="button" id="settings-btn" class="secondary"
+                        style="display: flex; align-items: center; gap: 6px; padding: 4px 8px; min-height: auto; border: none; flex-shrink: 0;"
+                        aria-label="Settings">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path
+                                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+                            </path>
+                        </svg>
+                    </button>
+
+                    <button type="button" id="mobile-menu-btn" class="hamburger-btn" aria-label="Open Menu">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="3" y1="12" x2="21" y2="12"></line>
+                            <line x1="3" y1="6" x2="21" y2="6"></line>
+                            <line x1="3" y1="18" x2="21" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="view-bar">
+                <div id="file-manager" style="display: flex; flex-direction: column;">
+                    <div>
+                        <select id="file-selector">
+                            <option value="">-- No file selected --</option>
+                        </select>
+                        <button type="button" id="new-file-btn" class="secondary"
+                            style="padding: 6px 10px; min-height: auto;">New</button>
+                    </div>
+                    <div style="display: flex; flex-direction: row; gap: 4px;">
+                        <button type="button" id="rename-file-btn" class="secondary"
+                            style="padding: 6px 10px; min-height: auto; display: none;">Rename</button>
+                        <button type="button" id="delete-file-btn" class="secondary"
+                            style="padding: 6px 10px; min-height: auto; display: none; color: #900c0c; border-color: #f5c2c2; background: #fdf2f2;">Delete</button>
+                    </div>
+                </div>
+                <div class="view-bar-right">
+                    <div>
+                        <button type="button" id="addtxnbtn" style="flex: 1;" disabled>Add</button>
+                        <button id="view-toggle" class="secondary" type="button">Output</button>
+                    </div>
+                    <div>
+                        <div class="field">
+                            <input type="text" id="search-journal-input" placeholder="Search" />
+                            <button type="button" class="secondary" id="searchjournalbtn" style="flex: 1;">
+                                &#x1F50D;
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="input-view">
+                <div id="journal-panel">
+                    <textarea id="journal-text" spellcheck="false" disabled></textarea>
+                </div>
+                <div id="gui-panel" style="display: none;"></div>
+            </div>
+
+            <div id="output-view" style="display: none;">
+                <textarea id="output" readonly spellcheck="false">Waiting for a journal to load.</textarea>
+                <div id="gui-output-panel" style="display: none; flex: 1;"></div>
+            </div>
+        </section>
+
+        <section class="pane pane-right">
+            <div style="display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 16px;">
+                <div class="mobile-close-container" style="margin-bottom: 0;">
+                    <button type="button" id="mobile-close-btn" class="hamburger-btn" aria-label="Close Menu">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+                <button type="button" id="importcsvbtn" class="secondary" style="flex: 1;" disabled>Import from
+                    CSV</button>
+            </div>
+
+            <div class="field">
+                <label class="field-label" for="query-input">Query filter (optional)</label>
+                <input type="text" id="query-input" placeholder="e.g. acct:assets depth:2" />
+            </div>
+
+            <div class="toggle-row">
+                <label class="toggle"><input type="checkbox" id="forecast-toggle" /> Forecast</label>
+                <label class="toggle"><input type="checkbox" id="check-strict-toggle" /> Strict check</label>
+            </div>
+
+            <div id="report-groups"></div>
+            <button id="clear" class="secondary" style="margin-top: 4px;">Clear output</button>
+        </section>
+
+        <!-- Modals -->
+
+        <!-- Interactive Google Profile -->
+        <dialog id="profile-modal" class="modal">
+            <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 16px;">
+                <img id="modal-user-avatar" src="" alt="Profile"
+                    style="width: 48px; height: 48px; border-radius: 50%; border: 1px solid var(--rule); flex-shrink: 0;" />
+                <div style="min-width: 0;">
+                    <div id="modal-user-display-name" style="font-size: 15px; font-weight: 700; color: var(--ink);">
+                    </div>
+                    <div id="modal-user-display-email"
+                        style="font-size: 12px; color: var(--ink-soft); word-break: break-all;">
+                    </div>
+                </div>
+            </div>
+
+            <hr class="dropdown-divider" style="margin-bottom: 16px;" />
+
+            <!-- Detailed File List Information -->
+            <div style="margin-bottom: 16px; flex: 1; min-height: 0; display: flex; flex-direction: column;">
+                <div class="field-label" style="margin-bottom: 8px;">Drive Journal Files</div>
+                <div id="synced-files-list"
+                    style="max-height: 180px; overflow-y: auto; border: 1px solid var(--rule); border-radius: 6px; background: var(--panel);">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+
+            <div class="modal-actions"
+                style="display: flex; justify-content: flex-end; align-items: center; width: 100%;">
+                <div style="display: flex; gap: 8px;">
+                    <button type="button" id="logout-btn" class="secondary"
+                        style="color: #900c0c; border-color: #f5c2c2; background: #fdf2f2;">Logout</button>
+                    <button type="button" id="close-profile-modal" class="secondary">Close</button>
+                </div>
+            </div>
+        </dialog>
+
+        <dialog id="new-file-modal" class="modal">
+            <h2>Create New Journal</h2>
+            <div class="field">
+                <label class="field-label" for="new-filename">Filename</label>
+                <input type="text" id="new-filename" placeholder="e.g. 2026.journal" />
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="secondary" id="cancel-new-file-btn">Cancel</button>
+                <button type="button" id="create-file-btn">Create</button>
+            </div>
+        </dialog>
+
+        <dialog id="rename-file-modal" class="modal">
+            <h2>Rename Journal</h2>
+            <div class="field">
+                <label class="field-label" for="rename-filename">New Filename</label>
+                <input type="text" id="rename-filename" placeholder="e.g. 2027.journal" />
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="secondary" id="cancel-rename-file-btn">Cancel</button>
+                <button type="button" id="submit-rename-file-btn">Rename</button>
+            </div>
+        </dialog>
+
+        <dialog id="csv-import-modal" class="modal modal-large">
+            <h2>Import from CSV</h2>
+            <div id="csv-modal-status" class="status-banner" data-state="info" style="margin-bottom: 16px;">
+                <span class="status-dot"></span>
+                <span id="csv-modal-status-text">Provide CSV data and rules</span>
+            </div>
+            <div class="split-pane">
+                <div class="csv-col">
+                    <label class="field-label" for="csv-file-input">1. CSV Data</label>
+                    <input type="file" id="csv-file-input" accept=".csv,.txt" />
+                    <textarea id="csv-import-text" spellcheck="false"
+                        placeholder='e.g.&#10;"Date","Notes","Amount"&#10;"2026/02/22","WHOLE FOODS","50.00"'></textarea>
+                </div>
+                <div class="csv-col">
+                    <label class="field-label" for="rules-file-input">2. CSV Rules</label>
+                    <input type="file" id="rules-file-input" accept=".rules,.txt" />
+                    <textarea id="csv-import-rules" spellcheck="false"
+                        placeholder="e.g. skip 1&#10;fields date, description, amount"></textarea>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="secondary" id="cancel-csv-btn">Cancel</button>
+                <button type="button" id="append-csv-btn">Append to Journal</button>
+                <button type="button" id="replace-csv-btn">Import as New File Data</button>
+            </div>
+        </dialog>
+
+        <dialog id="txn-modal" class="modal">
+            <form method="dialog" id="txn-form">
+                <div id="modal-status" class="status-banner" data-state="info" style="margin-bottom: 16px;">
+                    <span class="status-dot"></span>
+                    <span id="modal-status-text">Fill in transaction details</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <h2 id="modal-title" style="margin: 0;">Add New Transaction</h2>
+                    <div class="switch-container">
+                        <span class="switch-label">Raw Text</span>
+                        <label class="switch">
+                            <input type="checkbox" id="raw-toggle" />
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+                <div id="visual-txn-ui">
+                    <div class="field-row" style="grid-template-columns: 1fr 2fr;">
+                        <div class="field" style="margin-bottom: 0;">
+                            <label class="field-label" for="txn-date">Date</label>
+                            <input type="date" id="txn-date" required />
+                        </div>
+                        <div class="field" style="margin-bottom: 0;">
+                            <label class="field-label" for="txn-desc">Description</label>
+                            <input type="text" id="txn-desc" placeholder="e.g. Groceries" required />
+                        </div>
+                    </div>
+                    <div class="field" style="margin-bottom: 0;">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <label class="field-label" style="margin: 0;">Postings</label>
+                            <button type="button" class="secondary" id="add-posting-btn"
+                                style="padding: 2px 8px; min-height: 24px; font-size: 11px;">+ Add Posting</button>
+                        </div>
+                        <div id="postings-container"
+                            style="display: flex; flex-direction: column; gap: 8px; max-height: 220px; overflow-y: auto; padding-right: 4px;">
+                        </div>
+                    </div>
+                </div>
+                <div id="raw-txn-container" class="field" style="display: none; margin-bottom: 0;">
+                    <label class="field-label" for="raw-txn-input">Raw Transaction Text</label>
+                    <textarea id="raw-txn-input" readonly rows="8" spellcheck="false"
+                        style="font-family: var(--mono); width: 100%;"></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="secondary" id="cancel-txn-btn">Cancel</button>
+                    <button type="button" id="submit-txn-btn">Add Transaction</button>
+                </div>
+            </form>
+        </dialog>
+
+        <dialog id="status-modal" class="modal">
+            <h2>Full Message</h2>
+            <p id="status-modal-text"
+                style="font-family: var(--mono); font-size: 12px; white-space: pre-wrap; word-break: break-word;"></p>
+            <div class="modal-actions">
+                <button type="button" class="secondary" id="close-status-modal">Close</button>
+            </div>
+        </dialog>
+
+        <dialog id="settings-modal" class="modal">
+            <h2>Settings</h2>
+            <div class="field-row" style="margin-bottom: 16px;">
+                <div class="switch-container">
+                    <span class="switch-label">Dark Mode</span>
+                    <label class="switch">
+                        <input type="checkbox" id="setting-dark-mode" />
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+            <div class="field-row" style="margin-bottom: 16px;">
+                <div class="field" style="margin-bottom: 0;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <span class="switch-label">Typeface Size</span>
+                        <span id="font-size-display"
+                            style="font-family: var(--mono); font-size: 11px; color: var(--ink-soft);">12.5px</span>
+                    </div>
+                    <input type="range" id="setting-font-size" min="10" max="24" value="12.5" step="0.5"
+                        style="width: 100%;">
+                </div>
+            </div>
+            <div class="field-row" style="margin-bottom: 24px;">
+                <div class="switch-container">
+                    <span class="switch-label">Hide Status Banner</span>
+                    <label class="switch">
+                        <input type="checkbox" id="setting-hide-banner" />
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="secondary" id="close-settings-modal">Close</button>
+            </div>
+        </dialog>
+
+        <dialog id="startup-modal" class="modal">
+            <h2>Welcome to Wedger</h2>
+            <div id="startup-status" class="status-banner" data-state="info"
+                style="margin-bottom: 16px; position: static;">
+                <span class="status-dot"></span>
+                <span id="startup-status-text">Select a journal to open</span>
+            </div>
+            <div class="field">
+                <label class="field-label" style="margin-bottom: 4px; display: block;">Available Files</label>
+                <div id="startup-file-list" class="file-list-container" style="margin-bottom: 16px;">
+                    <!-- Populated dynamically via JS -->
+                </div>
+            </div>
+            <div class="modal-actions" style="justify-content: flex-end;">
+                <button type="button" class="secondary" id="startup-new-btn">Create New File</button>
+            </div>
+        </dialog>
+    </main>
+
+    <script type="module" src="./assets/js/app.js"></script>
+</body>
+
+</html>
