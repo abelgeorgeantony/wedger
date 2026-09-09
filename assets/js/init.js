@@ -1,0 +1,173 @@
+const isLocalDev = window.location.protocol === "file:" || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+const libBaseUrl = isLocalDev ? "http://localhost:5001/" : "https://cdn.jsdelivr.net/gh/abelgeorgeantony/hledger-lib-wasm@main/";
+
+const fileSelector = document.getElementById("file-selector");
+const newFileBtn = document.getElementById("new-file-btn");
+const newFileModal = document.getElementById("new-file-modal");
+const newFilenameInput = document.getElementById("new-filename");
+const cancelNewFileBtn = document.getElementById("cancel-new-file-btn");
+const createFileBtn = document.getElementById("create-file-btn");
+const renameFileBtn = document.getElementById("rename-file-btn");
+const deleteFileBtn = document.getElementById("delete-file-btn");
+const renameFileModal = document.getElementById("rename-file-modal");
+const renameFilenameInput = document.getElementById("rename-filename");
+const cancelRenameFileBtn = document.getElementById("cancel-rename-file-btn");
+const submitRenameFileBtn = document.getElementById("submit-rename-file-btn");
+
+const journalText = document.querySelector("#journal-text");
+const journalPanel = document.querySelector("#journal-panel");
+const guiPanel = document.querySelector("#gui-panel");
+const queryInput = document.querySelector("#query-input");
+const forecastToggle = document.querySelector("#forecast-toggle");
+const checkStrictToggle = document.querySelector("#check-strict-toggle");
+const output = document.querySelector("#output");
+const guiOutputPanel = document.querySelector("#gui-output-panel");
+const statusBanner = document.querySelector("#status");
+const statusText = document.querySelector("#status-text");
+const statusModal = document.querySelector("#status-modal");
+const statusModalText = document.querySelector("#status-modal-text");
+const closeStatusModalBtn = document.querySelector("#close-status-modal");
+const reportGroupsContainer = document.querySelector("#report-groups");
+const clearButton = document.querySelector("#clear");
+const viewToggleButton = document.querySelector("#view-toggle");
+const inputView = document.querySelector("#input-view");
+const outputView = document.querySelector("#output-view");
+const renderDataToggle = document.getElementById("render-data-toggle");
+const mobileMenuBtn = document.getElementById("mobile-menu-btn");
+const mobileCloseBtn = document.getElementById("mobile-close-btn");
+const mainContent = document.querySelector("main");
+
+const googleLoginBtn = document.getElementById("google-login-btn");
+const userProfileContainer = document.getElementById("user-profile-container");
+const userAvatar = document.getElementById("user-avatar");
+const logoutBtn = document.getElementById("logout-btn");
+const userAvatarBtn = document.getElementById("user-avatar-btn");
+const profileModal = document.getElementById("profile-modal");
+const modalUserAvatar = document.getElementById("modal-user-avatar");
+const modalUserDisplayName = document.getElementById("modal-user-display-name");
+const modalUserDisplayEmail = document.getElementById("modal-user-display-email");
+const closeProfileModalBtn = document.getElementById("close-profile-modal");
+
+const txnModal = document.getElementById("txn-modal");
+const modalTitle = document.getElementById("modal-title");
+const modalStatusBanner = document.getElementById("modal-status");
+const rawToggle = document.getElementById("raw-toggle");
+const visualTxnUi = document.getElementById("visual-txn-ui");
+const rawTxnContainer = document.getElementById("raw-txn-container");
+const rawTxnInput = document.getElementById("raw-txn-input");
+const txnDate = document.getElementById("txn-date");
+const txnDesc = document.getElementById("txn-desc");
+const postingsContainer = document.getElementById("postings-container");
+const addPostingBtn = document.getElementById("add-posting-btn");
+const cancelTxnBtn = document.getElementById("cancel-txn-btn");
+const submitTxnBtn = document.getElementById("submit-txn-btn");
+
+const csvModal = document.getElementById("csv-import-modal");
+const csvImportBtn = document.getElementById("importcsvbtn");
+const csvCancelBtn = document.getElementById("cancel-csv-btn");
+const csvAppendBtn = document.getElementById("append-csv-btn");
+const csvReplaceBtn = document.getElementById("replace-csv-btn");
+
+const settingsBtn = document.getElementById("settings-btn");
+const settingsModal = document.getElementById("settings-modal");
+const closeSettingsModal = document.getElementById("close-settings-modal");
+const settingDarkMode = document.getElementById("setting-dark-mode");
+const settingFontSize = document.getElementById("setting-font-size");
+const fontSizeDisplay = document.getElementById("font-size-display");
+const settingHideBanner = document.getElementById("setting-hide-banner");
+
+
+
+const reportButtons = [];
+
+
+// --- State Manager --------------------------------------------------
+const state = {
+    ui: {
+        _view: null,
+        get view() { return this._view; },
+        set view(value) {
+            if (value !== "journal" && value !== "report") {
+                console.error("Invalid view: " + value);
+                return;
+            }
+            if (this._view !== value) {
+                inputView.style.display = value === "journal" ? "flex" : "none";
+                outputView.style.display = value === "report" ? "flex" : "none";
+                viewToggleButton.textContent = value === "journal" ? "Report" : "Journal";
+
+                this._view = value;
+            }
+            else {
+                console.log("View is already " + this._view);
+            }
+        },
+
+        _dataRendering: null,
+        get dataRendering() { return this._dataRendering; },
+        set dataRendering(value) {
+            if ((value !== true && value !== false) && (value !== 1 && value !== 0)) {
+                console.error("Value given to set state.ui.dataRendering flag is not boolean: " + value);
+                return;
+            }
+            renderDataToggle.checked = value;
+            if (value) {
+                journalPanel.style.display = "none"; guiPanel.style.display = "flex";
+                output.style.display = "none"; guiOutputPanel.style.display = "flex";
+            } else {
+                guiPanel.style.display = "none"; journalPanel.style.display = "flex";
+                guiOutputPanel.style.display = "none"; output.style.display = "";
+            }
+            this._dataRendering = value;
+        },
+        _reportButtonsEnabled: null,
+        get reportButtonsEnabled() { return this._reportButtonsEnabled; },
+        set reportButtonsEnabled(value) {
+            if ((value !== true && value !== false) && (value !== 1 && value !== 0)) {
+                console.error("Value given to set state.ui.reportButtonsEnabled flag is not boolean: " + value);
+                return;
+            }
+
+            for (const btn of reportButtons) {
+                if (!state.files.active) {
+                    btn.disabled = true;
+                }
+                else {
+                    btn.disabled = !value;
+                }
+            }
+
+            this._reportButtonsEnabled = value;
+        },
+    },
+    files: {
+        _active: null,
+        get active() { return this._active; },
+        set active(value) {
+            fileSelector.value = value || "";
+
+            const hasFile = !!value;
+            renameFileBtn.style.display = hasFile ? "" : "none";
+            deleteFileBtn.style.display = hasFile ? "" : "none";
+
+            journalText.disabled = !hasFile;
+            document.getElementById("addtxnbtn").disabled = !hasFile;
+            document.getElementById("importcsvbtn").disabled = !hasFile;
+            if (!hasFile) {
+                journalText.value = "Please create or select a journal file to begin.";
+                guiPanel.innerHTML = '<span>Please create or select a journal file to begin.</span>';
+                output.value = "Waiting for a journal to load.";
+                //setReportButtonsEnabled(false);
+                state.ui.reportButtonsEnabled = false;
+            }
+
+            this._active = value;
+        }
+    },
+
+    user: null,
+};
+
+// Initialising
+state.ui.view = "journal";
+state.ui.dataRendering = true;

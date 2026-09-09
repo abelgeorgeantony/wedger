@@ -37,21 +37,11 @@ window.fetch = async (...args) => {
     return new Response(stream, { headers: response.headers, status: response.status, statusText: response.statusText });
 };
 
-const isLocalDev = window.location.protocol === "file:" || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-const libBaseUrl = isLocalDev ? "http://localhost:5001/" : "https://cdn.jsdelivr.net/gh/abelgeorgeantony/hledger-lib-wasm@main/";
 
-import("./init.js");
+
 const { HledgerSession } = await import(`${libBaseUrl}js/hledger.js`);
 import { StorageManager } from "./storage.js";
 
-
-// --- State Manager --------------------------------------------------
-const state = {
-    view: "input",
-    isGui: true,
-    currentFilename: null,
-    user: null
-};
 
 let editingTxnId = null;
 let driveSyncTimer = null;
@@ -60,80 +50,7 @@ let isDriveSyncing = false;
 let driveFilesList = []; // Array of synced file objects
 
 // --- Element Selectors ----------------------------------------------
-const fileSelector = document.getElementById("file-selector");
-const newFileBtn = document.getElementById("new-file-btn");
-const newFileModal = document.getElementById("new-file-modal");
-const newFilenameInput = document.getElementById("new-filename");
-const cancelNewFileBtn = document.getElementById("cancel-new-file-btn");
-const createFileBtn = document.getElementById("create-file-btn");
-const renameFileBtn = document.getElementById("rename-file-btn");
-const deleteFileBtn = document.getElementById("delete-file-btn");
-const renameFileModal = document.getElementById("rename-file-modal");
-const renameFilenameInput = document.getElementById("rename-filename");
-const cancelRenameFileBtn = document.getElementById("cancel-rename-file-btn");
-const submitRenameFileBtn = document.getElementById("submit-rename-file-btn");
 
-const journalText = document.querySelector("#journal-text");
-const journalPanel = document.querySelector("#journal-panel");
-const guiPanel = document.querySelector("#gui-panel");
-const queryInput = document.querySelector("#query-input");
-const forecastToggle = document.querySelector("#forecast-toggle");
-const checkStrictToggle = document.querySelector("#check-strict-toggle");
-const output = document.querySelector("#output");
-const guiOutputPanel = document.querySelector("#gui-output-panel");
-const statusBanner = document.querySelector("#status");
-const statusText = document.querySelector("#status-text");
-const statusModal = document.querySelector("#status-modal");
-const statusModalText = document.querySelector("#status-modal-text");
-const closeStatusModalBtn = document.querySelector("#close-status-modal");
-const reportGroupsContainer = document.querySelector("#report-groups");
-const clearButton = document.querySelector("#clear");
-const viewToggleButton = document.querySelector("#view-toggle");
-const inputView = document.querySelector("#input-view");
-const outputView = document.querySelector("#output-view");
-const guiToggle = document.getElementById("gui-toggle");
-const mobileMenuBtn = document.getElementById("mobile-menu-btn");
-const mobileCloseBtn = document.getElementById("mobile-close-btn");
-const mainContent = document.querySelector("main");
-
-const googleLoginBtn = document.getElementById("google-login-btn");
-const userProfileContainer = document.getElementById("user-profile-container");
-const userAvatar = document.getElementById("user-avatar");
-const logoutBtn = document.getElementById("logout-btn");
-const userAvatarBtn = document.getElementById("user-avatar-btn");
-const profileModal = document.getElementById("profile-modal");
-const modalUserAvatar = document.getElementById("modal-user-avatar");
-const modalUserDisplayName = document.getElementById("modal-user-display-name");
-const modalUserDisplayEmail = document.getElementById("modal-user-display-email");
-const closeProfileModalBtn = document.getElementById("close-profile-modal");
-
-const txnModal = document.getElementById("txn-modal");
-const modalTitle = document.getElementById("modal-title");
-const modalStatusBanner = document.getElementById("modal-status");
-const rawToggle = document.getElementById("raw-toggle");
-const visualTxnUi = document.getElementById("visual-txn-ui");
-const rawTxnContainer = document.getElementById("raw-txn-container");
-const rawTxnInput = document.getElementById("raw-txn-input");
-const txnDate = document.getElementById("txn-date");
-const txnDesc = document.getElementById("txn-desc");
-const postingsContainer = document.getElementById("postings-container");
-const addPostingBtn = document.getElementById("add-posting-btn");
-const cancelTxnBtn = document.getElementById("cancel-txn-btn");
-const submitTxnBtn = document.getElementById("submit-txn-btn");
-
-const csvModal = document.getElementById("csv-import-modal");
-const csvImportBtn = document.getElementById("importcsvbtn");
-const csvCancelBtn = document.getElementById("cancel-csv-btn");
-const csvAppendBtn = document.getElementById("append-csv-btn");
-const csvReplaceBtn = document.getElementById("replace-csv-btn");
-
-const settingsBtn = document.getElementById("settings-btn");
-const settingsModal = document.getElementById("settings-modal");
-const closeSettingsModal = document.getElementById("close-settings-modal");
-const settingDarkMode = document.getElementById("setting-dark-mode");
-const settingFontSize = document.getElementById("setting-font-size");
-const fontSizeDisplay = document.getElementById("font-size-display");
-const settingHideBanner = document.getElementById("setting-hide-banner");
 
 
 let currentStatusMessage = "";
@@ -189,7 +106,7 @@ function commitFileState(filename, content, triggerDriveSync = true) {
     if (!filename) return;
 
     // 1. Bonded UI Textarea
-    if (state.currentFilename === filename && journalText.value !== content) {
+    if (state.files.active === filename && journalText.value !== content) {
         journalText.value = content;
     }
 
@@ -313,10 +230,10 @@ logoutBtn.addEventListener("click", () => {
     userAvatar.src = "";
     googleLoginBtn.style.display = "flex";
 
-    state.currentFilename = null;
+    state.files.active = null;
     updateFileSelector();
     journalText.value = "";
-    enforceFileLockdown();
+    //enforceFileLockdown();
 
     setStatus("Logged out successfully.", "info");
 });
@@ -350,18 +267,17 @@ async function performInitialSync() {
 
         updateFileSelector();
 
-        if (!state.currentFilename && syncedResults.length > 0) {
-            state.currentFilename = syncedResults[0].name;
-            fileSelector.value = state.currentFilename;
+        if (!state.files.active && syncedResults.length > 0) {
+            state.files.active = syncedResults[0].name;
         }
 
-        if (state.currentFilename) {
-            const content = StorageManager.getLocalFile(state.currentFilename) || "";
-            commitFileState(state.currentFilename, content, false);
-            enforceFileLockdown();
+        if (state.files.active) {
+            const content = StorageManager.getLocalFile(state.files.active) || "";
+            commitFileState(state.files.active, content, false);
+            //enforceFileLockdown();
             await reparse();
         } else {
-            enforceFileLockdown();
+            //enforceFileLockdown();
         }
 
         setStatus("All Drive files synced smoothly.", "ok");
@@ -378,18 +294,17 @@ async function performInitialSync() {
         // Ensure local files are loaded anyway
         updateFileSelector();
         const localFiles = StorageManager.listLocalFiles();
-        if (!state.currentFilename && localFiles.length > 0) {
-            state.currentFilename = localFiles[0];
-            fileSelector.value = state.currentFilename;
+        if (!state.files.active && localFiles.length > 0) {
+            state.files.active = localFiles[0];
         }
 
-        if (state.currentFilename) {
-            const content = StorageManager.getLocalFile(state.currentFilename) || "";
-            commitFileState(state.currentFilename, content, false);
-            enforceFileLockdown();
+        if (state.files.active) {
+            const content = StorageManager.getLocalFile(state.files.active) || "";
+            commitFileState(state.files.active, content, false);
+            //enforceFileLockdown();
             await reparse();
         } else {
-            enforceFileLockdown();
+            //enforceFileLockdown();
         }
     }
 }
@@ -661,12 +576,11 @@ function updateStartupSelector() {
             const startupModal = document.getElementById("startup-modal");
             startupModal.close();
 
-            fileSelector.value = f;
-            state.currentFilename = f;
+            state.files.active = f;
 
             const content = StorageManager.getLocalFile(f) || "";
             commitFileState(f, content, false);
-            enforceFileLockdown();
+            //enforceFileLockdown();
             await reparse();
         });
 
@@ -685,42 +599,26 @@ function updateFileSelector() {
         opt.value = f; opt.textContent = f;
         fileSelector.appendChild(opt);
     });
-    if (state.currentFilename) fileSelector.value = state.currentFilename;
+    if (state.files.active) fileSelector.value = state.files.active;
 
     updateStartupSelector();
 }
 
 
-function enforceFileLockdown() {
-    const hasFile = !!state.currentFilename;
-
-    journalText.disabled = !hasFile;
-    document.getElementById("addtxnbtn").disabled = !hasFile;
-    document.getElementById("importcsvbtn").disabled = !hasFile;
-
-    // Toggle Visibility
-    renameFileBtn.style.display = hasFile ? "" : "none";
-    deleteFileBtn.style.display = hasFile ? "" : "none";
-
-    if (!hasFile) {
-        journalText.value = "Please create or select a journal file to begin.";
-        guiPanel.innerHTML = '<span>Please create or select a journal file to begin.</span>';
-        output.value = "Waiting for a journal to load.";
-        setReportButtonsEnabled(false);
-    }
-}
+//function enforceFileLockdown() {  
+//}
 
 fileSelector.addEventListener("change", async (e) => {
     const selected = e.target.value;
     if (!selected) {
-        state.currentFilename = null;
-        enforceFileLockdown();
+        state.files.active = null;
+        //enforceFileLockdown();
         return;
     }
-    state.currentFilename = selected;
+    state.files.active = selected;
     const content = StorageManager.getLocalFile(selected) || "";
     commitFileState(selected, content, false);
-    enforceFileLockdown();
+    //enforceFileLockdown();
     await reparse();
 });
 
@@ -741,18 +639,18 @@ createFileBtn.addEventListener("click", async () => {
         return;
     }
 
-    state.currentFilename = name;
+    state.files.active = name;
     commitFileState(name, "", true);
 
     updateFileSelector();
-    enforceFileLockdown();
+    //enforceFileLockdown();
     newFileModal.close();
     await reparse();
 });
 
 // --- Rename Flow ---
 renameFileBtn.addEventListener("click", () => {
-    renameFilenameInput.value = state.currentFilename;
+    renameFilenameInput.value = state.files.active;
     renameFileModal.showModal();
 });
 
@@ -763,7 +661,7 @@ submitRenameFileBtn.addEventListener("click", async () => {
     if (!newName) return;
     if (!newName.endsWith(".journal")) newName += ".journal";
 
-    if (newName === state.currentFilename) {
+    if (newName === state.files.active) {
         renameFileModal.close();
         return;
     }
@@ -772,7 +670,7 @@ submitRenameFileBtn.addEventListener("click", async () => {
         return;
     }
 
-    const oldName = state.currentFilename;
+    const oldName = state.files.active;
     const content = StorageManager.getLocalFile(oldName) || "";
 
     setStatus("Renaming file...", "loading");
@@ -804,9 +702,9 @@ submitRenameFileBtn.addEventListener("click", async () => {
         driveSyncQueue.delete(oldName);
     }
 
-    state.currentFilename = newName;
+    state.files.active = newName;
     updateFileSelector();
-    enforceFileLockdown();
+    //enforceFileLockdown();
     renameFileModal.close();
     setStatus("File renamed successfully.", "ok");
 
@@ -815,9 +713,9 @@ submitRenameFileBtn.addEventListener("click", async () => {
 
 // --- Delete Flow ---
 deleteFileBtn.addEventListener("click", async () => {
-    if (!confirm(`Are you sure you want to delete ${state.currentFilename}? This will permanently remove it from local storage and Google Drive.`)) return;
+    if (!confirm(`Are you sure you want to delete ${state.files.active}? This will permanently remove it from local storage and Google Drive.`)) return;
 
-    const targetName = state.currentFilename;
+    const targetName = state.files.active;
     setStatus("Deleting file...", "loading");
 
     // 1. Memory VFS Sync
@@ -845,16 +743,16 @@ deleteFileBtn.addEventListener("click", async () => {
 
     // Resolve UI State
     const remainingFiles = StorageManager.listLocalFiles();
-    state.currentFilename = remainingFiles.length > 0 ? remainingFiles[0] : null;
+    state.files.active = remainingFiles.length > 0 ? remainingFiles[0] : null;
 
     updateFileSelector();
-    if (state.currentFilename) {
-        const content = StorageManager.getLocalFile(state.currentFilename) || "";
-        commitFileState(state.currentFilename, content, false);
-        enforceFileLockdown();
+    if (state.files.active) {
+        const content = StorageManager.getLocalFile(state.files.active) || "";
+        commitFileState(state.files.active, content, false);
+        //enforceFileLockdown();
         await reparse();
     } else {
-        enforceFileLockdown();
+        //enforceFileLockdown();
     }
 
     setStatus("File deleted successfully.", "ok");
@@ -865,18 +763,6 @@ deleteFileBtn.addEventListener("click", async () => {
 closeStatusModalBtn.addEventListener("click", () => statusModal.close());
 
 function syncUIState() {
-    inputView.style.display = state.view === "input" ? "flex" : "none";
-    outputView.style.display = state.view === "output" ? "flex" : "none";
-    viewToggleButton.textContent = state.view === "input" ? "Output" : "Input";
-
-    guiToggle.checked = state.isGui;
-    if (state.isGui) {
-        journalPanel.style.display = "none"; guiPanel.style.display = "flex";
-        output.style.display = "none"; guiOutputPanel.style.display = "flex";
-    } else {
-        guiPanel.style.display = "none"; journalPanel.style.display = "flex";
-        guiOutputPanel.style.display = "none"; output.style.display = "";
-    }
     closeRightMenuOnMobile();
 }
 
@@ -886,7 +772,7 @@ async function syncJournalTextToState() {
     if (printResult && typeof printResult.data === 'string') newText = printResult.data;
     else if (printResult) newText = String(printResult);
 
-    commitFileState(state.currentFilename, newText, true);
+    commitFileState(state.files.active, newText, true);
 
     syncUIState();
     await reparse();
@@ -894,7 +780,7 @@ async function syncJournalTextToState() {
 
 // --- GUI Input Journal Renderer -------------------------------------
 async function renderGuiJournal() {
-    if (!session.isLoaded || !state.currentFilename) return;
+    if (!session.isLoaded || !state.files.active) return;
     guiPanel.innerHTML = '<div class="status-banner" data-state="loading" style="position: static; margin-top: 20px;"><span class="status-dot"></span><span>Loading GUI view...</span></div>';
 
     try {
@@ -908,7 +794,6 @@ async function renderGuiJournal() {
             return;
         }
         guiPanel.innerHTML = "";
-        console.log(result);
         result.data.forEach(txn => guiPanel.appendChild(renderTransactionCard(txn)));
     } catch (error) {
         guiPanel.innerHTML = `<div class="status-banner" data-state="error" style="position: static; margin-top: 20px;"><span class="status-dot"></span><span>Failed to load GUI view</span></div>`;
@@ -1031,8 +916,8 @@ function scheduleReparse() {
 }
 
 async function reparse() {
-    if (!state.currentFilename) return;
-    setReportButtonsEnabled(false);
+    if (!state.files.active) return;
+    state.ui.reportButtonsEnabled = false;
 
     const forecast = forecastToggle.checked;
     const result = await session.loadJournal(journalText.value, forecast);
@@ -1041,12 +926,12 @@ async function reparse() {
         if (statusBanner.dataset.state === "error") {
             setStatus("Journal Loaded", "info"); // Clear the error status smoothly without "Ready" spam
         }
-        if (state.isGui) await renderGuiJournal();
+        if (state.ui.dataRendering ) await renderGuiJournal();
     } else {
         setStatus(`Journal error: ${result.error}`, "error");
-        if (state.isGui) guiPanel.innerHTML = `<div class="status-banner" data-state="error" style="position: static; margin-top: 20px;"><span class="status-dot"></span><span>${escapeHtml(result.error)}</span></div>`;
+        if (state.ui.dataRendering ) guiPanel.innerHTML = `<div class="status-banner" data-state="error" style="position: static; margin-top: 20px;"><span class="status-dot"></span><span>${escapeHtml(result.error)}</span></div>`;
     }
-    setReportButtonsEnabled(session.isLoaded);
+    state.ui.reportButtonsEnabled = session.isLoaded;
 }
 
 // --- CSV Import Handlers --------------------------------------------
@@ -1089,9 +974,9 @@ async function processCsvImport(mode) {
         if (mode === 'append') {
             const currentText = journalText.value.trim();
             const finalMergedContent = currentText ? currentText + "\n\n" + newJournalText : newJournalText;
-            commitFileState(state.currentFilename, finalMergedContent, true);
+            commitFileState(state.files.active, finalMergedContent, true);
         } else {
-            commitFileState(state.currentFilename, newJournalText, true);
+            commitFileState(state.files.active, newJournalText, true);
         }
 
         await reparse();
@@ -1112,13 +997,13 @@ csvAppendBtn.addEventListener("click", () => processCsvImport('append'));
 csvReplaceBtn.addEventListener("click", () => processCsvImport('replace'));
 
 // --- Standard Event Handlers ----------------------------------------
-guiToggle.addEventListener("change", async () => {
-    state.isGui = guiToggle.checked; syncUIState();
-    if (state.isGui) await renderGuiJournal();
+renderDataToggle.addEventListener("change", async () => {
+    state.ui.dataRendering  = renderDataToggle.checked; syncUIState();
+    if (state.ui.dataRendering ) await renderGuiJournal();
 });
 
 viewToggleButton.addEventListener("click", () => {
-    state.view = state.view === "input" ? "output" : "input"; syncUIState();
+    state.ui.view = state.ui.view === "journal" ? "report" : "journal"; syncUIState();
 });
 
 function openRightMenuOnMobile() { mainContent.classList.add("show-right-pane"); }
@@ -1130,7 +1015,7 @@ if (mobileMenuBtn && mobileCloseBtn) {
 }
 
 journalText.addEventListener("input", () => {
-    commitFileState(state.currentFilename, journalText.value, true);
+    commitFileState(state.files.active, journalText.value, true);
     scheduleReparse();
 });
 
@@ -1138,7 +1023,7 @@ forecastToggle.addEventListener("change", reparse);
 
 clearButton.addEventListener("click", () => {
     output.value = ""; guiOutputPanel.innerHTML = "";
-    setStatus("Output cleared.", "info"); state.view = "output"; syncUIState();
+    setStatus("Output cleared.", "info"); state.ui.view = "report"; syncUIState();
 });
 
 // --- Settings Event Handlers ----------------------------------------
@@ -1253,16 +1138,16 @@ submitTxnBtn.addEventListener("click", async () => {
     }
 
     setStatus(editingTxnId !== null ? "Saving changes..." : "Adding transaction...", "loading", modalStatusBanner);
-    setReportButtonsEnabled(false);
+    state.ui.reportButtonsEnabled = false;
 
     try {
         let result = editingTxnId !== null ? await session.updateTransaction(editingTxnId, rawTxnText) : await session.balanceTransaction(rawTxnText);
-        if (result && result.error) { setStatus(`Error: ${result.error}`, "error", modalStatusBanner); setReportButtonsEnabled(true); return; }
+        if (result && result.error) { setStatus(`Error: ${result.error}`, "error", modalStatusBanner); state.ui.reportButtonsEnabled = true; return; }
         await syncJournalTextToState();
         setStatus(editingTxnId !== null ? "Transaction updated successfully." : "Transaction added successfully.", "ok");
         txnModal.close();
     } catch (error) {
-        console.error(error); setStatus("Failed to process transaction.", "error", modalStatusBanner); setReportButtonsEnabled(true);
+        console.error(error); setStatus("Failed to process transaction.", "error", modalStatusBanner); state.ui.reportButtonsEnabled =true;
     }
 });
 
@@ -1275,7 +1160,7 @@ const reportGroups = [
     { label: "Export", items: [{ id: "printtext", label: ".journal", run: (q) => session.printText(q) }] },
 ];
 
-const reportButtons = [];
+
 for (const group of reportGroups) {
     const groupEl = document.createElement("div"); groupEl.className = "report-group";
     const labelEl = document.createElement("div"); labelEl.className = "report-group-label"; labelEl.textContent = group.label; groupEl.appendChild(labelEl);
@@ -1283,7 +1168,7 @@ for (const group of reportGroups) {
     for (const item of group.items) {
         const btn = document.createElement("button"); btn.id = item.id; btn.textContent = item.label; btn.disabled = true;
         btn.addEventListener("click", () => {
-            if (!session.isLoaded || !state.currentFilename) { setStatus("No valid journal loaded.", "error"); return; }
+            if (!session.isLoaded || !state.files.active) { setStatus("No valid journal loaded.", "error"); return; }
             runReport(item.id, item.label, () => item.run(queryInput.value));
         });
         buttonsEl.appendChild(btn); reportButtons.push(btn);
@@ -1291,14 +1176,8 @@ for (const group of reportGroups) {
     groupEl.appendChild(buttonsEl); reportGroupsContainer.appendChild(groupEl);
 }
 
-function setReportButtonsEnabled(enabled) {
-    for (const btn of reportButtons) {
-        if (!state.currentFilename) btn.disabled = true; else btn.disabled = !enabled;
-    }
-}
-
 async function runReport(reportId, label, action) {
-    state.view = "output"; syncUIState(); setReportButtonsEnabled(false);
+    state.ui.view = "report"; syncUIState(); state.ui.reportButtonsEnabled = false;
     setStatus(`Running ${label}...`, "loading");
     try {
         const result = await action();
@@ -1311,7 +1190,7 @@ async function runReport(reportId, label, action) {
         output.value = error.stack || String(error);
         guiOutputPanel.innerHTML = `<div class="status-banner" data-state="error" style="position: static; margin-top: 20px;"><span class="status-dot"></span><span>Error running ${label}: ${escapeHtml(error.message || String(error))}</span></div>`;
         setStatus(`${label} report failed.`, "error");
-    } finally { setReportButtonsEnabled(session.isLoaded); }
+    } finally { state.ui.reportButtonsEnabled = session.isLoaded; }
 }
 
 
@@ -1326,27 +1205,26 @@ updateFileSelector();
 const startupModal = document.getElementById("startup-modal");
 const startupNewBtn = document.getElementById("startup-new-btn");
 
-enforceFileLockdown();
+//enforceFileLockdown();
 syncUIState();
 
 // Check if we have files to show, otherwise go straight to the "New File" modal
 if (files.length === 0) {
-    state.currentFilename = null;
+    state.files.active = null;
     setTimeout(() => newFileModal.showModal(), 500);
     setStatus("Ready", "ok");
 } else if (files.length === 1) {
     // Automatically open the file if there is only one available
-    state.currentFilename = files[0];
-    fileSelector.value = state.currentFilename;
+    state.files.active = files[0];
 
-    const content = StorageManager.getLocalFile(state.currentFilename) || "";
-    commitFileState(state.currentFilename, content, false);
-    enforceFileLockdown();
+    const content = StorageManager.getLocalFile(state.files.active) || "";
+    commitFileState(state.files.active, content, false);
+    //enforceFileLockdown();
     await reparse();
     setStatus("Ready", "ok");
 } else {
     // Show the startup modal if there are multiple files to choose from
-    state.currentFilename = null;
+    state.files.active = null;
     setTimeout(() => startupModal.showModal(), 500);
     setStatus("Ready", "ok");
 }
