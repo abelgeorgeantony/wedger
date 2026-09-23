@@ -41,48 +41,17 @@ window.fetch = async (...args) => {
 
 const { HledgerSession } = await import(`${libBaseUrl}js/hledger.js`);
 import { StorageManager } from "./storage.js";
+import { state } from "./state.js";
 
 
 let editingTxnId = null;
 let driveSyncTimer = null;
 const driveSyncQueue = new Map(); // filename -> content queue for debouncing
 let isDriveSyncing = false;
-let driveFilesList = []; // Array of synced file objects
+//let driveFilesList = []; // Array of synced file objects
 
 // --- Element Selectors ----------------------------------------------
 
-
-
-let currentStatusMessage = "";
-let isOpenStatusModalAttached = false;
-
-function setStatus(text, stateType = "info", banner = statusBanner) {
-    if (!text) {
-        text = "";
-        banner.dataset.state = "info";
-    } else {
-        banner.dataset.state = stateType;
-    }
-
-    currentStatusMessage = text;
-    const textEl = banner.querySelector("#status-text");
-    if (textEl) textEl.textContent = text;
-
-    if (textEl && text) {
-        if (textEl.scrollWidth > textEl.clientWidth) {
-            banner.addEventListener("click", openStatusModal);
-            isOpenStatusModalAttached = true;
-        } else if (isOpenStatusModalAttached) {
-            banner.removeEventListener("click", openStatusModal);
-            isOpenStatusModalAttached = false;
-        }
-    }
-}
-
-function openStatusModal() {
-    statusModalText.textContent = currentStatusMessage;
-    statusModal.showModal();
-}
 
 
 let activeTxnCard = null;
@@ -111,7 +80,7 @@ function commitFileState(filename, content, triggerDriveSync = true) {
     }
 
     // 2. Synchronous Virtual FS update
-    session.fs.setFile(filename, content);
+    state.hledger.session.fs.setFile(filename, content);
 
     // 3. Synchronous Local Storage update - Updates modifiedTime to NOW
     StorageManager.saveLocalFile(filename, content);
@@ -140,22 +109,11 @@ async function processDriveSync() {
 
     for (const [filename, content] of itemsToSync) {
         try {
-            const driveFile = driveFilesList.find(f => f.name === filename);
-            const fileId = driveFile ? driveFile.id : null;
+            const driveFile = state.files.list.get(filename);
+            const fileId = driveFile ? driveFile.driveId : null;
 
             const res = await StorageManager.saveToDrive(filename, content, fileId);
-
-            if (!fileId && res.id) {
-                driveFilesList.push({ id: res.id, name: filename, status: 'synced', modifiedTime: new Date().toISOString() });
-            } else if (driveFile) {
-                // Update the modified time for existing files
-                driveFile.modifiedTime = new Date().toISOString();
-            }
-
-            // Refresh the modal UI if it is currently open
-            if (document.getElementById('profile-modal').hasAttribute('open')) {
-                updateProfileModalUI();
-            }
+            state.files.list.markSynced(filename, { driveId: res.id, modifiedTime: new Date().toISOString() });
         } catch (e) {
             console.error("Drive sync failed for", filename, e);
 
@@ -170,10 +128,9 @@ async function processDriveSync() {
                     return;
                 } catch (refreshErr) {
                     // Only fallback to manual if silent background refresh fails
-                    setStatus("Session expired. Please sign in to sync.", "error");
                     StorageManager.accessToken = null;
-                    document.getElementById("google-login-btn").style.display = "flex";
-                    document.getElementById("user-profile-container").style.display = "none";
+                    state.user = null;
+                    state.ui.status = { text: "Session expired. Please sign in to sync.", type: "error", banner: statusBanner };
                     if (!driveSyncQueue.has(filename)) driveSyncQueue.set(filename, content); // Keep it queued
                     isDriveSyncing = false;
                     return; // Break out to prevent endless loop on bad token
@@ -193,7 +150,7 @@ async function processDriveSync() {
     if (driveSyncQueue.size > 0 && StorageManager.accessToken) {
         driveSyncTimer = setTimeout(processDriveSync, 2000);
     } else if (driveSyncQueue.size === 0) {
-        setStatus("Changes synced to Drive.", "ok");
+        state.ui.status = { text: "Changes synced to Drive.", type: "ok", banner: statusBanner };
     }
 }
 
@@ -206,36 +163,19 @@ googleLoginBtn.addEventListener("click", () => StorageManager.promptLogin());
 
 function applyAuthenticatedState(user) {
     state.user = user;
-
-    googleLoginBtn.style.display = "none";
-    userProfileContainer.style.display = "flex";
-    userAvatar.src = user.picture;
-    userAvatar.title = user.name;
-
-    modalUserAvatar.src = user.picture;
-    modalUserDisplayName.textContent = user.name;
-    modalUserDisplayEmail.textContent = user.email;
-
-    setStatus(`Welcome, ${user.name}! Connected to Drive.`, "ok");
 }
 
 logoutBtn.addEventListener("click", () => {
     StorageManager.logout();
     state.user = null;
-    driveFilesList = [];
     driveSyncQueue.clear();
 
     profileModal.close();
-    userProfileContainer.style.display = "none";
-    userAvatar.src = "";
-    googleLoginBtn.style.display = "flex";
-
     state.files.active = null;
-    updateFileSelector();
+    state.files.list.refresh([]); // strips Drive metadata, keeps files as local-only
     journalText.value = "";
-    //enforceFileLockdown();
 
-    setStatus("Logged out successfully.", "info");
+    state.ui.status = { text: "Logged out successfully.", type: "info", banner: statusBanner };
 });
 
 userAvatarBtn.addEventListener("click", () => {
@@ -249,10 +189,10 @@ closeProfileModalBtn.addEventListener("click", () => {
 
 async function performInitialSync() {
     try {
-        setStatus("Syncing all Google Drive files...", "loading");
+        state.ui.status = { text: "Syncing all Google Drive files...", type: "loading", banner: statusBanner };
 
         const syncedResults = await StorageManager.syncAllDriveFiles();
-        driveFilesList = syncedResults.filter(f => f.status === "synced" || f.status === "synced_local_newer");
+        //driveFilesList = syncedResults.filter(f => f.status === "synced" || f.status === "synced_local_newer");
 
         // Populate locally
         syncedResults.forEach(file => {
@@ -265,7 +205,8 @@ async function performInitialSync() {
             }
         });
 
-        updateFileSelector();
+        state.files.list.refresh(syncedResults.filter(f => f.status === "synced" || f.status === "synced_local_newer"));
+        //updateFileSelector();
 
         if (!state.files.active && syncedResults.length > 0) {
             state.files.active = syncedResults[0].name;
@@ -280,19 +221,19 @@ async function performInitialSync() {
             //enforceFileLockdown();
         }
 
-        setStatus("All Drive files synced smoothly.", "ok");
+        state.ui.status = { text: "All Drive files synced smoothly.", type: "ok", banner: statusBanner };
     } catch (e) {
         console.error("Initial Sync Error:", e);
         if (e.message === "401" || e.message.includes("401")) {
-            setStatus("Session expired. Working offline.", "error");
-            document.getElementById("google-login-btn").style.display = "flex";
-            document.getElementById("user-profile-container").style.display = "none";
+            state.user = null;
+            state.ui.status = { text: "Session expired. Working offline.", type: "error", banner: statusBanner };
         } else {
-            setStatus("Drive sync failed. Working offline.", "error");
+            state.ui.status = { text: "Drive sync failed. Working offline.", type: "error", banner: statusBanner };
         }
 
         // Ensure local files are loaded anyway
-        updateFileSelector();
+        //updateFileSelector();
+        state.files.list.refresh();
         const localFiles = StorageManager.listLocalFiles();
         if (!state.files.active && localFiles.length > 0) {
             state.files.active = localFiles[0];
@@ -311,12 +252,13 @@ async function performInitialSync() {
 
 function updateProfileModalUI() {
     const filesListEl = document.getElementById("synced-files-list");
+    const driveFiles = state.files.list.all.filter(f => f.driveId);
 
     if (filesListEl) {
-        if (driveFilesList.length === 0) {
+        if (driveFiles.length === 0) {
             filesListEl.innerHTML = `<div style="padding: 12px; font-family: var(--mono); font-size: 11px; color: var(--ink-soft); text-align: center;">No Drive files found.</div>`;
         } else {
-            filesListEl.innerHTML = driveFilesList.map(f => `
+            filesListEl.innerHTML = driveFiles.map(f => `
             <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--rule); font-family: var(--mono); font-size: 12px;">
               <div>
                 <strong style="color: var(--ink);">${escapeHtml(f.name)}</strong>
@@ -546,63 +488,44 @@ function syncFilesystem() {
     const files = StorageManager.listLocalFiles();
     files.forEach(f => {
         const content = StorageManager.getLocalFile(f) || "";
-        session.fs.setFile(f, content);
+        state.hledger.session.fs.setFile(f, content);
     });
+    state.files.list.refresh(); // populates the list, fires "files:changed"
     return files;
 }
 
-function updateStartupSelector() {
+function renderFileMenus() {
+    const list = state.files.list.all;
+    const active = state.files.active;
+
+    fileSelector.innerHTML = '<option value="">-- No file selected --</option>';
+    list.forEach(f => {
+        const opt = document.createElement("option");
+        opt.value = f.name; opt.textContent = f.name;
+        fileSelector.appendChild(opt);
+    });
+    fileSelector.value = active || "";
+
     const startupList = document.getElementById("startup-file-list");
     if (!startupList) return;
-
-    startupList.innerHTML = "";
-
-    const localFiles = StorageManager.listLocalFiles();
-    const driveNames = driveFilesList.map(f => f.name);
-    const allFiles = Array.from(new Set([...localFiles, ...driveNames])).sort();
-
-    if (allFiles.length === 0) {
-        startupList.innerHTML = '<div class="file-list-item empty-state">-- No files available --</div>';
-        return;
-    }
-
-    allFiles.forEach(f => {
+    startupList.innerHTML = list.length === 0
+        ? '<div class="file-list-item empty-state">-- No files available --</div>'
+        : "";
+    list.forEach(f => {
         const item = document.createElement("div");
         item.className = "file-list-item";
-        item.textContent = f;
-
-        // Let the list item open the file instantly
+        item.textContent = f.name;
         item.addEventListener("click", async () => {
-            const startupModal = document.getElementById("startup-modal");
-            startupModal.close();
-
-            state.files.active = f;
-
-            const content = StorageManager.getLocalFile(f) || "";
-            commitFileState(f, content, false);
-            //enforceFileLockdown();
+            document.getElementById("startup-modal").close();
+            state.files.active = f.name;
+            commitFileState(f.name, StorageManager.getLocalFile(f.name) || "", false);
             await reparse();
         });
-
         startupList.appendChild(item);
     });
 }
 
-function updateFileSelector() {
-    const localFiles = StorageManager.listLocalFiles();
-    const driveNames = driveFilesList.map(f => f.name);
-    const allFiles = Array.from(new Set([...localFiles, ...driveNames])).sort();
-
-    fileSelector.innerHTML = '<option value="">-- No file selected --</option>';
-    allFiles.forEach(f => {
-        const opt = document.createElement("option");
-        opt.value = f; opt.textContent = f;
-        fileSelector.appendChild(opt);
-    });
-    if (state.files.active) fileSelector.value = state.files.active;
-
-    updateStartupSelector();
-}
+document.addEventListener("files:changed", renderFileMenus);
 
 
 //function enforceFileLockdown() {  
@@ -630,22 +553,14 @@ newFileBtn.addEventListener("click", () => {
 cancelNewFileBtn.addEventListener("click", () => newFileModal.close());
 
 createFileBtn.addEventListener("click", async () => {
-    let name = newFilenameInput.value.trim();
-    if (!name) return;
-    if (!name.endsWith(".journal")) name += ".journal";
-
-    if (StorageManager.getLocalFile(name) !== null) {
-        alert("A file with this name already exists.");
-        return;
+    try {
+        const entry = state.files.list.new(newFilenameInput.value);
+        commitFileState(entry.name, "", true);
+        newFileModal.close();
+        await reparse();
+    } catch (e) {
+        alert(e.message);
     }
-
-    state.files.active = name;
-    commitFileState(name, "", true);
-
-    updateFileSelector();
-    //enforceFileLockdown();
-    newFileModal.close();
-    await reparse();
 });
 
 // --- Rename Flow ---
@@ -657,105 +572,58 @@ renameFileBtn.addEventListener("click", () => {
 cancelRenameFileBtn.addEventListener("click", () => renameFileModal.close());
 
 submitRenameFileBtn.addEventListener("click", async () => {
-    let newName = renameFilenameInput.value.trim();
-    if (!newName) return;
-    if (!newName.endsWith(".journal")) newName += ".journal";
-
-    if (newName === state.files.active) {
-        renameFileModal.close();
-        return;
-    }
-    if (StorageManager.getLocalFile(newName) !== null) {
-        alert("A file with this name already exists.");
-        return;
-    }
-
     const oldName = state.files.active;
-    const content = StorageManager.getLocalFile(oldName) || "";
+    let updated;
+    try {
+        updated = state.files.list.rename(oldName, renameFilenameInput.value);
+    } catch (e) {
+        alert(e.message);
+        return;
+    }
+    if (updated.name === oldName) { renameFileModal.close(); return; }
 
-    setStatus("Renaming file...", "loading");
+    state.ui.status = { text: "Renaming file...", type: "loading", banner: statusBanner };
 
-    // 1. Memory VFS Sync
-    session.fs.setFile(newName, content);
-    session.fs.deleteFile(oldName);
-
-    // 2. Local Storage Sync
-    StorageManager.renameLocalFile(oldName, newName);
-
-    // 3. Google Drive Native Rename (PATCH metadata)
-    const driveFile = driveFilesList.find(f => f.name === oldName);
-    if (driveFile && StorageManager.accessToken) {
+    if (updated.driveId && StorageManager.accessToken) {
         try {
-            await StorageManager.renameInDrive(driveFile.id, newName);
-            driveFile.name = newName;
-            driveFile.modifiedTime = new Date().toISOString();
+            await StorageManager.renameInDrive(updated.driveId, updated.name);
+            state.files.list.markSynced(updated.name, { modifiedTime: new Date().toISOString() });
         } catch (e) {
             console.error("Failed to rename in Drive", e);
         }
-    } else if (driveFile) {
-        driveFile.name = newName; // optimistic update
     }
 
-    // Handle in-progress debounced queues
     if (driveSyncQueue.has(oldName)) {
-        driveSyncQueue.set(newName, driveSyncQueue.get(oldName));
+        driveSyncQueue.set(updated.name, driveSyncQueue.get(oldName));
         driveSyncQueue.delete(oldName);
     }
 
-    state.files.active = newName;
-    updateFileSelector();
-    //enforceFileLockdown();
     renameFileModal.close();
-    setStatus("File renamed successfully.", "ok");
-
+    state.ui.status = { text: "File renamed successfully.", type: "ok", banner: statusBanner };
     await reparse();
 });
 
-// --- Delete Flow ---
 deleteFileBtn.addEventListener("click", async () => {
-    if (!confirm(`Are you sure you want to delete ${state.files.active}? This will permanently remove it from local storage and Google Drive.`)) return;
-
     const targetName = state.files.active;
-    setStatus("Deleting file...", "loading");
+    if (!confirm(`Are you sure you want to delete ${targetName}? This will permanently remove it from local storage and Google Drive.`)) return;
 
-    // 1. Memory VFS Sync
-    session.fs.deleteFile(targetName);
+    state.ui.status = { text: "Deleting file...", type: "loading", banner: statusBanner };
 
-    // 2. Local Storage Sync
-    StorageManager.deleteLocalFile(targetName);
+    const entry = state.files.list.delete(targetName);
 
-    // 3. Google Drive Native Delete
-    const driveFileIndex = driveFilesList.findIndex(f => f.name === targetName);
-    if (driveFileIndex > -1) {
-        const driveFile = driveFilesList[driveFileIndex];
-        if (StorageManager.accessToken) {
-            try {
-                await StorageManager.deleteFromDrive(driveFile.id);
-            } catch (e) {
-                console.error("Failed to delete from Drive", e);
-            }
-        }
-        driveFilesList.splice(driveFileIndex, 1);
+    if (entry?.driveId && StorageManager.accessToken) {
+        try { await StorageManager.deleteFromDrive(entry.driveId); }
+        catch (e) { console.error("Failed to delete from Drive", e); }
     }
-
-    // Cancel any pending writes for this file
     driveSyncQueue.delete(targetName);
 
-    // Resolve UI State
-    const remainingFiles = StorageManager.listLocalFiles();
-    state.files.active = remainingFiles.length > 0 ? remainingFiles[0] : null;
-
-    updateFileSelector();
     if (state.files.active) {
         const content = StorageManager.getLocalFile(state.files.active) || "";
         commitFileState(state.files.active, content, false);
-        //enforceFileLockdown();
         await reparse();
-    } else {
-        //enforceFileLockdown();
     }
 
-    setStatus("File deleted successfully.", "ok");
+    state.ui.status = { text: "File deleted successfully.", type: "ok", banner: statusBanner };
 });
 
 // --- Global UI Behaviors --------------------------------------------
@@ -767,7 +635,7 @@ function syncUIState() {
 }
 
 async function syncJournalTextToState() {
-    const printResult = await session.printText("");
+    const printResult = await state.hledger.session.printText("");
     let newText = "";
     if (printResult && typeof printResult.data === 'string') newText = printResult.data;
     else if (printResult) newText = String(printResult);
@@ -780,11 +648,11 @@ async function syncJournalTextToState() {
 
 // --- GUI Input Journal Renderer -------------------------------------
 async function renderGuiJournal() {
-    if (!session.isLoaded || !state.files.active) return;
+    if (!state.hledger.session.isLoaded || !state.files.active) return;
     guiPanel.innerHTML = '<div class="status-banner" data-state="loading" style="position: static; margin-top: 20px;"><span class="status-dot"></span><span>Loading GUI view...</span></div>';
 
     try {
-        const result = await session.getJournalJSON();
+        const result = await state.hledger.session.getJournalJSON();
         if (!result.ok) {
             guiPanel.innerHTML = `<div class="status-banner" data-state="error" style="position: static; margin-top: 20px;"><span class="status-dot"></span><span>${escapeHtml(result.error)}</span></div>`;
             return;
@@ -841,7 +709,7 @@ function renderTransactionCard(txn) {
         txn.postings.forEach(p => {
             const row = document.createElement("div"); row.className = "posting-row";
             row.style.cssText = "display: grid; grid-template-columns: 2fr 1fr auto; gap: 8px; align-items: center;";
-            row.innerHTML = `<input type="text" class="post-acct" placeholder="Account" value="${escapeHtml(p.account)}" required />
+            row.innerHTML = `<input type="text" class="post-acct" list="account-suggestions" placeholder="Account" value="${escapeHtml(p.account)}" required />
                            <input type="text" class="post-amt" placeholder="Amount" value="${escapeHtml(p.amount || '')}" />
                            <button type="button" class="secondary remove-post-btn" style="padding: 0 8px; min-height: 34px; color: #900c0c;">×</button>`;
             attachRemoveRowListener(row.querySelector(".remove-post-btn"));
@@ -850,19 +718,19 @@ function renderTransactionCard(txn) {
 
         rawTxnInput.value = txn.rawText; rawToggle.checked = false;
         visualTxnUi.style.display = "block"; rawTxnContainer.style.display = "none";
-        setStatus("Edit transaction details", "info", modalStatusBanner);
+        state.ui.status = { text: "Edit transaction details", type: "info", banner: modalStatusBanner };
         txnModal.showModal();
     });
 
     card.querySelector(".delete-btn").addEventListener("click", async () => {
         if (!confirm("Are you sure you want to delete this transaction?")) return;
-        setStatus("Deleting transaction...", "loading");
+        state.ui.status = { text: "Deleting transaction...", type: "loading", banner: statusBanner };
         try {
-            const result = await session.deleteTransaction(txn.id);
-            if (result && result.error) { setStatus(`Error: ${result.error}`, "error"); return; }
+            const result = await state.hledger.session.deleteTransaction(txn.id);
+            if (result && result.error) { state.ui.status = { text: `Error: ${result.error}`, type: "error", banner: statusBanner }; return; }
             await syncJournalTextToState();
-            setStatus("Transaction deleted successfully.", "ok");
-        } catch (error) { setStatus("Failed to delete transaction.", "error"); }
+            state.ui.status = { text: "Transaction deleted successfully.", type: "ok", banner: statusBanner };
+        } catch (error) { state.ui.status = { text: "Failed to delete transaction.", type: "error", banner: statusBanner }; }
     });
 
     let startX = 0, startY = 0;
@@ -907,6 +775,21 @@ function renderTransactionCard(txn) {
     return card;
 }
 
+
+
+async function refreshAccountSuggestions() {
+    if (!state.hledger.session || !state.hledger.session.isLoaded) return;
+    try {
+        const result = await state.hledger.session.accounts();
+        if (result && result.ok && Array.isArray(result.data)) {
+            accountSuggestionsList.innerHTML = result.data
+                .map(name => `<option value="${escapeHtml(name)}"></option>`)
+                .join("");
+        }
+    } catch (error) {
+        console.error("Failed to refresh account suggestions:", error);
+    }
+}
 // --- Reparse Engine -------------------------------------------------
 let debounceTimer = null;
 
@@ -920,18 +803,19 @@ async function reparse() {
     state.ui.reportButtonsEnabled = false;
 
     const forecast = forecastToggle.checked;
-    const result = await session.loadJournal(journalText.value, forecast);
+    const result = await state.hledger.session.loadJournal(journalText.value, forecast);
 
     if (result.ok) {
         if (statusBanner.dataset.state === "error") {
-            setStatus("Journal Loaded", "info"); // Clear the error status smoothly without "Ready" spam
+            state.ui.status = { text: "Journal Loaded", type: "info", banner: statusBanner }; // Clear the error status smoothly without "Ready" spam
         }
-        if (state.ui.dataRendering ) await renderGuiJournal();
+        if (state.ui.dataRendering) await renderGuiJournal();
+        await refreshAccountSuggestions();
     } else {
-        setStatus(`Journal error: ${result.error}`, "error");
-        if (state.ui.dataRendering ) guiPanel.innerHTML = `<div class="status-banner" data-state="error" style="position: static; margin-top: 20px;"><span class="status-dot"></span><span>${escapeHtml(result.error)}</span></div>`;
+        state.ui.status = { text: `Journal error: ${result.error}`, type: "error", banner: statusBanner };
+        if (state.ui.dataRendering) guiPanel.innerHTML = `<div class="status-banner" data-state="error" style="position: static; margin-top: 20px;"><span class="status-dot"></span><span>${escapeHtml(result.error)}</span></div>`;
     }
-    state.ui.reportButtonsEnabled = session.isLoaded;
+    state.ui.reportButtonsEnabled = state.hledger.session.isLoaded;
 }
 
 // --- CSV Import Handlers --------------------------------------------
@@ -958,15 +842,15 @@ async function processCsvImport(mode) {
     const modalBanner = document.getElementById("csv-modal-status");
 
     csvAppendBtn.disabled = true; csvReplaceBtn.disabled = true; csvCancelBtn.disabled = true;
-    setStatus("Parsing CSV data...", "loading", modalBanner);
+    state.ui.status = { text: "Parsing CSV data...", type: "loading", banner: modalBanner };
 
     try {
-        const result = await session.parseCsv(csvData, rulesData, forecast);
+        const result = await state.hledger.session.parseCsv(csvData, rulesData, forecast);
         if (!result.ok) {
-            setStatus(`Error: ${result.error}`, "error", modalBanner);
+            state.ui.status = { text: `Error: ${result.error}`, type: "error", banner: modalBanner };
             csvAppendBtn.disabled = false; csvReplaceBtn.disabled = false; csvCancelBtn.disabled = false; return;
         }
-        const printResult = await session.printText("");
+        const printResult = await state.hledger.session.printText("");
         let newJournalText = "";
         if (printResult && typeof printResult.data === 'string') newJournalText = printResult.data;
         else if (printResult) newJournalText = String(printResult);
@@ -980,15 +864,15 @@ async function processCsvImport(mode) {
         }
 
         await reparse();
-        setStatus("Import successful.", "ok", modalBanner);
+        state.ui.status = { text: "Import successful.", type: "ok", banner: modalBanner };
 
         setTimeout(() => {
             csvModal.close(); closeRightMenuOnMobile();
-            setStatus("Provide CSV data and rules", "info", modalBanner);
+            state.ui.status = { text: "Provide CSV data and rules", type: "info", banner: modalBanner };
             csvAppendBtn.disabled = false; csvReplaceBtn.disabled = false; csvCancelBtn.disabled = false;
         }, 500);
     } catch (err) {
-        setStatus(`Import failed: ${err.message}`, "error", modalBanner);
+        state.ui.status = { text: `Import failed: ${err.message}`, type: "error", banner: modalBanner };
         csvAppendBtn.disabled = false; csvReplaceBtn.disabled = false; csvCancelBtn.disabled = false;
     }
 }
@@ -998,8 +882,8 @@ csvReplaceBtn.addEventListener("click", () => processCsvImport('replace'));
 
 // --- Standard Event Handlers ----------------------------------------
 renderDataToggle.addEventListener("change", async () => {
-    state.ui.dataRendering  = renderDataToggle.checked; syncUIState();
-    if (state.ui.dataRendering ) await renderGuiJournal();
+    state.ui.dataRendering = renderDataToggle.checked; syncUIState();
+    if (state.ui.dataRendering) await renderGuiJournal();
 });
 
 viewToggleButton.addEventListener("click", () => {
@@ -1023,38 +907,26 @@ forecastToggle.addEventListener("change", reparse);
 
 clearButton.addEventListener("click", () => {
     output.value = ""; guiOutputPanel.innerHTML = "";
-    setStatus("Output cleared.", "info"); state.ui.view = "report"; syncUIState();
+    state.ui.status = { text: "Output cleared.", type: "info", banner: statusBanner }; state.ui.view = "report"; syncUIState();
 });
 
 // --- Settings Event Handlers ----------------------------------------
 settingsBtn.addEventListener("click", () => {
-    settingDarkMode.checked = document.documentElement.classList.contains("dark-mode");
+    settingDarkMode.checked = state.ui.darkMode;
     settingsModal.showModal();
 });
 closeSettingsModal.addEventListener("click", () => settingsModal.close());
 
 settingDarkMode.addEventListener("change", (e) => {
-    if (e.target.checked) document.documentElement.classList.add("dark-mode");
-    else document.documentElement.classList.remove("dark-mode");
+    state.ui.darkMode = e.target.checked;
 });
 
 settingFontSize.addEventListener("input", (e) => {
-    const size = e.target.value;
-    document.documentElement.style.setProperty('--base-font-size', `${size}px`);
-    fontSizeDisplay.textContent = `${size}px`;
-    localStorage.setItem('wedger_font_size', size);
+    state.ui.fontSize = e.target.value;
 });
 
-const savedSize = localStorage.getItem('wedger_font_size');
-if (savedSize) {
-    settingFontSize.value = savedSize;
-    document.documentElement.style.setProperty('--base-font-size', `${savedSize}px`);
-    if (fontSizeDisplay) fontSizeDisplay.textContent = `${savedSize}px`;
-}
-
 settingHideBanner.addEventListener("change", (e) => {
-    if (e.target.checked) { statusBanner.style.display = 'none'; document.body.style.paddingTop = '0'; mainContent.style.height = '100dvh'; }
-    else { statusBanner.style.display = 'flex'; document.body.style.paddingTop = 'calc(2.4vw + 1px)'; mainContent.style.height = 'calc(100dvh - (2.4vw + 1px))'; }
+    state.ui.hideBanner = e.target.checked;
 });
 
 // --- Transaction Modal Handler --------------------------------------
@@ -1090,14 +962,14 @@ document.getElementById("addtxnbtn").addEventListener("click", () => {
     defaultRows.forEach(def => {
         const row = document.createElement("div"); row.className = "posting-row";
         row.style.cssText = "display: grid; grid-template-columns: 2fr 1fr auto; gap: 8px; align-items: center;";
-        row.innerHTML = `<input type="text" class="post-acct" placeholder="${def.placeholder}" required />
+        row.innerHTML = `<input type="text" class="post-acct" list="account-suggestions" placeholder="${def.placeholder}" required />
                          <input type="text" class="post-amt" placeholder="Amount (optional)" />
                          <button type="button" class="secondary remove-post-btn" style="padding: 0 8px; min-height: 34px; color: #900c0c;">×</button>`;
         attachRemoveRowListener(row.querySelector(".remove-post-btn"));
         postingsContainer.appendChild(row);
     });
     rawToggle.checked = false; visualTxnUi.style.display = "block"; rawTxnContainer.style.display = "none"; rawTxnInput.value = "";
-    setStatus("Fill in transaction details", "info", modalStatusBanner);
+    state.ui.status = { text: "Fill in transaction details", type: "info", banner: modalStatusBanner };
     txnModal.showModal();
 });
 
@@ -1105,14 +977,14 @@ function attachRemoveRowListener(btn) {
     btn.addEventListener("click", (e) => {
         const row = e.target.closest(".posting-row");
         if (postingsContainer.children.length > 2) row.remove();
-        else setStatus("A transaction must have at least 2 postings.", "error", modalStatusBanner);
+        else state.ui.status = { text: "A transaction must have at least 2 postings.", type: "error", banner: modalStatusBanner };
     });
 }
 
 addPostingBtn.addEventListener("click", () => {
     const row = document.createElement("div"); row.className = "posting-row";
     row.style.cssText = "display: grid; grid-template-columns: 2fr 1fr auto; gap: 8px; align-items: center;";
-    row.innerHTML = `<input type="text" class="post-acct" placeholder="Account (e.g. expenses:food)" required />
+    row.innerHTML = `<input type="text" class="post-acct" list="account-suggestions" placeholder="Account (e.g. expenses:food)" required />
                        <input type="text" class="post-amt" placeholder="Amount (optional)" />
                        <button type="button" class="secondary remove-post-btn" style="padding: 0 8px; min-height: 34px; color: #900c0c;">×</button>`;
     attachRemoveRowListener(row.querySelector(".remove-post-btn"));
@@ -1125,39 +997,39 @@ submitTxnBtn.addEventListener("click", async () => {
     let rawTxnText = "";
     if (rawToggle.checked) {
         rawTxnText = rawTxnInput.value.trim();
-        if (!rawTxnText) { setStatus("Transaction text cannot be empty.", "error", modalStatusBanner); return; }
+        if (!rawTxnText) { state.ui.status = { text: "Transaction text cannot be empty.", type: "error", banner: modalStatusBanner }; return; }
     } else {
         const dateVal = txnDate.value, descVal = txnDesc.value.trim();
-        if (!dateVal || !descVal) { setStatus("Please fill in Date and Description.", "error", modalStatusBanner); return; }
+        if (!dateVal || !descVal) { state.ui.status = { text: "Please fill in Date and Description.", type: "error", banner: modalStatusBanner }; return; }
         const postingRows = postingsContainer.querySelectorAll(".posting-row");
-        if (postingRows.length < 2) { setStatus("A transaction requires at least 2 postings.", "error", modalStatusBanner); return; }
+        if (postingRows.length < 2) { state.ui.status = { text: "A transaction requires at least 2 postings.", type: "error", banner: modalStatusBanner }; return; }
         for (const row of postingRows) {
-            if (!row.querySelector(".post-acct").value.trim()) { setStatus("All posting rows must have an account specified.", "error", modalStatusBanner); return; }
+            if (!row.querySelector(".post-acct").value.trim()) { state.ui.status = { text: "All posting rows must have an account specified.", type: "error", banner: modalStatusBanner }; return; }
         }
         rawTxnText = buildTransactionText();
     }
 
-    setStatus(editingTxnId !== null ? "Saving changes..." : "Adding transaction...", "loading", modalStatusBanner);
+    state.ui.status = { text: editingTxnId !== null ? "Saving changes..." : "Adding transaction...", type: "loading", banner: modalStatusBanner };
     state.ui.reportButtonsEnabled = false;
 
     try {
-        let result = editingTxnId !== null ? await session.updateTransaction(editingTxnId, rawTxnText) : await session.balanceTransaction(rawTxnText);
-        if (result && result.error) { setStatus(`Error: ${result.error}`, "error", modalStatusBanner); state.ui.reportButtonsEnabled = true; return; }
+        let result = editingTxnId !== null ? await state.hledger.session.updateTransaction(editingTxnId, rawTxnText) : await state.hledger.session.balanceTransaction(rawTxnText);
+        if (result && result.error) { state.ui.status = { text: `Error: ${result.error}`, type: "error", banner: modalStatusBanner }; state.ui.reportButtonsEnabled = true; return; }
         await syncJournalTextToState();
-        setStatus(editingTxnId !== null ? "Transaction updated successfully." : "Transaction added successfully.", "ok");
+        state.ui.status = { text: editingTxnId !== null ? "Transaction updated successfully." : "Transaction added successfully.", type: "ok", banner: statusBanner };
         txnModal.close();
     } catch (error) {
-        console.error(error); setStatus("Failed to process transaction.", "error", modalStatusBanner); state.ui.reportButtonsEnabled =true;
+        console.error(error); state.ui.status = { text: "Failed to process transaction.", type: "error", banner: modalStatusBanner }; state.ui.reportButtonsEnabled = true;
     }
 });
 
 // --- Report Builder Setup --------------------------------------
 const reportGroups = [
-    { label: "Validate", items: [{ id: "check", label: "Check", run: (q) => checkStrictToggle.checked ? session.checkStrict(q) : session.check(q) }] },
-    { label: "Listings", items: [{ id: "accounts", label: "Accounts", run: (q) => session.accounts(q) }, { id: "payees", label: "Payees", run: (q) => session.payees(q) }, { id: "commodities", label: "Commodities", run: (q) => session.commodities(q) }, { id: "tags", label: "Tags", run: (q) => session.tags(q) }] },
-    { label: "Reports", items: [{ id: "balance", label: "Balance", run: (q) => session.balance(q) }, { id: "register", label: "Register", run: (q) => session.register(q) }, { id: "print", label: "Print", run: (q) => session.print(q) }, { id: "prices", label: "Prices", run: (q) => session.prices(q) }] },
-    { label: "Statements", items: [{ id: "balancesheet", label: "Balance sheet", run: (q) => session.balancesheet(q) }, { id: "incomestatement", label: "Income statement", run: (q) => session.incomestatement(q) }, { id: "cashflow", label: "Cash flow", run: (q) => session.cashflow(q) }, { id: "budget", label: "Budget report", run: (q) => session.budget(q) }] },
-    { label: "Export", items: [{ id: "printtext", label: ".journal", run: (q) => session.printText(q) }] },
+    { label: "Validate", items: [{ id: "check", label: "Check", run: (q) => checkStrictToggle.checked ? state.hledger.session.checkStrict(q) : state.hledger.session.check(q) }] },
+    { label: "Listings", items: [{ id: "accounts", label: "Accounts", run: (q) => state.hledger.session.accounts(q) }, { id: "payees", label: "Payees", run: (q) => state.hledger.session.payees(q) }, { id: "commodities", label: "Commodities", run: (q) => state.hledger.session.commodities(q) }, { id: "tags", label: "Tags", run: (q) => state.hledger.session.tags(q) }] },
+    { label: "Reports", items: [{ id: "balance", label: "Balance", run: (q) => state.hledger.session.balance(q) }, { id: "register", label: "Register", run: (q) => state.hledger.session.register(q) }, { id: "print", label: "Print", run: (q) => state.hledger.session.print(q) }, { id: "prices", label: "Prices", run: (q) => state.hledger.session.prices(q) }] },
+    { label: "Statements", items: [{ id: "balancesheet", label: "Balance sheet", run: (q) => state.hledger.session.balancesheet(q) }, { id: "incomestatement", label: "Income statement", run: (q) => state.hledger.session.incomestatement(q) }, { id: "cashflow", label: "Cash flow", run: (q) => state.hledger.session.cashflow(q) }, { id: "budget", label: "Budget report", run: (q) => state.hledger.session.budget(q) }] },
+    { label: "Export", items: [{ id: "printtext", label: ".journal", run: (q) => state.hledger.session.printText(q) }] },
 ];
 
 
@@ -1168,7 +1040,7 @@ for (const group of reportGroups) {
     for (const item of group.items) {
         const btn = document.createElement("button"); btn.id = item.id; btn.textContent = item.label; btn.disabled = true;
         btn.addEventListener("click", () => {
-            if (!session.isLoaded || !state.files.active) { setStatus("No valid journal loaded.", "error"); return; }
+            if (!state.hledger.session.isLoaded || !state.files.active) { state.ui.status = { text: "No valid journal loaded.", type: "error", banner: statusBanner }; return; }
             runReport(item.id, item.label, () => item.run(queryInput.value));
         });
         buttonsEl.appendChild(btn); reportButtons.push(btn);
@@ -1178,29 +1050,28 @@ for (const group of reportGroups) {
 
 async function runReport(reportId, label, action) {
     state.ui.view = "report"; syncUIState(); state.ui.reportButtonsEnabled = false;
-    setStatus(`Running ${label}...`, "loading");
+    state.ui.status = { text: `Running ${label}...`, type: "loading", banner: statusBanner };
     try {
         const result = await action();
         output.value = (result && typeof result.data === 'string') ? result.data : JSON.stringify(result, null, 2);
         guiOutputPanel.innerHTML = "";
         const strategy = reportStrategies[reportId] || smartRender;
         guiOutputPanel.appendChild(strategy(result));
-        setStatus(`${label} report finished.`, "ok");
+        state.ui.status = { text: `${label} report finished.`, type: "ok", banner: statusBanner };
     } catch (error) {
         output.value = error.stack || String(error);
         guiOutputPanel.innerHTML = `<div class="status-banner" data-state="error" style="position: static; margin-top: 20px;"><span class="status-dot"></span><span>Error running ${label}: ${escapeHtml(error.message || String(error))}</span></div>`;
-        setStatus(`${label} report failed.`, "error");
-    } finally { state.ui.reportButtonsEnabled = session.isLoaded; }
+        state.ui.status = { text: `${label} report failed.`, type: "error", banner: statusBanner };
+    } finally { state.ui.reportButtonsEnabled = state.hledger.session.isLoaded; }
 }
 
 
 // --- Init -----------------------------------------------------------
-setStatus("Initializing WASM module...", "loading");
-const session = await HledgerSession.init();
-window.session = session;
+state.ui.status = { text: "Initializing WASM module...", type: "loading", banner: statusBanner };
+state.hledger.session = await HledgerSession.init();
 
 const files = syncFilesystem();
-updateFileSelector();
+//updateFileSelector();
 
 const startupModal = document.getElementById("startup-modal");
 const startupNewBtn = document.getElementById("startup-new-btn");
@@ -1212,7 +1083,7 @@ syncUIState();
 if (files.length === 0) {
     state.files.active = null;
     setTimeout(() => newFileModal.showModal(), 500);
-    setStatus("Ready", "ok");
+    state.ui.status = { text: "Ready", type: "ok", banner: statusBanner };
 } else if (files.length === 1) {
     // Automatically open the file if there is only one available
     state.files.active = files[0];
@@ -1221,12 +1092,12 @@ if (files.length === 0) {
     commitFileState(state.files.active, content, false);
     //enforceFileLockdown();
     await reparse();
-    setStatus("Ready", "ok");
+    state.ui.status = { text: "Ready", type: "ok", banner: statusBanner };
 } else {
     // Show the startup modal if there are multiple files to choose from
     state.files.active = null;
     setTimeout(() => startupModal.showModal(), 500);
-    setStatus("Ready", "ok");
+    state.ui.status = { text: "Ready", type: "ok", banner: statusBanner };
 }
 
 // Handle creating a new file from the startup modal

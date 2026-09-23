@@ -1,0 +1,186 @@
+// --- State Manager --------------------------------------------------
+const state = {
+    hledger: {
+        _session: null,
+        get session() { return this._session },
+        set session(value) {
+            const overlay = document.getElementById("loading-overlay");
+            const details = document.getElementById("loading-details");
+            if (!value) {
+                if (overlay && details) {
+                    details.textContent = "Failed to create a new hledger session. Check your connection and reload.";
+                }
+                console.error("Failed to create a new hledger session");
+                return;
+            }
+
+            this._session = value;
+            if (overlay) overlay.style.display = "none";
+        },
+    },
+    ui: {
+        _view: null,
+        get view() { return this._view; },
+        set view(value) {
+            if (value !== "journal" && value !== "report") {
+                console.error("Invalid view: " + value);
+                return;
+            }
+            if (this._view !== value) {
+                inputView.style.display = value === "journal" ? "flex" : "none";
+                outputView.style.display = value === "report" ? "flex" : "none";
+                viewToggleButton.textContent = value === "journal" ? "Report" : "Journal";
+
+                this._view = value;
+            }
+            else {
+                console.log("View is already " + this._view);
+            }
+        },
+
+        _dataRendering: null,
+        get dataRendering() { return this._dataRendering; },
+        set dataRendering(value) {
+            if ((value !== true && value !== false) && (value !== 1 && value !== 0)) {
+                console.error("Value given to set state.ui.dataRendering flag is not boolean: " + value);
+                return;
+            }
+            renderDataToggle.checked = value;
+            if (value) {
+                journalPanel.style.display = "none"; guiPanel.style.display = "flex";
+                output.style.display = "none"; guiOutputPanel.style.display = "flex";
+            } else {
+                guiPanel.style.display = "none"; journalPanel.style.display = "flex";
+                guiOutputPanel.style.display = "none"; output.style.display = "";
+            }
+            this._dataRendering = value;
+        },
+        _reportButtonsEnabled: null,
+        get reportButtonsEnabled() { return this._reportButtonsEnabled; },
+        set reportButtonsEnabled(value) {
+            if ((value !== true && value !== false) && (value !== 1 && value !== 0)) {
+                console.error("Value given to set state.ui.reportButtonsEnabled flag is not boolean: " + value);
+                return;
+            }
+
+            for (const btn of reportButtons) {
+                if (!state.files.active) {
+                    btn.disabled = true;
+                }
+                else {
+                    btn.disabled = !value;
+                }
+            }
+
+            this._reportButtonsEnabled = value;
+        },
+
+        _status: { text: "", type: "info", banner: statusBanner },
+        get status() { return this._status; },
+        set status(payload) {
+            // Accept either a plain string (defaults to "info") or an object
+            const text = typeof payload === "string" ? payload : (payload?.text || "");
+            const type = typeof payload === "object" && payload?.type ? payload.type : "info";
+            const banner = typeof payload === "object" && payload?.banner ? payload.banner : statusBanner;
+            banner.dataset.state = type;
+
+            const textEl = banner.querySelector('[id$="status-text"]');
+            if (textEl) {
+                textEl.textContent = text;
+                banner.onclick = text && textEl.scrollWidth > textEl.clientWidth
+                    ? () => {
+                        statusModalText.textContent = text;
+                        statusModal.showModal();
+                    }
+                    : null;
+            }
+            else console.error("Couldn't find the text element of status banner: "+banner);
+
+            this._status = { text, type, banner };
+        },
+
+        _darkMode: null,
+        get darkMode() { return this._darkMode; },
+        set darkMode(value) {
+            document.documentElement.classList.toggle("dark-mode", !!value);
+            settingDarkMode.checked = !!value;
+            localStorage.setItem("wedger_dark_mode", value ? "1" : "0");
+            this._darkMode = !!value;
+        },
+
+        _hideBanner: null,
+        get hideBanner() { return this._hideBanner; },
+        set hideBanner(value) {
+            statusBanner.style.display = value ? "none" : "flex";
+            settingHideBanner.checked = !!value;
+            localStorage.setItem("wedger_hide_banner", value ? "1" : "0");
+            this._hideBanner = !!value;
+        },
+
+        _fontSize: null,
+        get fontSize() { return this._fontSize; },
+        set fontSize(value) {
+            document.documentElement.style.setProperty('--base-font-size', `${value}px`);
+            fontSizeDisplay.textContent = `${value}px`;
+            settingFontSize.value = value;
+            localStorage.setItem('wedger_font_size', value);
+            this._fontSize = value;
+        },
+    },
+    files: {
+        _active: null,
+        get active() { return this._active; },
+        set active(value) {
+            fileSelector.value = value || "";
+
+            const hasFile = !!value;
+            renameFileBtn.style.display = hasFile ? "" : "none";
+            deleteFileBtn.style.display = hasFile ? "" : "none";
+
+            journalText.disabled = !hasFile;
+            document.getElementById("addtxnbtn").disabled = !hasFile;
+            document.getElementById("importcsvbtn").disabled = !hasFile;
+            if (!hasFile) {
+                journalText.value = "Please create or select a journal file to begin.";
+                guiPanel.innerHTML = '<span>Please create or select a journal file to begin.</span>';
+                output.value = "Waiting for a journal to load.";
+                //setReportButtonsEnabled(false);
+                state.ui.reportButtonsEnabled = false;
+            }
+
+            this._active = value;
+        }
+    },
+
+    _user: null,
+    get user() { return this._user; },
+    set user(value) {
+        const isAuthed = !!value;
+
+        if (isAuthed) {
+            googleLoginBtn.style.display = "none";
+            userProfileContainer.style.display = "flex";
+            userAvatar.src = value.picture;
+            userAvatar.title = value.name;
+            modalUserAvatar.src = value.picture;
+            modalUserDisplayName.textContent = value.name;
+            modalUserDisplayEmail.textContent = value.email;
+            state.ui.status = { text: `Welcome, ${value.name}! Connected to Drive.`, type: "ok" };
+        } else {
+            googleLoginBtn.style.display = "flex";
+            userProfileContainer.style.display = "none";
+            userAvatar.src = "";
+            userAvatar.title = "";
+            state.ui.status = { text: "Logged out successfully.", type: "info" };
+        }
+
+        this._user = value;
+    },
+};
+
+// Initialising
+state.ui.view = "journal";
+state.ui.dataRendering = true;
+state.ui.darkMode = localStorage.getItem("wedger_dark_mode") === "1";
+state.ui.hideBanner = localStorage.getItem("wedger_hide_banner") === "1";
+state.ui.fontSize = localStorage.getItem('wedger_font_size') || 12.5;

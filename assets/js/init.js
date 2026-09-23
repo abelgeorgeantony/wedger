@@ -61,6 +61,7 @@ const postingsContainer = document.getElementById("postings-container");
 const addPostingBtn = document.getElementById("add-posting-btn");
 const cancelTxnBtn = document.getElementById("cancel-txn-btn");
 const submitTxnBtn = document.getElementById("submit-txn-btn");
+const accountSuggestionsList = document.getElementById("account-suggestions");
 
 const csvModal = document.getElementById("csv-import-modal");
 const csvImportBtn = document.getElementById("importcsvbtn");
@@ -75,99 +76,4 @@ const settingDarkMode = document.getElementById("setting-dark-mode");
 const settingFontSize = document.getElementById("setting-font-size");
 const fontSizeDisplay = document.getElementById("font-size-display");
 const settingHideBanner = document.getElementById("setting-hide-banner");
-
-
-
 const reportButtons = [];
-
-
-// --- State Manager --------------------------------------------------
-const state = {
-    ui: {
-        _view: null,
-        get view() { return this._view; },
-        set view(value) {
-            if (value !== "journal" && value !== "report") {
-                console.error("Invalid view: " + value);
-                return;
-            }
-            if (this._view !== value) {
-                inputView.style.display = value === "journal" ? "flex" : "none";
-                outputView.style.display = value === "report" ? "flex" : "none";
-                viewToggleButton.textContent = value === "journal" ? "Report" : "Journal";
-
-                this._view = value;
-            }
-            else {
-                console.log("View is already " + this._view);
-            }
-        },
-
-        _dataRendering: null,
-        get dataRendering() { return this._dataRendering; },
-        set dataRendering(value) {
-            if ((value !== true && value !== false) && (value !== 1 && value !== 0)) {
-                console.error("Value given to set state.ui.dataRendering flag is not boolean: " + value);
-                return;
-            }
-            renderDataToggle.checked = value;
-            if (value) {
-                journalPanel.style.display = "none"; guiPanel.style.display = "flex";
-                output.style.display = "none"; guiOutputPanel.style.display = "flex";
-            } else {
-                guiPanel.style.display = "none"; journalPanel.style.display = "flex";
-                guiOutputPanel.style.display = "none"; output.style.display = "";
-            }
-            this._dataRendering = value;
-        },
-        _reportButtonsEnabled: null,
-        get reportButtonsEnabled() { return this._reportButtonsEnabled; },
-        set reportButtonsEnabled(value) {
-            if ((value !== true && value !== false) && (value !== 1 && value !== 0)) {
-                console.error("Value given to set state.ui.reportButtonsEnabled flag is not boolean: " + value);
-                return;
-            }
-
-            for (const btn of reportButtons) {
-                if (!state.files.active) {
-                    btn.disabled = true;
-                }
-                else {
-                    btn.disabled = !value;
-                }
-            }
-
-            this._reportButtonsEnabled = value;
-        },
-    },
-    files: {
-        _active: null,
-        get active() { return this._active; },
-        set active(value) {
-            fileSelector.value = value || "";
-
-            const hasFile = !!value;
-            renameFileBtn.style.display = hasFile ? "" : "none";
-            deleteFileBtn.style.display = hasFile ? "" : "none";
-
-            journalText.disabled = !hasFile;
-            document.getElementById("addtxnbtn").disabled = !hasFile;
-            document.getElementById("importcsvbtn").disabled = !hasFile;
-            if (!hasFile) {
-                journalText.value = "Please create or select a journal file to begin.";
-                guiPanel.innerHTML = '<span>Please create or select a journal file to begin.</span>';
-                output.value = "Waiting for a journal to load.";
-                //setReportButtonsEnabled(false);
-                state.ui.reportButtonsEnabled = false;
-            }
-
-            this._active = value;
-        }
-    },
-
-    user: null,
-};
-
-// Initialising
-state.ui.view = "journal";
-state.ui.dataRendering = true;

@@ -288,6 +288,7 @@
                     <textarea id="raw-txn-input" readonly rows="8" spellcheck="false"
                         style="font-family: var(--mono); width: 100%;"></textarea>
                 </div>
+                <datalist id="account-suggestions"></datalist>
                 <div class="modal-actions">
                     <button type="button" class="secondary" id="cancel-txn-btn">Cancel</button>
                     <button type="button" id="submit-txn-btn">Add Transaction</button>
@@ -361,6 +362,7 @@
     </main>
 
     <script src="./assets/js/init.js" defer></script>
+    <script type="module" src="./assets/js/state.js"></script>
     <script type="module" src="./assets/js/app.js"></script>
 </body>
 

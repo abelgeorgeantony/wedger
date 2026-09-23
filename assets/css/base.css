@@ -1,5 +1,5 @@
 :root {
-      color-scheme: light dark;
+      color-scheme: light;
       --ink: #1a2420;
       --ink-soft: #4b5a54;
       --paper: #f6f5f0;
@@ -7,6 +7,25 @@
       --rule: #d2cbb8;
       --accent: #2f6b4f;
       --accent-ink: #16332a;
+      --on-accent: #ffffff;
+      --status-ok-bg: #edf7f2;
+      --status-ok-border: #a8d5ba;
+      --status-error-bg: #fdf2f2;
+      --status-error-border: #f5c2c2;
+      --status-error-ink: #900c0c;
+      --toggle-off: #cccccc;
+      --credit: #059669;
+      --debit: #dc2626;
+      --overlay: rgba(26, 36, 32, 0.4);
+      --hover-overlay: rgba(0, 0, 0, 0.04);
+      --shadow-subtle: rgba(0, 0, 0, 0.02);
+      --shadow-raised: rgba(0, 0, 0, 0.05);
+      --shadow-dialog: rgba(0, 0, 0, 0.1);
+      --shadow-mobile: rgba(0, 0, 0, 0.15);
+      --shadow-input: rgba(0, 0, 0, 0.03);
+      --transparent: transparent;
+      --focus-ring: color-mix(in srgb, var(--accent) 22%, var(--transparent));
+      --scrollbar-hover: color-mix(in srgb, var(--rule) 70%, var(--transparent));
       --mono: ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, Consolas, monospace;
       --sans: "Iowan Old Style", "Source Serif 4", Georgia, ui-serif, serif;
       --base-font-size: 12.5px;
@@ -22,7 +41,30 @@
     }
 
     html.dark-mode {
-      filter: invert(1) hue-rotate(160deg);
+      color-scheme: dark;
+      --ink: #e7eee9;
+      --ink-soft: #aebdb5;
+      --paper: #18211d;
+      --panel: #223029;
+      --rule: #405249;
+      --accent: #75b98f;
+      --accent-ink: #d9f3e2;
+      --on-accent: #102218;
+      --status-ok-bg: #193a28;
+      --status-ok-border: #43835b;
+      --status-error-bg: #421f24;
+      --status-error-border: #8e4a54;
+      --status-error-ink: #ffb8bf;
+      --toggle-off: #58665f;
+      --credit: #6ee7b7;
+      --debit: #fca5a5;
+      --overlay: rgba(0, 0, 0, 0.55);
+      --hover-overlay: rgba(255, 255, 255, 0.08);
+      --shadow-subtle: rgba(0, 0, 0, 0.22);
+      --shadow-raised: rgba(0, 0, 0, 0.32);
+      --shadow-dialog: rgba(0, 0, 0, 0.5);
+      --shadow-mobile: rgba(0, 0, 0, 0.55);
+      --shadow-input: rgba(0, 0, 0, 0.25);
     }
 
     body {
@@ -30,7 +72,10 @@
       background: var(--paper);
       color: var(--ink);
       font-family: var(--sans);
-      padding-top: calc(2.4vw + 1px);
+      height: 100dvh;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      overflow: hidden;
     }
 
     /* --- Loading Overlay --- */
@@ -77,7 +122,7 @@
       grid-template-columns: minmax(360px, 1fr) minmax(240px, 320px);
       gap: 1px;
       background: var(--rule);
-      height: calc(100dvh - (2.4vw + 1px));
+      min-height: 0;
     }
 
     .pane {
@@ -228,7 +273,14 @@
       white-space: nowrap;
     }
 
-    #status-text {
+    /* The application banner occupies its own grid row, so its actual height
+       always determines the space available to the main content. */
+    body > #status {
+      position: static;
+      width: auto;
+    }
+
+    .status-banner [id$="status-text"] {
       font-size: calc(var(--base-font-size) * 0.96);
       white-space: nowrap;
       overflow: hidden;
@@ -237,15 +289,15 @@
     }
 
     .status-banner[data-state="ok"] {
-      background: #edf7f2;
-      border-color: #a8d5ba;
+      background: var(--status-ok-bg);
+      border-color: var(--status-ok-border);
       color: var(--accent-ink);
     }
 
     .status-banner[data-state="error"] {
-      background: #fdf2f2;
-      border-color: #f5c2c2;
-      color: #900c0c;
+      background: var(--status-error-bg);
+      border-color: var(--status-error-border);
+      color: var(--status-error-ink);
     }
 
     .status-banner[data-state="loading"] {
@@ -332,14 +384,14 @@
       flex-direction: column;
       overflow-y: auto;
       scrollbar-width: thin;
-      scrollbar-color: transparent transparent;
+      scrollbar-color: var(--transparent) var(--transparent);
       gap: 10px;
       padding-top: 2px;
     }
 
     #gui-panel:hover,
     #gui-output-panel:hover {
-      scrollbar-color: color-mix(in srgb, var(--rule) 70%, transparent) transparent;
+      scrollbar-color: var(--scrollbar-hover) var(--transparent);
     }
 
     #gui-panel::-webkit-scrollbar,
@@ -349,12 +401,12 @@
 
     #gui-panel::-webkit-scrollbar-track,
     #gui-output-panel::-webkit-scrollbar-track {
-      background: transparent;
+      background: var(--transparent);
     }
 
     #gui-panel::-webkit-scrollbar-thumb,
     #gui-output-panel::-webkit-scrollbar-thumb {
-      background: transparent;
+      background: var(--transparent);
       border-radius: 999px;
     }
 
@@ -374,7 +426,7 @@
       background: var(--paper);
       color: var(--ink);
       border: 1px solid var(--accent);
-      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.03);
+      box-shadow: inset 0 2px 4px var(--shadow-input);
     }
 
     .toggle-row {
@@ -419,7 +471,7 @@
       border: 1px solid var(--accent-ink);
       border-radius: 4px;
       background: var(--accent);
-      color: #fff;
+      color: var(--on-accent);
       cursor: pointer;
       padding: 7px 12px;
       min-height: 34px;
@@ -443,7 +495,7 @@
     select:focus-visible {
       outline: none;
       border-color: var(--accent);
-      box-shadow: inset 0 0 0 1px var(--accent), 0 0 0 2px color-mix(in srgb, var(--accent) 22%, transparent);
+      box-shadow: inset 0 0 0 1px var(--accent), 0 0 0 2px var(--focus-ring);
     }
 
     /* --- Modal Dialogs --- */
@@ -455,7 +507,7 @@
       padding: 24px;
       width: 90%;
       max-width: 500px;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 10px 25px var(--shadow-dialog);
     }
 
     .modal-large {
@@ -471,7 +523,7 @@
     }
 
     .modal::backdrop {
-      background: rgba(26, 36, 32, 0.4);
+      background: var(--overlay);
       backdrop-filter: blur(2px);
     }
 
@@ -538,7 +590,7 @@
       left: 0;
       right: 0;
       bottom: 0;
-      background-color: #ccc;
+      background-color: var(--toggle-off);
       transition: background-color 0.2s ease;
       border-radius: 20px;
     }
@@ -550,7 +602,7 @@
       width: 16px;
       left: 2px;
       bottom: 2px;
-      background-color: white;
+      background-color: var(--on-accent);
       transition: transform 0.2s ease;
       border-radius: 50%;
     }
@@ -572,13 +624,13 @@
 
     /* --- Enhanced GUI Transaction Cards --- */
     .txn-card {
-      background: var(--panel, #ffffff);
+      background: var(--panel);
       border: 1px solid var(--rule);
       border-radius: 10px;
       display: flex;
       flex-direction: row;
       transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+      box-shadow: 0 1px 3px var(--shadow-subtle);
       margin: 0 8px 8px 0;
       overflow: hidden;
       flex-shrink: 0;
@@ -586,7 +638,7 @@
 
     .txn-card:hover {
       border-color: var(--accent);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      box-shadow: 0 4px 12px var(--shadow-raised);
       transform: translateY(-1px);
     }
 
@@ -675,23 +727,23 @@
       gap: 8px;
 
       padding: 8px 12px 8px 4px;
-      background-color: transparent;
+      background-color: var(--transparent);
       transition: background-color 0.2s ease-in-out;
       cursor: default;
       /* Optional: changes pointer behavior on hover */
     }
 
     .posting-item:hover {
-      background-color: rgba(0, 0, 0, 0.04);
+      background-color: var(--hover-overlay);
       /* A very faint grey highlight */
     }
 
     .posting-item.credit {
-      color: #059669;
+      color: var(--credit);
     }
 
     .posting-item.debit {
-      color: #dc2626;
+      color: var(--debit);
     }
 
     .posting-item.neutral {
@@ -888,7 +940,7 @@
 
     .file-list-item:hover {
       background: var(--accent);
-      color: #fff;
+      color: var(--on-accent);
     }
 
     .file-list-item.empty-state {
@@ -898,7 +950,7 @@
     }
 
     .file-list-item.empty-state:hover {
-      background: transparent;
+      background: var(--transparent);
       color: var(--ink-soft);
     }
 
@@ -906,7 +958,6 @@
       main {
         grid-template-columns: 1fr;
         grid-template-rows: 1fr;
-        height: calc(100dvh - (2.4vw + 1px));
         min-height: 0;
       }
 
@@ -968,7 +1019,7 @@
         /* Starts off-screen to the right */
         transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
         z-index: 2;
-        box-shadow: -4px 0 12px rgba(0, 0, 0, 0.15);
+        box-shadow: -4px 0 12px var(--shadow-mobile);
         /* Slightly darkened shadow for overlay contrast */
       }
 
