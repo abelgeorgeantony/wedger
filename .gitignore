@@ -3,6 +3,9 @@ _site
 .jekyll-cache
 .jekyll-metadata
 vendor
+node_modules
 wedger.md
 wedger.txt
 prompt_context.*
+
+!assets/js/vendor

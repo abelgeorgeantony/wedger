@@ -634,16 +634,12 @@ function syncUIState() {
     closeRightMenuOnMobile();
 }
 
-async function syncJournalTextToState() {
-    const printResult = await state.hledger.session.printText("");
-    let newText = "";
-    if (printResult && typeof printResult.data === 'string') newText = printResult.data;
-    else if (printResult) newText = String(printResult);
-
-    commitFileState(state.files.active, newText, true);
-
+async function syncAfterTxnMutation(rawText) {
+    commitFileState(state.files.active, rawText, true);
     syncUIState();
-    await reparse();
+    if (state.ui.dataRendering) await renderGuiJournal();
+    await refreshAccountSuggestions();
+    state.ui.reportButtonsEnabled = state.hledger.session.isLoaded;
 }
 
 // --- GUI Input Journal Renderer -------------------------------------
@@ -728,7 +724,7 @@ function renderTransactionCard(txn) {
         try {
             const result = await state.hledger.session.deleteTransaction(txn.id);
             if (result && result.error) { state.ui.status = { text: `Error: ${result.error}`, type: "error", banner: statusBanner }; return; }
-            await syncJournalTextToState();
+            await syncAfterTxnMutation(result.rawText);
             state.ui.status = { text: "Transaction deleted successfully.", type: "ok", banner: statusBanner };
         } catch (error) { state.ui.status = { text: "Failed to delete transaction.", type: "error", banner: statusBanner }; }
     });
@@ -1015,7 +1011,7 @@ submitTxnBtn.addEventListener("click", async () => {
     try {
         let result = editingTxnId !== null ? await state.hledger.session.updateTransaction(editingTxnId, rawTxnText) : await state.hledger.session.balanceTransaction(rawTxnText);
         if (result && result.error) { state.ui.status = { text: `Error: ${result.error}`, type: "error", banner: modalStatusBanner }; state.ui.reportButtonsEnabled = true; return; }
-        await syncJournalTextToState();
+        await syncAfterTxnMutation(result.rawText);
         state.ui.status = { text: editingTxnId !== null ? "Transaction updated successfully." : "Transaction added successfully.", type: "ok", banner: statusBanner };
         txnModal.close();
     } catch (error) {
@@ -1114,3 +1110,7 @@ if (globalOverlay) {
     globalOverlay.style.visibility = "hidden";
     setTimeout(() => globalOverlay.remove(), 400); // 400ms matching css transition
 }
+
+
+import { initWedgerEditors } from "./codemirror/bundle.js";
+initWedgerEditors();
