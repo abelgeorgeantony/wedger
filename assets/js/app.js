@@ -632,7 +632,7 @@ closeStatusModalBtn.addEventListener("click", () => statusModal.close());
 
 function syncUIState() {
     closeRightMenuOnMobile();
-    guiSearchBar.classList.remove("is-floating");
+    tuckSearchBar();
 }
 
 async function syncAfterTxnMutation(rawText) {
@@ -701,7 +701,7 @@ function compareGuiTxns(a, b, sort) {
 async function renderGuiJournal() {
     if (!state.hledger.session.isLoaded || !state.files.active) return;
 
-    guiSearchBar.classList.remove("is-floating");
+    tuckSearchBar();
     guiJournalList.innerHTML = '<div class="status-banner" data-state="loading" style="position: static; margin-top: 20px;"><span class="status-dot"></span><span>Loading GUI view...</span></div>';
 
     try {
@@ -724,7 +724,7 @@ function renderFilteredGuiJournal() {
     programmaticRender = true;
     requestAnimationFrame(() => { programmaticRender = false; });
     if (!lastFetchedTxns.length) {
-        guiJournalList.innerHTML = '<div class="status-banner" data-state="info" style="position: static; margin-top: 20px;"><span class="status-dot"></span><span>No transactions found.</span></div>';
+        guiJournalList.innerHTML = '<div class="status-banner" data-state="info" style="position: static; z-index: 1; margin-top: 20px;"><span class="status-dot"></span><span>No transactions found.</span></div>';
         return;
     }
     const visible = lastFetchedTxns
@@ -733,7 +733,7 @@ function renderFilteredGuiJournal() {
         .sort((a, b) => compareGuiTxns(a, b, guiView.sort));
 
     if (!visible.length) {
-        guiJournalList.innerHTML = '<div class="status-banner" data-state="info" style="position: static; margin-top: 20px;"><span class="status-dot"></span><span>No transactions match your search/filters.</span></div>';
+        guiJournalList.innerHTML = '<div class="status-banner" data-state="info" style="position: static; z-index: 1; margin-top: 20px;"><span class="status-dot"></span><span>No transactions match your search/filters.</span></div>';
         return;
     }
     guiJournalList.innerHTML = "";
@@ -959,35 +959,71 @@ searchGuiJournalInput.addEventListener("input", () => {
     renderFilteredGuiJournal();
 });
 
-// --- Sort ---
-sortGuiJournalSelect.addEventListener("change", () => {
-    guiView.sort = sortGuiJournalSelect.value;
+// --- Search bar popups (sort + filter) --------------------------------
+const DEFAULT_SORT = "date-desc";
+const sortLabels = {
+    'date-desc': 'Newest first',
+    'date-asc': 'Oldest first',
+    'desc-asc': 'Description A→Z',
+    'desc-desc': 'Description Z→A',
+    'amount-desc': 'Amount: high→low',
+    'amount-asc': 'Amount: low→high'
+};
+
+function closePopovers() {
+    guiSortPopover.hidden = true;
+    guiFilterPopover.hidden = true;
+    sortGuiJournalBtn.setAttribute("aria-expanded", "false");
+    filterGuiJournalBtn.setAttribute("aria-expanded", "false");
+}
+
+function openPopover(popover, btn) {
+    closePopovers();              // only one popup open at a time
+    popover.hidden = false;
+    btn.setAttribute("aria-expanded", "true");
+}
+
+// Dot on the buttons when a filter is applied or the sort isn't the default
+function updateSearchBarIndicators() {
+    filterGuiJournalBtn.classList.toggle("is-active", Object.values(guiView.filters).some(Boolean));
+    sortGuiJournalBtn.classList.toggle("is-active", guiView.sort !== DEFAULT_SORT);
+}
+
+function updateSortUI() {
+    sortGuiJournalBtn.title = `Sorted by: ${sortLabels[guiView.sort]}`;
+    sortOptionsList.querySelectorAll(".sort-option").forEach(btn => {
+        const on = btn.dataset.sort === guiView.sort;
+        btn.classList.toggle("active", on);
+        btn.setAttribute("aria-pressed", String(on));
+    });
+    updateSearchBarIndicators();
+}
+
+// Sort
+sortGuiJournalBtn.addEventListener("click", () => {
+    if (guiSortPopover.hidden) openPopover(guiSortPopover, sortGuiJournalBtn);
+    else closePopovers();
+});
+
+sortOptionsList.addEventListener("click", (e) => {
+    const btn = e.target.closest(".sort-option");
+    if (!btn) return;
+    guiView.sort = btn.dataset.sort;
+    closePopovers();
+    updateSortUI();
     renderFilteredGuiJournal();
 });
 
-// --- Filter popover ---
-filterGuiJournalBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    const opening = guiFilterPopover.hidden;
-    guiFilterPopover.hidden = !opening;
-    if (opening) {
-        filterAccountInput.value = guiView.filters.account;
-        filterDescInput.value = guiView.filters.desc;
-        filterDateFromInput.value = guiView.filters.dateFrom;
-        filterDateToInput.value = guiView.filters.dateTo;
-        filterAmtMinInput.value = guiView.filters.amtMin;
-        filterAmtMaxInput.value = guiView.filters.amtMax;
-    }
-});
-
-document.addEventListener("click", (e) => {
-    if (!guiFilterPopover.hidden && !guiFilterPopover.contains(e.target) && e.target !== filterGuiJournalBtn) {
-        guiFilterPopover.hidden = true;
-    }
-});
-
-document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && !guiFilterPopover.hidden) guiFilterPopover.hidden = true;
+// Filter
+filterGuiJournalBtn.addEventListener("click", () => {
+    if (!guiFilterPopover.hidden) { closePopovers(); return; }
+    filterAccountInput.value = guiView.filters.account;
+    filterDescInput.value = guiView.filters.desc;
+    filterDateFromInput.value = guiView.filters.dateFrom;
+    filterDateToInput.value = guiView.filters.dateTo;
+    filterAmtMinInput.value = guiView.filters.amtMin;
+    filterAmtMaxInput.value = guiView.filters.amtMax;
+    openPopover(guiFilterPopover, filterGuiJournalBtn);
 });
 
 applyGuiFilterBtn.addEventListener("click", () => {
@@ -999,7 +1035,8 @@ applyGuiFilterBtn.addEventListener("click", () => {
         amtMin: filterAmtMinInput.value.trim(),
         amtMax: filterAmtMaxInput.value.trim(),
     };
-    guiFilterPopover.hidden = true;
+    closePopovers();
+    updateSearchBarIndicators();
     renderFilteredGuiJournal();
 });
 
@@ -1008,9 +1045,29 @@ clearGuiFilterBtn.addEventListener("click", () => {
     filterDateFromInput.value = ""; filterDateToInput.value = "";
     filterAmtMinInput.value = ""; filterAmtMaxInput.value = "";
     guiView.filters = { account: "", desc: "", dateFrom: "", dateTo: "", amtMin: "", amtMax: "" };
-    guiFilterPopover.hidden = true;
+    closePopovers();
+    updateSearchBarIndicators();
     renderFilteredGuiJournal();
 });
+
+// Enter inside the filter form = Apply
+guiFilterPopover.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && e.target.matches("input")) applyGuiFilterBtn.click();
+});
+
+// Close on: click outside the bar, Escape, or focusing the search box
+document.addEventListener("click", (e) => {
+    if (!guiSearchBar.contains(e.target)) closePopovers();
+});
+document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closePopovers();
+});
+searchGuiJournalInput.addEventListener("focus", closePopovers);
+
+// Initialize UI on load
+updateSortUI();
+
+
 
 renderDataToggle.addEventListener("change", async () => {
     state.ui.dataRendering = renderDataToggle.checked; syncUIState();
@@ -1213,14 +1270,29 @@ function searchFloatAllowed() {
     return !!state.ui.dataRendering && state.ui.view === "journal";
 }
 
+// The bar only floats when less than this fraction of it is still visible.
+// 0 = only when completely gone, 1 = whenever any part is missing.
+const FLOAT_TRIGGER_RATIO = 0.4;
+
+function searchBarVisibleRatio() {
+    const bar = guiSearchBar.getBoundingClientRect();
+    const view = guiPanel.getBoundingClientRect();
+    if (!bar.height) return 0;
+    const visible = Math.min(bar.bottom, view.bottom) - Math.max(bar.top, view.top);
+    return Math.max(0, visible) / bar.height;
+}
+
 function revealSearchBar() {
     if (!searchFloatAllowed()) return;
     if (guiSearchBar.classList.contains("is-floating")) return;
+    if (searchBarVisibleRatio() >= FLOAT_TRIGGER_RATIO) return;   // still on screen, nothing to bring back
     guiSearchBar.classList.add("is-floating");
 }
 
 function tuckSearchBar() {
+    if (!guiSearchBar.classList.contains("is-floating")) return;
     guiSearchBar.classList.remove("is-floating");
+    closePopovers();              // popups go away with the floating bar
 }
 
 // A pull may start anywhere in the left pane except on interactive controls.
@@ -1231,7 +1303,7 @@ function canStartPull(target) {
     if (!(target instanceof Element)) return false;
     if (!paneLeft.contains(target)) return false;
     if (target.closest("input, select, textarea, button, a, label, .cm-editor, dialog")) return false;
-    if (target.closest("#gui-panel") && guiPanel.scrollTop > 4) return false;
+    if (target.closest("#gui-panel")) return false;   // dragging the list itself is just scrolling
     return true;
 }
 
@@ -1271,7 +1343,6 @@ paneLeft.addEventListener("wheel", (e) => {
     if (!searchFloatAllowed()) return;
     const onList = e.target instanceof Element && !!e.target.closest("#gui-panel");
     if (!onList && e.deltaY > 0) revealSearchBar();
-    if (onList && e.deltaY < 0 && guiPanel.scrollTop <= 0) revealSearchBar();
 }, { passive: true });
 
 // The moment the list really moves, the bar returns to its place in the flow

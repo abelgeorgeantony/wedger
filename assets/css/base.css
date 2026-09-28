@@ -142,6 +142,7 @@ main {
   display: flex;
   flex-direction: column;
   padding: 24px;
+  padding-bottom: 4px;
   min-height: 0;
 }
 
@@ -385,7 +386,7 @@ body>#status {
 #gui-output-panel {
   flex-direction: column;
   overflow-y: auto;
-  scrollbar-width: thin;
+  scrollbar-width: none;
   scrollbar-color: var(--transparent) var(--transparent);
   gap: 10px;
   padding-top: 2px;
@@ -435,28 +436,29 @@ body>#status {
 
 /* --- GUI Search Bar & Floating Reveal --- */
 .gui-search-bar {
-    position: relative;   /* anchors the filter popover, floating or not */
-    display: flex;
-    gap: 8px;
-    margin-bottom: 12px;
-    flex-shrink: 0;
-    width: fit-content;
-    max-width: 100%;
-    align-self: center;
+  position: relative;
+  /* anchors both popups */
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  align-self: center;
+  width: min(100%, 520px);
+  /* fixed width, so the popups can match it exactly */
+  margin-bottom: 12px;
+  padding: 6px;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
 }
 
 .gui-search-bar.is-floating {
-    position: sticky;
-    top: 0px;
-    left: 24px;
-    right: 344px;
-    z-index: 100;
-    background: var(--panel);
-    border-radius: 8px;
-    box-shadow: 0 0 0 1px var(--rule), 0 6px 16px var(--shadow-mobile);
-    animation: slideDownFloat 0.25s ease;
+  position: sticky;
+  top: 6px;
+  z-index: 100;
+  box-shadow: 0 6px 16px var(--shadow-mobile);
+  animation: slideDownFloat 0.25s ease;
 }
-
 
 @keyframes slideDownFloat {
   from {
@@ -470,63 +472,205 @@ body>#status {
   }
 }
 
+.gui-search-bar>input[type="text"] {
+  flex: 1 1 0;
+  width: auto;
+  min-width: 0;
+  height: 38px;
+}
+
+/* Filter and sort buttons: identical size */
+.search-bar-btn {
+  position: relative;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  min-height: 0;
+  padding: 0;
+}
+
+.search-bar-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Small dot when a filter or non-default sort is active */
+.search-bar-btn.is-active {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.search-bar-btn.is-active::after {
+  content: "";
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
 #gui-journal-list {
   display: flex;
   flex-direction: column;
 }
 
-
-/* --- GUI Journal Filter Popover --- */
-.gui-filter-popover {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  z-index: 20;
-  min-width: 260px;
-  background: var(--panel);
-  border: 1px solid var(--rule);
-  border-radius: 6px;
-  box-shadow: 0 10px 25px var(--shadow-dialog);
-  padding: 16px;
-}
-
-#sort-gui-journal-select {
-  width: auto;
-}
-
-/* Kill horizontal scroll on the panel — this alone restores the gesture,
-   and can't clip the popover because we size it to fit below */
+/* Kill horizontal scroll on the panel */
 #gui-panel,
 #gui-output-panel {
-    overflow-x: hidden;
+  overflow-x: hidden;
 }
 
-@media (max-width: 780px) {
-    .gui-search-bar {
-        width: max-content;
-        align-self: center;
-        flex-wrap: wrap;              /* row 1: filter + search, row 2: sort */
-    }
-    #filter-gui-journal-btn {
-        flex: none;
-    }
-    #search-gui-journal-input {
-        flex: 1 1 0;
-        min-width: 0;                 /* lets the input shrink inside flex */
-        width: auto;
-    }
-    #sort-gui-journal-select {
-        flex: 0 0 100%;               /* own row, full width */
-    }
-    .gui-filter-popover {
-        left: 0;
-        right: 0;                     /* span the full-width bar */
-        min-width: 0;
-        max-height: min(60dvh, 460px);
-        overflow-y: auto;             /* scrolls internally, so the panel
-                                         never scrolls and never unfloats
-                                         the bar while the popover is open */
-    }
+/* --- Popups (sort + filter share this) --- */
+.gui-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: -1px;
+  /* -1px lines up with the bar's border */
+  right: -1px;
+  z-index: 20;
+  max-height: min(60dvh, 460px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 14px;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  box-shadow: 0 10px 25px var(--shadow-dialog);
+  animation: popoverIn 0.15s ease;
+}
+
+.gui-popover[hidden] {
+  display: none;
+}
+
+@keyframes popoverIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.popover-title {
+  font-family: var(--mono);
+  font-size: calc(var(--base-font-size) * 0.8);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+  margin-bottom: 12px;
+}
+
+/* --- Sort popup --- */
+.sort-groups {
+  display: grid;
+  gap: 10px;
+}
+
+.sort-group {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.sort-group-label {
+  font-family: var(--mono);
+  font-size: calc(var(--base-font-size) * 0.88);
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.sort-group-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.sort-option {
+  width: 100%;
+  min-height: 36px;
+  padding: 6px 10px;
+  font-weight: 500;
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.sort-option:hover {
+  border-color: var(--accent);
+}
+
+.sort-option.active {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent-ink);
+}
+
+/* --- Filter popup --- */
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  /* minmax(0, ...) lets columns shrink */
+  gap: 12px;
+}
+
+.filter-grid .field {
+  margin: 0;
+  min-width: 0;
+}
+
+.filter-grid .span-2 {
+  grid-column: 1 / -1;
+}
+
+/* The actual date overflow fix */
+.gui-popover input[type="date"] {
+  min-width: 0;
+  max-width: 100%;
+  min-height: 38px;
+  -webkit-appearance: none;
+  /* iOS Safari ignores width:100% on date inputs without this */
+  appearance: none;
+}
+
+.popover-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+@media (max-width: 480px) {
+  .sort-group {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+}
+
+@media (max-width: 380px) {
+  .filter-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  .gui-popover,
+  .gui-search-bar.is-floating {
+    animation: none;
+  }
 }
 
 .toggle-row {
@@ -731,7 +875,7 @@ select:focus-visible {
   flex-direction: row;
   transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
   box-shadow: 0 1px 3px var(--shadow-subtle);
-  margin: 0 8px 8px 0;
+  margin: 0 0 8px 0;
   overflow: hidden;
   flex-shrink: 0;
 }

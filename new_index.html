@@ -111,54 +111,85 @@
                 <div id="gui-panel" style="display: none;">
                     <!-- Search Bar: Normal flow, scrolls naturally with the list -->
                     <div id="gui-search-bar" class="gui-search-bar">
-                        <button type="button" class="secondary" id="filter-gui-journal-btn">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
-                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                stroke-linejoin="round">
+                        <button type="button" class="secondary search-bar-btn" id="filter-gui-journal-btn"
+                            title="Filter" aria-label="Filter transactions" aria-expanded="false">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
                             </svg>
                         </button>
+
                         <input type="text" id="search-gui-journal-input" placeholder="Search" />
 
-                        <select id="sort-gui-journal-select" title="Sort transactions">
-                            <option value="date-desc" selected>Newest first</option>
-                            <option value="date-asc">Oldest first</option>
-                            <option value="desc-asc">Description A→Z</option>
-                            <option value="desc-desc">Description Z→A</option>
-                            <option value="amount-desc">Amount: high→low</option>
-                            <option value="amount-asc">Amount: low→high</option>
-                        </select>
+                        <button type="button" class="secondary search-bar-btn" id="sort-gui-journal-btn"
+                            title="Sorted by: Newest first" aria-label="Sort transactions" aria-expanded="false">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M11 5h10M11 9h7M11 13h4M3 17l3 3 3-3M6 18V4"></path>
+                            </svg>
+                        </button>
 
-                        <div id="gui-filter-popover" class="gui-filter-popover" hidden>
-                            <div class="field">
-                                <label class="field-label" for="filter-account">Account contains</label>
-                                <input type="text" id="filter-account" placeholder="e.g. expenses:food" />
+                        <!-- Sort popup -->
+                        <div id="gui-sort-popover" class="gui-popover" hidden>
+                            <div class="popover-title">Sort by</div>
+                            <div id="sort-options-list" class="sort-groups">
+                                <div class="sort-group">
+                                    <span class="sort-group-label">Date</span>
+                                    <div class="sort-group-options">
+                                        <button type="button" class="sort-option" data-sort="date-desc">Newest</button>
+                                        <button type="button" class="sort-option" data-sort="date-asc">Oldest</button>
+                                    </div>
+                                </div>
+                                <div class="sort-group">
+                                    <span class="sort-group-label">Description</span>
+                                    <div class="sort-group-options">
+                                        <button type="button" class="sort-option" data-sort="desc-asc">A → Z</button>
+                                        <button type="button" class="sort-option" data-sort="desc-desc">Z → A</button>
+                                    </div>
+                                </div>
+                                <div class="sort-group">
+                                    <span class="sort-group-label">Amount</span>
+                                    <div class="sort-group-options">
+                                        <button type="button" class="sort-option" data-sort="amount-desc">High →
+                                            low</button>
+                                        <button type="button" class="sort-option" data-sort="amount-asc">Low →
+                                            high</button>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="field">
-                                <label class="field-label" for="filter-desc">Description contains</label>
-                                <input type="text" id="filter-desc" placeholder="e.g. amazon" />
-                            </div>
-                            <div class="field-row" style="grid-template-columns: 1fr 1fr;">
-                                <div class="field" style="margin-bottom: 0;">
+                        </div>
+
+                        <!-- Filter popup -->
+                        <div id="gui-filter-popover" class="gui-popover" hidden>
+                            <div class="popover-title">Filter transactions</div>
+                            <div class="filter-grid">
+                                <div class="field span-2">
+                                    <label class="field-label" for="filter-account">Account contains</label>
+                                    <input type="text" id="filter-account" placeholder="e.g. expenses:food" />
+                                </div>
+                                <div class="field span-2">
+                                    <label class="field-label" for="filter-desc">Description contains</label>
+                                    <input type="text" id="filter-desc" placeholder="e.g. amazon" />
+                                </div>
+                                <div class="field">
                                     <label class="field-label" for="filter-date-from">From date</label>
                                     <input type="date" id="filter-date-from" />
                                 </div>
-                                <div class="field" style="margin-bottom: 0;">
+                                <div class="field">
                                     <label class="field-label" for="filter-date-to">To date</label>
                                     <input type="date" id="filter-date-to" />
                                 </div>
-                            </div>
-                            <div class="field-row" style="grid-template-columns: 1fr 1fr;">
-                                <div class="field" style="margin-bottom: 0;">
+                                <div class="field">
                                     <label class="field-label" for="filter-amt-min">Min amount</label>
-                                    <input type="text" id="filter-amt-min" placeholder="e.g. 100" />
+                                    <input type="text" id="filter-amt-min" placeholder="e.g. 100" inputmode="decimal" />
                                 </div>
-                                <div class="field" style="margin-bottom: 0;">
+                                <div class="field">
                                     <label class="field-label" for="filter-amt-max">Max amount</label>
-                                    <input type="text" id="filter-amt-max" placeholder="e.g. 5000" />
+                                    <input type="text" id="filter-amt-max" placeholder="e.g. 5000"
+                                        inputmode="decimal" />
                                 </div>
                             </div>
-                            <div class="modal-actions" style="justify-content: space-between;">
+                            <div class="popover-actions">
                                 <button type="button" class="secondary" id="clear-gui-filter-btn">Clear</button>
                                 <button type="button" id="apply-gui-filter-btn">Apply</button>
                             </div>

@@ -81,7 +81,6 @@ const guiJournalList = document.getElementById("gui-journal-list");
 const guiSearchBar = document.getElementById("gui-search-bar");
 
 const searchGuiJournalInput = document.getElementById("search-gui-journal-input");
-const sortGuiJournalSelect = document.getElementById("sort-gui-journal-select");
 const filterGuiJournalBtn = document.getElementById("filter-gui-journal-btn");
 const guiFilterPopover = document.getElementById("gui-filter-popover");
 const filterAccountInput = document.getElementById("filter-account");
@@ -92,5 +91,8 @@ const filterAmtMinInput = document.getElementById("filter-amt-min");
 const filterAmtMaxInput = document.getElementById("filter-amt-max");
 const applyGuiFilterBtn = document.getElementById("apply-gui-filter-btn");
 const clearGuiFilterBtn = document.getElementById("clear-gui-filter-btn");
+const sortGuiJournalBtn = document.getElementById("sort-gui-journal-btn");
+const guiSortPopover = document.getElementById("gui-sort-popover");
+const sortOptionsList = document.getElementById("sort-options-list");
 
 const reportButtons = [];
