@@ -632,6 +632,7 @@ closeStatusModalBtn.addEventListener("click", () => statusModal.close());
 
 function syncUIState() {
     closeRightMenuOnMobile();
+    guiSearchBar.classList.remove("is-floating");
 }
 
 async function syncAfterTxnMutation(rawText) {
@@ -642,26 +643,101 @@ async function syncAfterTxnMutation(rawText) {
     state.ui.reportButtonsEnabled = state.hledger.session.isLoaded;
 }
 
+
+// --- GUI Journal View State (search / filter / sort) -----------------
+let lastFetchedTxns = [];   // raw txns from the last getJournalJSON() fetch
+const guiView = {
+    search: "",
+    sort: "date-desc",
+    filters: { account: "", desc: "", dateFrom: "", dateTo: "", amtMin: "", amtMax: "" }
+};
+
+// Pulls every signed number out of an amount string like "-$45.00" or
+// "120.00 USD, 2.5 AAPL", ignoring commodity symbols/position.
+function extractAmountNumbers(amountStr) {
+    if (!amountStr) return [];
+    const matches = amountStr.match(/-?[\d,]+(?:\.\d+)?/g) || [];
+    return matches.map(n => parseFloat(n.replace(/,/g, ""))).filter(n => !Number.isNaN(n));
+}
+
+function txnMaxAbsAmount(txn) {
+    const nums = txn.postings.flatMap(p => extractAmountNumbers(p.amount)).map(Math.abs);
+    return nums.length ? Math.max(...nums) : 0;
+}
+
+function matchesGuiFilters(txn, f) {
+    if (f.account) {
+        const needle = f.account.toLowerCase();
+        if (!txn.postings.some(p => p.account.toLowerCase().includes(needle))) return false;
+    }
+    if (f.desc && !txn.description.toLowerCase().includes(f.desc.toLowerCase())) return false;
+    if (f.dateFrom && txn.date < f.dateFrom) return false;
+    if (f.dateTo && txn.date > f.dateTo) return false;
+    if (f.amtMin !== "" && !Number.isNaN(parseFloat(f.amtMin)) && txnMaxAbsAmount(txn) < parseFloat(f.amtMin)) return false;
+    if (f.amtMax !== "" && !Number.isNaN(parseFloat(f.amtMax)) && txnMaxAbsAmount(txn) > parseFloat(f.amtMax)) return false;
+    return true;
+}
+
+function matchesGuiSearch(txn, query) {
+    if (!query) return true;
+    const needle = query.toLowerCase();
+    const haystack = [txn.date, txn.description, ...txn.postings.flatMap(p => [p.account, p.amount || ""])]
+        .join(" ").toLowerCase();
+    return haystack.includes(needle);
+}
+
+function compareGuiTxns(a, b, sort) {
+    switch (sort) {
+        case "date-asc": return a.date.localeCompare(b.date) || a.id - b.id;
+        case "desc-asc": return a.description.localeCompare(b.description);
+        case "desc-desc": return b.description.localeCompare(a.description);
+        case "amount-asc": return txnMaxAbsAmount(a) - txnMaxAbsAmount(b);
+        case "amount-desc": return txnMaxAbsAmount(b) - txnMaxAbsAmount(a);
+        case "date-desc":
+        default: return b.date.localeCompare(a.date) || b.id - a.id;
+    }
+}
 // --- GUI Input Journal Renderer -------------------------------------
 async function renderGuiJournal() {
     if (!state.hledger.session.isLoaded || !state.files.active) return;
-    guiPanel.innerHTML = '<div class="status-banner" data-state="loading" style="position: static; margin-top: 20px;"><span class="status-dot"></span><span>Loading GUI view...</span></div>';
+
+    guiSearchBar.classList.remove("is-floating");
+    guiJournalList.innerHTML = '<div class="status-banner" data-state="loading" style="position: static; margin-top: 20px;"><span class="status-dot"></span><span>Loading GUI view...</span></div>';
 
     try {
         const result = await state.hledger.session.getJournalJSON();
         if (!result.ok) {
-            guiPanel.innerHTML = `<div class="status-banner" data-state="error" style="position: static; margin-top: 20px;"><span class="status-dot"></span><span>${escapeHtml(result.error)}</span></div>`;
+            guiJournalList.innerHTML = `<div class="status-banner" data-state="error" style="position: static; margin-top: 20px;"><span class="status-dot"></span><span>${escapeHtml(result.error)}</span></div>`;
             return;
         }
-        if (!result.data || result.data.length === 0) {
-            guiPanel.innerHTML = '<div class="status-banner" data-state="info" style="position: static; margin-top: 20px;"><span class="status-dot"></span><span>No transactions found.</span></div>';
-            return;
-        }
-        guiPanel.innerHTML = "";
-        result.data.forEach(txn => guiPanel.appendChild(renderTransactionCard(txn)));
+        lastFetchedTxns = result.data || [];
+        renderFilteredGuiJournal();
     } catch (error) {
-        guiPanel.innerHTML = `<div class="status-banner" data-state="error" style="position: static; margin-top: 20px;"><span class="status-dot"></span><span>Failed to load GUI view</span></div>`;
+        guiJournalList.innerHTML = `<div class="status-banner" data-state="error" style="position: static; margin-top: 20px;"><span class="status-dot"></span><span>Failed to load GUI view</span></div>`;
     }
+}
+// Applies the current search/filter/sort to the last-fetched transactions
+// and repaints the list. Called after every fetch AND every time the user
+// changes search/filter/sort — no need to touch the wasm session again.
+let programmaticRender = false;
+function renderFilteredGuiJournal() {
+    programmaticRender = true;
+    requestAnimationFrame(() => { programmaticRender = false; });
+    if (!lastFetchedTxns.length) {
+        guiJournalList.innerHTML = '<div class="status-banner" data-state="info" style="position: static; margin-top: 20px;"><span class="status-dot"></span><span>No transactions found.</span></div>';
+        return;
+    }
+    const visible = lastFetchedTxns
+        .filter(txn => matchesGuiFilters(txn, guiView.filters))
+        .filter(txn => matchesGuiSearch(txn, guiView.search))
+        .sort((a, b) => compareGuiTxns(a, b, guiView.sort));
+
+    if (!visible.length) {
+        guiJournalList.innerHTML = '<div class="status-banner" data-state="info" style="position: static; margin-top: 20px;"><span class="status-dot"></span><span>No transactions match your search/filters.</span></div>';
+        return;
+    }
+    guiJournalList.innerHTML = "";
+    visible.forEach(txn => guiJournalList.appendChild(renderTransactionCard(txn)));
 }
 
 function renderTransactionCard(txn) {
@@ -809,7 +885,7 @@ async function reparse() {
         await refreshAccountSuggestions();
     } else {
         state.ui.status = { text: `Journal error: ${result.error}`, type: "error", banner: statusBanner };
-        if (state.ui.dataRendering) guiPanel.innerHTML = `<div class="status-banner" data-state="error" style="position: static; margin-top: 20px;"><span class="status-dot"></span><span>${escapeHtml(result.error)}</span></div>`;
+        if (state.ui.dataRendering) guiJournalList.innerHTML = `<div class="status-banner" data-state="error" style="position: static; margin-top: 20px;"><span class="status-dot"></span><span>${escapeHtml(result.error)}</span></div>`;
     }
     state.ui.reportButtonsEnabled = state.hledger.session.isLoaded;
 }
@@ -877,6 +953,65 @@ csvAppendBtn.addEventListener("click", () => processCsvImport('append'));
 csvReplaceBtn.addEventListener("click", () => processCsvImport('replace'));
 
 // --- Standard Event Handlers ----------------------------------------
+// --- Search ---
+searchGuiJournalInput.addEventListener("input", () => {
+    guiView.search = searchGuiJournalInput.value;
+    renderFilteredGuiJournal();
+});
+
+// --- Sort ---
+sortGuiJournalSelect.addEventListener("change", () => {
+    guiView.sort = sortGuiJournalSelect.value;
+    renderFilteredGuiJournal();
+});
+
+// --- Filter popover ---
+filterGuiJournalBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const opening = guiFilterPopover.hidden;
+    guiFilterPopover.hidden = !opening;
+    if (opening) {
+        filterAccountInput.value = guiView.filters.account;
+        filterDescInput.value = guiView.filters.desc;
+        filterDateFromInput.value = guiView.filters.dateFrom;
+        filterDateToInput.value = guiView.filters.dateTo;
+        filterAmtMinInput.value = guiView.filters.amtMin;
+        filterAmtMaxInput.value = guiView.filters.amtMax;
+    }
+});
+
+document.addEventListener("click", (e) => {
+    if (!guiFilterPopover.hidden && !guiFilterPopover.contains(e.target) && e.target !== filterGuiJournalBtn) {
+        guiFilterPopover.hidden = true;
+    }
+});
+
+document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !guiFilterPopover.hidden) guiFilterPopover.hidden = true;
+});
+
+applyGuiFilterBtn.addEventListener("click", () => {
+    guiView.filters = {
+        account: filterAccountInput.value.trim(),
+        desc: filterDescInput.value.trim(),
+        dateFrom: filterDateFromInput.value,
+        dateTo: filterDateToInput.value,
+        amtMin: filterAmtMinInput.value.trim(),
+        amtMax: filterAmtMaxInput.value.trim(),
+    };
+    guiFilterPopover.hidden = true;
+    renderFilteredGuiJournal();
+});
+
+clearGuiFilterBtn.addEventListener("click", () => {
+    filterAccountInput.value = ""; filterDescInput.value = "";
+    filterDateFromInput.value = ""; filterDateToInput.value = "";
+    filterAmtMinInput.value = ""; filterAmtMaxInput.value = "";
+    guiView.filters = { account: "", desc: "", dateFrom: "", dateTo: "", amtMin: "", amtMax: "" };
+    guiFilterPopover.hidden = true;
+    renderFilteredGuiJournal();
+});
+
 renderDataToggle.addEventListener("change", async () => {
     state.ui.dataRendering = renderDataToggle.checked; syncUIState();
     if (state.ui.dataRendering) await renderGuiJournal();
@@ -1060,6 +1195,92 @@ async function runReport(reportId, label, action) {
         state.ui.status = { text: `${label} report failed.`, type: "error", banner: statusBanner };
     } finally { state.ui.reportButtonsEnabled = state.hledger.session.isLoaded; }
 }
+
+
+
+
+
+// --- Pull-to-Reveal Floating Search Bar -------------------------------
+// The search bar is the first item of #gui-panel and scrolls away with the
+// journal. Pulling down (touch or mouse-drag, from ANYWHERE in the left
+// pane) floats it back over the top of the list. Any real scroll of the
+// list tucks it straight back into place.
+const paneLeft = document.querySelector(".pane.pane-left");
+const PULL_DISTANCE = 30;
+
+function searchFloatAllowed() {
+    // GUI panel must actually be on screen: Render data on + Journal view
+    return !!state.ui.dataRendering && state.ui.view === "journal";
+}
+
+function revealSearchBar() {
+    if (!searchFloatAllowed()) return;
+    if (guiSearchBar.classList.contains("is-floating")) return;
+    guiSearchBar.classList.add("is-floating");
+}
+
+function tuckSearchBar() {
+    guiSearchBar.classList.remove("is-floating");
+}
+
+// A pull may start anywhere in the left pane except on interactive controls.
+// Pulls that start on the scrolling list itself are only honoured while the
+// list is at the very top (pull-to-refresh style), so the gesture never
+// fights normal list scrolling.
+function canStartPull(target) {
+    if (!(target instanceof Element)) return false;
+    if (!paneLeft.contains(target)) return false;
+    if (target.closest("input, select, textarea, button, a, label, .cm-editor, dialog")) return false;
+    if (target.closest("#gui-panel") && guiPanel.scrollTop > 4) return false;
+    return true;
+}
+
+// --- Touch (mobile) ---
+let touchPullStartY = null;
+paneLeft.addEventListener("touchstart", (e) => {
+    touchPullStartY = canStartPull(e.target) ? e.touches[0].clientY : null;
+}, { passive: true });
+paneLeft.addEventListener("touchmove", (e) => {
+    if (touchPullStartY === null) return;
+    if (e.touches[0].clientY - touchPullStartY > PULL_DISTANCE) {
+        revealSearchBar();
+        touchPullStartY = null;
+    }
+}, { passive: true });
+paneLeft.addEventListener("touchend", () => { touchPullStartY = null; }, { passive: true });
+paneLeft.addEventListener("touchcancel", () => { touchPullStartY = null; }, { passive: true });
+
+// --- Mouse (desktop): click + drag down ANYWHERE in the pane ---
+let mousePullStartY = null;
+paneLeft.addEventListener("mousedown", (e) => {
+    mousePullStartY = (e.button === 0 && canStartPull(e.target)) ? e.clientY : null;
+});
+window.addEventListener("mousemove", (e) => {
+    if (mousePullStartY === null) return;
+    if (e.clientY - mousePullStartY > PULL_DISTANCE) {
+        revealSearchBar();
+        mousePullStartY = null;
+    }
+});
+window.addEventListener("mouseup", () => { mousePullStartY = null; });
+
+// --- Wheel / trackpad ---
+// Scroll DOWN over the chrome (header/toolbar area), or "overscroll" UP
+// while the list is already at the very top.
+paneLeft.addEventListener("wheel", (e) => {
+    if (!searchFloatAllowed()) return;
+    const onList = e.target instanceof Element && !!e.target.closest("#gui-panel");
+    if (!onList && e.deltaY > 0) revealSearchBar();
+    if (onList && e.deltaY < 0 && guiPanel.scrollTop <= 0) revealSearchBar();
+}, { passive: true });
+
+// The moment the list really moves, the bar returns to its place in the flow
+guiPanel.addEventListener("scroll", () => {
+    if (programmaticRender) return;
+    tuckSearchBar();
+}, { passive: true });
+
+
 
 
 // --- Init -----------------------------------------------------------

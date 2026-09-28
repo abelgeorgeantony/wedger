@@ -315,6 +315,7 @@ body>#status {
 /* --- View bar & Top Controls --- */
 .view-bar {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: space-between;
   flex: none;
@@ -428,6 +429,104 @@ body>#status {
   color: var(--ink);
   border: 1px solid var(--accent);
   box-shadow: inset 0 2px 4px var(--shadow-input);
+}
+
+
+
+/* --- GUI Search Bar & Floating Reveal --- */
+.gui-search-bar {
+    position: relative;   /* anchors the filter popover, floating or not */
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    flex-shrink: 0;
+    width: fit-content;
+    max-width: 100%;
+    align-self: center;
+}
+
+.gui-search-bar.is-floating {
+    position: sticky;
+    top: 0px;
+    left: 24px;
+    right: 344px;
+    z-index: 100;
+    background: var(--panel);
+    border-radius: 8px;
+    box-shadow: 0 0 0 1px var(--rule), 0 6px 16px var(--shadow-mobile);
+    animation: slideDownFloat 0.25s ease;
+}
+
+
+@keyframes slideDownFloat {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+#gui-journal-list {
+  display: flex;
+  flex-direction: column;
+}
+
+
+/* --- GUI Journal Filter Popover --- */
+.gui-filter-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 20;
+  min-width: 260px;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  box-shadow: 0 10px 25px var(--shadow-dialog);
+  padding: 16px;
+}
+
+#sort-gui-journal-select {
+  width: auto;
+}
+
+/* Kill horizontal scroll on the panel — this alone restores the gesture,
+   and can't clip the popover because we size it to fit below */
+#gui-panel,
+#gui-output-panel {
+    overflow-x: hidden;
+}
+
+@media (max-width: 780px) {
+    .gui-search-bar {
+        width: max-content;
+        align-self: center;
+        flex-wrap: wrap;              /* row 1: filter + search, row 2: sort */
+    }
+    #filter-gui-journal-btn {
+        flex: none;
+    }
+    #search-gui-journal-input {
+        flex: 1 1 0;
+        min-width: 0;                 /* lets the input shrink inside flex */
+        width: auto;
+    }
+    #sort-gui-journal-select {
+        flex: 0 0 100%;               /* own row, full width */
+    }
+    .gui-filter-popover {
+        left: 0;
+        right: 0;                     /* span the full-width bar */
+        min-width: 0;
+        max-height: min(60dvh, 460px);
+        overflow-y: auto;             /* scrolls internally, so the panel
+                                         never scrolls and never unfloats
+                                         the bar while the popover is open */
+    }
 }
 
 .toggle-row {
@@ -1070,7 +1169,6 @@ textarea.cm-textarea-proxy {
   border-radius: 4px;
   background: var(--paper);
   color: var(--ink);
-  caret-color: var(--ink);
   overflow: hidden;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
@@ -1097,8 +1195,9 @@ textarea.cm-textarea-proxy {
 
 .cm-wrapper .cm-content {
   min-height: 100%;
-  padding: 12px;
+  padding: 1px;
   cursor: text;
+  caret-color: var(--ink);
 }
 
 .cm-wrapper .cm-placeholder {
@@ -1135,6 +1234,7 @@ textarea.cm-textarea-proxy {
 /* --- CodeMirror line numbers --- */
 
 .cm-wrapper .cm-gutters {
+  background: var(--paper);
   color: var(--ink-soft);
   border-right: 1px solid var(--rule);
   padding-left: 2px;

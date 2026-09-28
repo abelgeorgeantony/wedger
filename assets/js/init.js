@@ -76,4 +76,21 @@ const settingDarkMode = document.getElementById("setting-dark-mode");
 const settingFontSize = document.getElementById("setting-font-size");
 const fontSizeDisplay = document.getElementById("font-size-display");
 const settingHideBanner = document.getElementById("setting-hide-banner");
+
+const guiJournalList = document.getElementById("gui-journal-list");
+const guiSearchBar = document.getElementById("gui-search-bar");
+
+const searchGuiJournalInput = document.getElementById("search-gui-journal-input");
+const sortGuiJournalSelect = document.getElementById("sort-gui-journal-select");
+const filterGuiJournalBtn = document.getElementById("filter-gui-journal-btn");
+const guiFilterPopover = document.getElementById("gui-filter-popover");
+const filterAccountInput = document.getElementById("filter-account");
+const filterDescInput = document.getElementById("filter-desc");
+const filterDateFromInput = document.getElementById("filter-date-from");
+const filterDateToInput = document.getElementById("filter-date-to");
+const filterAmtMinInput = document.getElementById("filter-amt-min");
+const filterAmtMaxInput = document.getElementById("filter-amt-max");
+const applyGuiFilterBtn = document.getElementById("apply-gui-filter-btn");
+const clearGuiFilterBtn = document.getElementById("clear-gui-filter-btn");
+
 const reportButtons = [];

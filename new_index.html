@@ -32,24 +32,6 @@
                 </div>
 
                 <div style="display: flex; flex-direction: row; align-items: center; gap: 12px;">
-
-                    <!-- Unified Google Login/Sync Button -->
-                    <button type="button" id="google-login-btn" class="secondary"
-                        style="display: flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid var(--rule); border-radius: 4px; background: var(--panel);">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18">
-                            <path fill="#4285F4"
-                                d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z" />
-                            <path fill="#34A853"
-                                d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.11 0-5.74-2.1-6.68-4.92H1.2v3.15C3.18 21.31 7.27 24 12 24z" />
-                            <path fill="#FBBC05"
-                                d="M5.32 14.28c-.24-.72-.38-1.5-.38-2.28s.14-1.56.38-2.28V6.57H1.2C.43 8.12 0 9.99 0 12s.43 3.88 1.2 5.43l4.12-3.15z" />
-                            <path fill="#EA4335"
-                                d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.27 0 3.18 2.69 1.2 6.57l4.12 3.15c.94-2.82 3.57-4.97 6.68-4.97z" />
-                        </svg>
-
-                        Sign in with google
-                    </button>
-
                     <!-- Authenticated User Profile Trigger Button -->
                     <div id="user-profile-container" style="display: none; position: relative; align-items: center;">
                         <button type="button" id="user-avatar-btn" aria-label="User profile menu">
@@ -81,33 +63,43 @@
             </div>
 
             <div class="view-bar">
-                <div id="file-manager" style="display: flex; flex-direction: column;">
-                    <div>
-                        <select id="file-selector">
-                            <option value="">-- No file selected --</option>
-                        </select>
-                        <button type="button" id="new-file-btn" class="secondary"
-                            style="padding: 6px 10px; min-height: auto;">New</button>
-                    </div>
-                    <div style="display: flex; flex-direction: row; gap: 4px;">
-                        <button type="button" id="rename-file-btn" class="secondary"
-                            style="padding: 6px 10px; min-height: auto; display: none;">Rename</button>
-                        <button type="button" id="delete-file-btn" class="secondary"
-                            style="padding: 6px 10px; min-height: auto; display: none; color: #900c0c; border-color: #f5c2c2; background: #fdf2f2;">Delete</button>
-                    </div>
-                </div>
-                <div class="view-bar-right">
-                    <div>
-                        <button type="button" id="addtxnbtn" style="flex: 1;" disabled>Add</button>
-                        <button id="view-toggle" class="secondary" type="button">Output</button>
-                    </div>
-                    <div>
-                        <div class="field">
-                            <input type="text" id="search-journal-input" placeholder="Search" />
-                            <button type="button" class="secondary" id="searchjournalbtn" style="flex: 1;">
-                                &#x1F50D;
-                            </button>
+                <div style="display: flex; flex-direction: row; width: 100%; justify-content: space-between;">
+                    <div id="file-manager" style="display: flex; flex-direction: column;">
+                        <div>
+                            <select id="file-selector">
+                                <option value="">-- No file selected --</option>
+                            </select>
+                            <button type="button" id="new-file-btn" class="secondary"
+                                style="padding: 6px 10px; min-height: auto;">New</button>
                         </div>
+                        <div style="display: flex; flex-direction: row; gap: 4px;">
+                            <button type="button" id="rename-file-btn" class="secondary"
+                                style="padding: 6px 10px; min-height: auto; display: none;">Rename</button>
+                            <button type="button" id="delete-file-btn" class="secondary"
+                                style="padding: 6px 10px; min-height: auto; display: none; color: #900c0c; border-color: #f5c2c2; background: #fdf2f2;">Delete</button>
+                        </div>
+                    </div>
+                    <div class="view-bar-right">
+                        <div>
+                            <button type="button" id="addtxnbtn" style="flex: 1;" disabled>Add</button>
+                            <button id="view-toggle" class="secondary" type="button">Output</button>
+                        </div>
+                        <!-- Unified Google Login/Sync Button -->
+                        <button type="button" id="google-login-btn" class="secondary"
+                            style="display: flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid var(--rule); border-radius: 4px; background: var(--panel);">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18">
+                                <path fill="#4285F4"
+                                    d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z" />
+                                <path fill="#34A853"
+                                    d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.11 0-5.74-2.1-6.68-4.92H1.2v3.15C3.18 21.31 7.27 24 12 24z" />
+                                <path fill="#FBBC05"
+                                    d="M5.32 14.28c-.24-.72-.38-1.5-.38-2.28s.14-1.56.38-2.28V6.57H1.2C.43 8.12 0 9.99 0 12s.43 3.88 1.2 5.43l4.12-3.15z" />
+                                <path fill="#EA4335"
+                                    d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.27 0 3.18 2.69 1.2 6.57l4.12 3.15c.94-2.82 3.57-4.97 6.68-4.97z" />
+                            </svg>
+
+                            Sign in with google
+                        </button>
                     </div>
                 </div>
             </div>
@@ -116,7 +108,65 @@
                 <div id="journal-panel">
                     <textarea id="journal-text" spellcheck="false" disabled></textarea>
                 </div>
-                <div id="gui-panel" style="display: none;"></div>
+                <div id="gui-panel" style="display: none;">
+                    <!-- Search Bar: Normal flow, scrolls naturally with the list -->
+                    <div id="gui-search-bar" class="gui-search-bar">
+                        <button type="button" class="secondary" id="filter-gui-journal-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                            </svg>
+                        </button>
+                        <input type="text" id="search-gui-journal-input" placeholder="Search" />
+
+                        <select id="sort-gui-journal-select" title="Sort transactions">
+                            <option value="date-desc" selected>Newest first</option>
+                            <option value="date-asc">Oldest first</option>
+                            <option value="desc-asc">Description A→Z</option>
+                            <option value="desc-desc">Description Z→A</option>
+                            <option value="amount-desc">Amount: high→low</option>
+                            <option value="amount-asc">Amount: low→high</option>
+                        </select>
+
+                        <div id="gui-filter-popover" class="gui-filter-popover" hidden>
+                            <div class="field">
+                                <label class="field-label" for="filter-account">Account contains</label>
+                                <input type="text" id="filter-account" placeholder="e.g. expenses:food" />
+                            </div>
+                            <div class="field">
+                                <label class="field-label" for="filter-desc">Description contains</label>
+                                <input type="text" id="filter-desc" placeholder="e.g. amazon" />
+                            </div>
+                            <div class="field-row" style="grid-template-columns: 1fr 1fr;">
+                                <div class="field" style="margin-bottom: 0;">
+                                    <label class="field-label" for="filter-date-from">From date</label>
+                                    <input type="date" id="filter-date-from" />
+                                </div>
+                                <div class="field" style="margin-bottom: 0;">
+                                    <label class="field-label" for="filter-date-to">To date</label>
+                                    <input type="date" id="filter-date-to" />
+                                </div>
+                            </div>
+                            <div class="field-row" style="grid-template-columns: 1fr 1fr;">
+                                <div class="field" style="margin-bottom: 0;">
+                                    <label class="field-label" for="filter-amt-min">Min amount</label>
+                                    <input type="text" id="filter-amt-min" placeholder="e.g. 100" />
+                                </div>
+                                <div class="field" style="margin-bottom: 0;">
+                                    <label class="field-label" for="filter-amt-max">Max amount</label>
+                                    <input type="text" id="filter-amt-max" placeholder="e.g. 5000" />
+                                </div>
+                            </div>
+                            <div class="modal-actions" style="justify-content: space-between;">
+                                <button type="button" class="secondary" id="clear-gui-filter-btn">Clear</button>
+                                <button type="button" id="apply-gui-filter-btn">Apply</button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Dynamic content renders here, leaving the search bar untouched -->
+                    <div id="gui-journal-list"></div>
+                </div>
             </div>
 
             <div id="output-view" style="display: none;">

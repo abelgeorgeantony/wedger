@@ -264,7 +264,7 @@ const state = {
             document.getElementById("importcsvbtn").disabled = !hasFile;
             if (!hasFile) {
                 journalText.value = "Please create or select a journal file to begin.";
-                guiPanel.innerHTML = '<span>Please create or select a journal file to begin.</span>';
+                guiJournalList.innerHTML = '<span>Please create or select a journal file to begin.</span>';
                 output.value = "Waiting for a journal to load.";
                 state.ui.reportButtonsEnabled = false;
             }
