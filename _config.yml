@@ -32,3 +32,6 @@ exclude:
   - package.json
   - package-lock.json
   - assets/js/codemirror/entry.js
+  - start-server.sh
+  - wedger.md
+  - wedger.txt
