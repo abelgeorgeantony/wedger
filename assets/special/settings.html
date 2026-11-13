@@ -1,0 +1,46 @@
+<style>
+  .st__row { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: .7rem 0; border-top: 1px solid var(--border); }
+  .st__row:first-of-type { border-top: 0; }
+  .st__label { font-weight: 600; }
+  .st__hint { color: var(--text-muted); font-size: .88rem; }
+  .st__control { display: flex; align-items: center; gap: .7rem; flex: none; }
+  .st__range { width: 10rem; accent-color: var(--accent); }
+  .st__value { min-width: 3.2rem; text-align: right; font-variant-numeric: tabular-nums; color: var(--text-muted); }
+  .st__select { width: auto; }
+</style>
+<h1 class="sf__title">Settings</h1>
+<p class="sf__subtitle">Changes apply immediately and are kept on this device.</p>
+
+<section class="card" aria-label="Appearance">
+  <div class="card__title">Appearance</div>
+  <div class="st__row">
+    <div><div class="st__label">Dark mode</div><div class="st__hint">Easier on the eyes in low light.</div></div>
+    <label class="switch st__control"><input type="checkbox" data-setting="darkMode"><span class="switch__track" aria-hidden="true"></span><span class="sr-only">Dark mode</span></label>
+  </div>
+  <div class="st__row">
+    <div><div class="st__label">Text size</div><div class="st__hint">Scales the whole interface.</div></div>
+    <div class="st__control">
+      <input class="st__range" type="range" data-setting="fontSize" min="11" max="20" step="0.5" aria-label="Text size">
+      <span class="st__value" data-setting-display="fontSize"></span>
+    </div>
+  </div>
+</section>
+
+<section class="card" aria-label="Journals">
+  <div class="card__title">Journals</div>
+  <div class="st__row">
+    <div><div class="st__label">Open journals in</div><div class="st__hint">Which view a .journal file starts in.</div></div>
+    <select class="select st__select st__control" data-setting="defaultView" aria-label="Default view">
+      <option value="rendered">Rendered</option>
+      <option value="raw">Raw text</option>
+    </select>
+  </div>
+  <div class="st__row">
+    <div><div class="st__label">Line numbers in raw view</div></div>
+    <label class="switch st__control"><input type="checkbox" data-setting="lineNumbers"><span class="switch__track" aria-hidden="true"></span><span class="sr-only">Line numbers</span></label>
+  </div>
+</section>
+
+<div class="sf__actions">
+  <button class="btn" type="button" data-act="reset">Reset to defaults</button>
+</div>

@@ -1,0 +1,83 @@
+{
+  "$comment": "Every file the viewer can open is declared here. Paths are relative to /assets/. A special file = a template (+ optional controller). Higher priority wins; the journal viewer (priority 0) is the fallback for any file: URI.",
+  "contributions": [
+    {
+      "viewType": "wedger.journalViewer",
+      "id": "journal",
+      "renderer": "journal",
+      "selector": { "scheme": "file" },
+      "priority": 0,
+      "template": "views/journal.html",
+      "menuTemplate": "views/journal-menu.html"
+    },
+    {
+      "viewType": "wedger.welcome",
+      "id": "welcome",
+      "renderer": "special",
+      "title": "Welcome",
+      "selector": { "uri": "wedger:welcome" },
+      "priority": 10,
+      "template": "special/welcome.html"
+    },
+    {
+      "viewType": "wedger.createFile",
+      "id": "create-file",
+      "renderer": "special",
+      "title": "Create file",
+      "selector": { "uri": "wedger:create-file" },
+      "priority": 10,
+      "template": "special/create-file.html",
+      "controller": "special/create-file.js"
+    },
+    {
+      "viewType": "wedger.importFile",
+      "id": "import-file",
+      "renderer": "special",
+      "title": "Import file",
+      "selector": { "uri": "wedger:import-file" },
+      "priority": 10,
+      "template": "special/import-file.html",
+      "controller": "special/import-file.js"
+    },
+    {
+      "viewType": "wedger.googleSettings",
+      "id": "google-settings",
+      "renderer": "special",
+      "title": "Google settings",
+      "selector": { "uri": "wedger:google-settings" },
+      "priority": 10,
+      "template": "special/google-settings.html",
+      "controller": "special/google-settings.js"
+    },
+    {
+      "viewType": "wedger.settings",
+      "id": "settings",
+      "renderer": "special",
+      "title": "Settings",
+      "selector": { "uri": "wedger:settings" },
+      "priority": 10,
+      "template": "special/settings.html",
+      "controller": "special/settings.js"
+    },
+    {
+      "viewType": "wedger.timeline",
+      "id": "timeline",
+      "renderer": "special",
+      "title": "Timeline",
+      "selector": { "uri": "wedger:timeline" },
+      "priority": 10,
+      "template": "special/timeline.html",
+      "controller": "special/timeline.js"
+    },
+    {
+      "viewType": "wedger.reportsOutput",
+      "id": "reports-output",
+      "renderer": "special",
+      "title": "Reports output",
+      "selector": { "uri": "wedger:reports-output" },
+      "priority": 10,
+      "template": "special/reports-output.html",
+      "controller": "special/reports-output.js"
+    }
+  ]
+}

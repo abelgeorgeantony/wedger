@@ -8,5 +8,6 @@ wedger.md
 wedger.txt
 prompt_context.*
 tree.txt
+*.zip
 
 !assets/js/vendor

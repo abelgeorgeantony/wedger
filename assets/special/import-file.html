@@ -1,0 +1,57 @@
+<style>
+  .imp__step { margin-top: 1rem; }
+  .imp__step-title { font-weight: 700; margin-bottom: .4rem; }
+  .dropzone { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .3rem; padding: 1.6rem 1rem; text-align: center; border: 2px dashed var(--border); border-radius: var(--radius); background: var(--surface); cursor: pointer; }
+  .dropzone:hover, .dropzone.is-over { border-color: var(--accent); background: var(--accent-soft); }
+  .dropzone input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  .dropzone:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .dropzone__file { color: var(--text-muted); }
+  .imp__dest { display: flex; flex-direction: column; gap: .6rem; }
+  .imp__option { display: flex; gap: .6rem; align-items: flex-start; padding: .7rem .9rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer; }
+  .imp__option:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+  .imp__option .field { flex: 1; }
+</style>
+<form data-slot="form" novalidate>
+  <h1 class="sf__title">Import file</h1>
+  <p class="sf__subtitle">Bring in a journal, or convert a CSV using hledger rules.</p>
+
+  <div class="banner banner--error" data-slot="error" role="alert" hidden></div>
+
+  <section class="imp__step" aria-labelledby="imp-1">
+    <div class="imp__step-title" id="imp-1">1 · File</div>
+    <label class="dropzone" data-slot="dropzone">
+      <input type="file" name="file" accept=".journal,.timeclock,.timedot,.csv">
+      <strong>Choose a file or drop it here</strong>
+      <span class="dropzone__file" data-slot="file-name">No file chosen · .journal, .timeclock, .timedot or .csv</span>
+    </label>
+  </section>
+
+  <section class="imp__step" data-slot="rules-step" aria-labelledby="imp-2" hidden>
+    <div class="imp__step-title" id="imp-2">2 · CSV rules</div>
+    <label class="field">
+      <span class="field__hint">Tell hledger how to read the columns.</span>
+      <textarea class="textarea" name="rules" rows="6" spellcheck="false" placeholder="e.g. skip 1&#10;fields date, description, amount"></textarea>
+    </label>
+  </section>
+
+  <section class="imp__step" aria-labelledby="imp-3">
+    <div class="imp__step-title" id="imp-3" data-slot="dest-title">2 · Destination</div>
+    <div class="imp__dest" role="radiogroup" aria-label="Destination">
+      <label class="imp__option">
+        <input type="radio" name="dest" value="new" checked>
+        <div class="field"><span class="field__label">Import as new file</span>
+          <input class="input" name="newName" placeholder="file name" autocomplete="off" aria-label="New file name"></div>
+      </label>
+      <label class="imp__option">
+        <input type="radio" name="dest" value="append">
+        <div class="field"><span class="field__label">Append to existing file</span>
+          <select class="select" name="target" aria-label="Existing file"></select></div>
+      </label>
+    </div>
+  </section>
+
+  <div class="sf__actions">
+    <button class="btn" type="button" data-action="close">Cancel</button>
+    <button class="btn btn--primary" type="submit" data-slot="submit">Import</button>
+  </div>
+</form>

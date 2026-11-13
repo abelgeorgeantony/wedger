@@ -1,0 +1,21 @@
+<style>
+  .ro__head { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; flex-wrap: wrap; }
+  .ro__entry { margin-top: .9rem; }
+  .ro__entry-head { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: .5rem; }
+  .ro__type { font-weight: 700; }
+  .ro__meta { color: var(--text-muted); font-size: .85rem; }
+  .ro__body { padding: .7rem; background: var(--surface-2); border-radius: 6px; font-family: var(--font-mono); font-size: .88rem; white-space: pre-wrap; color: var(--text-muted); }
+  .ro__empty { text-align: center; color: var(--text-muted); padding: 3rem 1rem; border: 1px dashed var(--border); border-radius: var(--radius); margin-top: 1rem; }
+</style>
+<div class="ro__head">
+  <div>
+    <h1 class="sf__title">Reports output</h1>
+    <p class="sf__subtitle">Results of the reports you run from a journal's Reports menu.</p>
+  </div>
+  <button class="btn btn--danger" type="button" data-act="clear">Clear output</button>
+</div>
+<div data-slot="list"></div>
+<div class="ro__empty" data-slot="empty">
+  <p>No reports run yet.</p>
+  <p>Open a journal and pick one from its <strong>Reports</strong> menu.</p>
+</div>

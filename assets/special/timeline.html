@@ -1,0 +1,28 @@
+<style>
+  .tl__nav { display: flex; align-items: center; gap: .5rem; margin-bottom: 1rem; }
+  .tl__month { font-size: 1.2rem; font-weight: 700; min-width: 11rem; text-align: center; }
+  .tl__grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .tl__dow { text-align: center; font-size: .8rem; color: var(--text-muted); padding: .2rem 0; }
+  .tl__day {
+    position: relative; min-height: 3.6rem; padding: .3rem .4rem; text-align: left; vertical-align: top;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
+  }
+  .tl__day:hover { border-color: var(--accent); }
+  .tl__day--blank { background: transparent; border: 0; pointer-events: none; }
+  .tl__day.is-selected { outline: 2px solid var(--accent); }
+  .tl__day.is-today .tl__num { color: var(--accent); font-weight: 700; }
+  .tl__count { position: absolute; right: .35rem; bottom: .3rem; font-size: .75rem; padding: 0 .4rem; border-radius: 999px; background: var(--accent); color: var(--accent-contrast); }
+  .tl__detail { margin-top: 1.25rem; }
+  .tl__txn { display: flex; justify-content: space-between; gap: 1rem; padding: .5rem 0; border-top: 1px solid var(--border); }
+  .tl__txn small { color: var(--text-muted); display: block; }
+</style>
+<h1 class="sf__title">Timeline</h1>
+<p class="sf__subtitle">Transactions across all your journals, by day.</p>
+<div class="tl__nav">
+  <button class="btn btn--small" type="button" data-act="prev" aria-label="Previous month">‹</button>
+  <div class="tl__month" data-slot="month" aria-live="polite"></div>
+  <button class="btn btn--small" type="button" data-act="next" aria-label="Next month">›</button>
+  <button class="btn btn--small btn--ghost" type="button" data-act="today">Today</button>
+</div>
+<div class="tl__grid" data-slot="grid" role="grid" aria-label="Month calendar"></div>
+<section class="tl__detail card" data-slot="detail" aria-live="polite" hidden></section>

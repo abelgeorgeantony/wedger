@@ -1,0 +1,46 @@
+<style>
+  .sf-create__name { flex: 3 1 14rem; }
+  .template-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); gap: .75rem; margin-top: .4rem; }
+  .template-card { display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; cursor: pointer; }
+  .template-card:hover { border-color: var(--accent); }
+  .template-card.is-selected { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+  .template-card.is-disabled { opacity: .45; cursor: not-allowed; }
+  .template-card input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  .template-card input:focus-visible ~ .template-card__preview { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .template-card__preview { height: 5rem; padding: .5rem .6rem; background: var(--surface-2); font-family: var(--font-mono); font-size: .72rem; line-height: 1.4; color: var(--text-muted); overflow: hidden; white-space: pre; }
+  .template-card__name { padding: .5rem .7rem 0; font-weight: 600; }
+  .template-card__desc { padding: 0 .7rem .6rem; font-size: .85rem; color: var(--text-muted); }
+</style>
+<form data-slot="form" novalidate>
+  <h1 class="sf__title">Create file</h1>
+  <p class="sf__subtitle">Name your file and pick a starting point.</p>
+
+  <div class="form-row">
+    <div class="field sf-create__name">
+      <label class="field__label" for="cf-name">File name</label>
+      <input class="input" id="cf-name" name="name" placeholder="household-2026" autocomplete="off" spellcheck="false" required>
+    </div>
+    <div class="field">
+      <label class="field__label" for="cf-ext">Type</label>
+      <select class="select" id="cf-ext" name="ext">
+        <option value=".journal">.journal</option>
+        <option value=".timeclock">.timeclock</option>
+        <option value=".timedot">.timedot</option>
+        <option value=".csv">.csv (with rules)</option>
+      </select>
+    </div>
+  </div>
+  <p class="field__error" data-slot="error" role="alert" hidden style="margin-top:.4rem"></p>
+
+  <fieldset style="margin-top:1.25rem">
+    <legend class="field__label">Apply template</legend>
+    <div class="template-grid" data-slot="templates" role="radiogroup" aria-label="Templates">
+      <span class="field__hint">Loading templates…</span>
+    </div>
+  </fieldset>
+
+  <div class="sf__actions">
+    <button class="btn" type="button" data-action="close">Cancel</button>
+    <button class="btn btn--primary" type="submit">Create file</button>
+  </div>
+</form>

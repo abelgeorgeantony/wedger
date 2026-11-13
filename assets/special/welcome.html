@@ -1,0 +1,19 @@
+<style>
+  .sf-welcome { display: flex; align-items: center; justify-content: center; text-align: center; }
+  .sf-welcome__hero { max-width: 36rem; padding: 2rem 0; }
+  .sf-welcome__logo { font-family: var(--font-brand); font-weight: 400; font-size: clamp(3.5rem, 12vw, 5.5rem); line-height: 1; -webkit-text-stroke: .5px currentColor; }
+  .sf-welcome__tagline { font-size: 1.25rem; font-weight: 600; margin-top: 1rem; }
+  .sf-welcome__sub { color: var(--text-muted); margin-top: .5rem; }
+  .sf-welcome__actions { display: flex; gap: .6rem; justify-content: center; flex-wrap: wrap; margin-top: 1.5rem; }
+</style>
+<section class="sf-welcome__hero" aria-labelledby="welcome-title">
+  <h1 class="sf-welcome__logo" id="welcome-title">Wedger</h1>
+  <p class="sf-welcome__tagline">Hledger running entirely in your browser.</p>
+  <p class="sf-welcome__sub">Your journals stay on your device. Sign in with Google to sync them to Drive.</p>
+  <div class="sf-welcome__actions">
+    <button class="btn btn--primary" type="button" data-open="wedger:create-file"><span class="icon icon--new-file" aria-hidden="true"></span>New journal</button>
+    <button class="btn" type="button" data-open="wedger:import-file"><span class="icon icon--import-file" aria-hidden="true"></span>Import file</button>
+    <button class="btn" type="button" data-action="sign-in" data-show="signed-out"><img class="icon-google" src="assets/icons/google.svg" alt="">Sign in with Google</button>
+    <button class="btn" type="button" data-open="wedger:google-settings" data-show="signed-in">Google settings</button>
+  </div>
+</section>

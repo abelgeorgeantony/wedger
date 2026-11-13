@@ -1,0 +1,46 @@
+<style>
+  .atx__tabs { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; align-self: flex-start; }
+  .atx__tabs label { padding: .25rem .8rem; cursor: pointer; }
+  .atx__tabs input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  .atx__tabs label:has(input:checked) { background: var(--accent); color: var(--accent-contrast); }
+  .atx__posting { display: grid; grid-template-columns: 1fr 9rem auto; gap: .5rem; align-items: start; margin-bottom: .4rem; }
+  .atx__remove { padding: .45rem .6rem; }
+  @media (max-width: 520px) { .atx__posting { grid-template-columns: 1fr 6.5rem auto; } }
+</style>
+<form data-slot="form" novalidate>
+  <div class="dialog__body">
+    <div>
+      <h2 class="dialog__title" data-slot="title">Add transaction</h2>
+      <p class="dialog__message" data-slot="subtitle">Fill in transaction details</p>
+    </div>
+
+    <div class="atx__tabs" role="radiogroup" aria-label="Entry mode">
+      <label><input type="radio" name="mode" value="form" checked> Form</label>
+      <label><input type="radio" name="mode" value="raw"> Raw text</label>
+    </div>
+
+    <div data-slot="pane-form">
+      <div class="form-row">
+        <div class="field"><label class="field__label" for="atx-date">Date</label><input class="input" id="atx-date" name="date" type="date" required></div>
+        <div class="field" style="flex:3 1 14rem"><label class="field__label" for="atx-desc">Description</label><input class="input" id="atx-desc" name="description" placeholder="e.g. Groceries" autocomplete="off" required></div>
+      </div>
+      <div style="margin-top:.8rem">
+        <div class="field__label" style="margin-bottom:.3rem">Postings</div>
+        <div data-slot="postings"></div>
+        <button class="btn btn--small btn--ghost" type="button" data-act="add-posting"><span class="icon icon--plus" aria-hidden="true"></span> Add posting</button>
+      </div>
+    </div>
+
+    <div data-slot="pane-raw" hidden>
+      <label class="field"><span class="field__label">Transaction text</span><textarea class="textarea" name="raw" rows="8" spellcheck="false"></textarea></label>
+    </div>
+
+    <p class="banner banner--warn" data-slot="warning" role="status" hidden></p>
+    <p class="banner banner--error" data-slot="error" role="alert" hidden></p>
+    <datalist id="atx-accounts"></datalist>
+  </div>
+  <div class="dialog__actions">
+    <button class="btn" type="button" data-act="cancel">Cancel</button>
+    <button class="btn btn--primary" type="submit" data-slot="submit">Add transaction</button>
+  </div>
+</form>

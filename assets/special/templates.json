@@ -1,0 +1,58 @@
+[
+  {
+    "id": "blank",
+    "name": "Blank",
+    "description": "Start empty",
+    "types": ["*"],
+    "content": ""
+  },
+  {
+    "id": "personal",
+    "name": "Personal finance",
+    "description": "Accounts and categories",
+    "types": [".journal"],
+    "content": "; Personal finance\n\naccount assets:bank\naccount assets:cash\naccount expenses:food\naccount expenses:rent\naccount income:salary\n\n{{year}}-01-01 Opening balances\n    assets:bank                  ₹0.00\n    equity:opening\n"
+  },
+  {
+    "id": "budget",
+    "name": "Household budget",
+    "description": "Monthly limits",
+    "types": [".journal"],
+    "content": "; Household budget\n\n~ monthly\n    expenses:rent                ₹18000.00\n    expenses:food                 ₹8000.00\n    expenses:utilities            ₹3000.00\n    assets:bank\n"
+  },
+  {
+    "id": "freelance",
+    "name": "Freelance",
+    "description": "Invoices and tax",
+    "types": [".journal"],
+    "content": "; Freelance\n\naccount income:clients\naccount liabilities:gst\naccount assets:bank\n\n{{year}}-01-01 Opening\n    assets:bank                  ₹0.00\n    equity:opening\n"
+  },
+  {
+    "id": "investments",
+    "name": "Investments",
+    "description": "Holdings and prices",
+    "types": [".journal"],
+    "content": "; Investments\n\nP {{year}}-01-01 INFY ₹1500\n\n{{year}}-01-02 Buy INFY\n    assets:investments           10 INFY @ ₹1500\n    assets:bank\n"
+  },
+  {
+    "id": "travel",
+    "name": "Travel",
+    "description": "Trip expenses",
+    "types": [".journal"],
+    "content": "; Travel\n\naccount expenses:travel\naccount expenses:stay\naccount expenses:food\n\n{{year}}-01-01 Trip budget\n    expenses:travel              ₹0.00\n    assets:bank\n"
+  },
+  {
+    "id": "shared",
+    "name": "Shared expenses",
+    "description": "Split with others",
+    "types": [".journal"],
+    "content": "; Shared expenses\n\naccount assets:owed:sam\naccount expenses:dining\n\n{{year}}-01-01 Dinner (split with Sam)\n    expenses:dining              ₹600.00\n    assets:owed:sam              ₹600.00\n    assets:bank\n"
+  },
+  {
+    "id": "business",
+    "name": "Business",
+    "description": "Sales and costs",
+    "types": [".journal"],
+    "content": "; Business\n\naccount income:sales\naccount expenses:ops\naccount assets:bank\n\n{{year}}-01-01 Opening\n    assets:bank                  ₹0.00\n    equity:opening\n"
+  }
+]

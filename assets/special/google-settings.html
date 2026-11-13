@@ -1,0 +1,55 @@
+<style>
+  .gs__account { display: flex; align-items: center; gap: .9rem; }
+  .gs__account .avatar { width: 2.6rem; height: 2.6rem; font-size: 1.2rem; }
+  .gs__name { font-weight: 700; }
+  .gs__email { color: var(--text-muted); }
+  .gs__head { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
+  .gs__files { list-style: none; margin: .6rem 0; }
+  .gs__file { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .55rem 0; border-top: 1px solid var(--border); }
+  .gs__file-err { flex-basis: 100%; }
+  .gs__file-wrap { flex-wrap: wrap; }
+  .gs__toggle { padding-top: .8rem; border-top: 1px solid var(--border); }
+  .gs__empty { text-align: center; padding: 2rem 1rem; }
+  .gs__empty p { margin-bottom: 1rem; color: var(--text-muted); }
+</style>
+
+<h1 class="sf__title">Google settings</h1>
+
+<!-- signed out -->
+<section class="card gs__empty" data-show="signed-out" aria-label="Signed out">
+  <p>You're not signed in. Sign in with Google to back up and sync your journals to Drive.</p>
+  <button class="btn btn--primary" type="button" data-action="sign-in"><img class="icon-google" src="assets/icons/google.svg" alt="">Sign in with Google</button>
+</section>
+
+<!-- signed in -->
+<div data-show="signed-in" hidden>
+  <p class="sf__subtitle" data-slot="email"></p>
+
+  <section class="card" aria-label="Account">
+    <div class="gs__account">
+      <span class="avatar" data-slot="avatar" aria-hidden="true"></span>
+      <div><div class="gs__name" data-slot="name"></div><div class="gs__email" data-slot="email2">Signed in</div></div>
+    </div>
+  </section>
+
+  <section class="card" aria-label="Drive sync">
+    <div class="gs__head">
+      <div class="card__title" style="margin:0">Drive sync</div>
+      <span class="field__hint" data-slot="last-sync"></span>
+    </div>
+    <div class="banner banner--ok" data-slot="summary" style="margin-top:.7rem"></div>
+    <ul class="gs__files" data-slot="files"></ul>
+    <div class="gs__toggle">
+      <label class="switch">
+        <input type="checkbox" data-setting="syncAuto">
+        <span class="switch__track" aria-hidden="true"></span>
+        <span>Sync automatically after each save</span>
+      </label>
+    </div>
+  </section>
+
+  <div class="sf__actions">
+    <button class="btn" type="button" data-slot="refresh"><span class="icon icon--refresh" aria-hidden="true"></span> Refresh</button>
+    <button class="btn btn--danger" type="button" data-action="sign-out">Log out</button>
+  </div>
+</div>
