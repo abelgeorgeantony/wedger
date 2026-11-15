@@ -34,9 +34,11 @@ export function mount({ root, host }) {
 
   function render() {
     slot("month").textContent = new Date(year, month, 1).toLocaleDateString("en-GB", { month: "long", year: "numeric" });
-    const dows = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => h("div", { class: "tl__dow", role: "columnheader" }, d));
+    const sundayFirst = host.settings.get("weekStart") === "sunday";
+    const names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    const dows = (sundayFirst ? [names[6], ...names.slice(0, 6)] : names).map((d) => h("div", { class: "tl__dow", role: "columnheader" }, d));
     if (!loaded) { slot("grid").replaceChildren(...dows, h("div", { class: "tl__loading" }, host.engine.ready ? "Reading your journals…" : "Loading the accounting engine…")); return; }
-    const first = (new Date(year, month, 1).getDay() + 6) % 7;      // Monday first
+    const first = sundayFirst ? new Date(year, month, 1).getDay() : (new Date(year, month, 1).getDay() + 6) % 7;
     const days = new Date(year, month + 1, 0).getDate();
     const cells = [...dows];
     for (let i = 0; i < first; i++) cells.push(h("div", { class: "tl__day tl__day--blank", "aria-hidden": "true" }));
@@ -76,6 +78,6 @@ export function mount({ root, host }) {
 
   render();
   load();
-  const offs = [host.files.on("changed", reload), host.engine.on("status", (s) => { if (s === "ready") load(); })];
+  const offs = [host.files.on("changed", reload), host.engine.on("status", (s) => { if (s === "ready") load(); }), host.settings.on("weekStart", render)];
   return { dispose() { token++; reload.cancel(); offs.forEach((o) => o()); } };
 }

@@ -36,7 +36,7 @@ async function restoreTabs() {
     const { scheme, path } = parseUri(uri);
     return scheme === "wedger" ? !!registry.resolve(uri) : scheme === "file" && host.files.exists(path);
   };
-  const uris = (saved?.open ?? []).filter((u) => typeof u === "string" && valid(u));
+  const uris = host.settings.get("restoreTabs") ? (saved?.open ?? []).filter((u) => typeof u === "string" && valid(u)) : [];
   if (!uris.length) { await editors.open("wedger:welcome"); return; }
   // Tabs are added synchronously (so their order is kept) and mount in parallel.
   await Promise.all(uris.map((uri) => editors.open(uri, { focus: false })));

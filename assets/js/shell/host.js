@@ -13,14 +13,17 @@ import { StorageManager } from "../storage.js";
 
 /* ------------------------------------------------------------------ settings */
 const SCHEMA = {
-  darkMode:         { key: "wedger_dark_mode",         type: "bool",   default: () => !!globalThis.matchMedia?.("(prefers-color-scheme: dark)").matches },
+  theme:            { key: "wedger_theme",             type: "string", default: "system", options: ["system", "light", "dark"] },
   fontSize:         { key: "wedger_font_size",         type: "number", default: 14, min: 11, max: 20 },
   defaultView:      { key: "wedger_default_view",      type: "string", default: "rendered", options: ["rendered", "raw"] },
   lineNumbers:      { key: "wedger_line_numbers",      type: "bool",   default: true },
   autoSave:         { key: "wedger_auto_save",         type: "bool",   default: true },
-  syncAuto:         { key: "wedger_sync_auto",         type: "bool",   default: true },
   numberGrouping:   { key: "wedger_number_grouping",   type: "string", default: "auto", options: ["auto", "indian", "international", "none"] },
   defaultCommodity: { key: "wedger_default_commodity", type: "string", default: "" },
+  restoreTabs:      { key: "wedger_restore_tabs",      type: "bool",   default: true },
+  weekStart:        { key: "wedger_week_start",        type: "string", default: "monday", options: ["monday", "sunday"] },
+  // Lives on the Google settings page, not the Settings page: it only means something when signed in.
+  syncAuto:         { key: "wedger_sync_auto",         type: "bool",   default: true },
 };
 const defaultOf = (def) => (typeof def.default === "function" ? def.default() : def.default);
 
@@ -30,9 +33,20 @@ class Settings extends Emitter {
     for (const [name, def] of Object.entries(SCHEMA)) {
       let raw = null;
       try { raw = localStorage.getItem(def.key); } catch { /* storage blocked */ }
+      if (name === "theme" && raw == null) raw = this.#legacyTheme();
       this.#values[name] = raw == null ? defaultOf(def) : this.#parse(def, raw);
       this.#apply(name);
     }
+    // "System" follows the OS live: switching it at sunset repaints the app without a reload.
+    const watch = globalThis.matchMedia?.("(prefers-color-scheme: dark)");
+    watch?.addEventListener?.("change", () => { if (this.#values.theme === "system") this.#apply("theme"); });
+  }
+  /** Before there was a Theme setting there was a Dark mode switch ("1" / "0"). Keep what people chose. */
+  #legacyTheme() {
+    try {
+      const old = localStorage.getItem("wedger_dark_mode");
+      return old == null ? null : old === "1" ? "dark" : "light";
+    } catch { return null; }
   }
   #parse(def, raw) {
     if (def.type === "bool") return raw === "1";
@@ -44,7 +58,10 @@ class Settings extends Emitter {
   }
   #apply(name) {
     const v = this.#values[name];
-    if (name === "darkMode") document.documentElement.classList.toggle("dark-mode", !!v);
+    if (name === "theme") {
+      const dark = v === "dark" || (v === "system" && !!globalThis.matchMedia?.("(prefers-color-scheme: dark)").matches);
+      document.documentElement.classList.toggle("dark-mode", dark);
+    }
     if (name === "fontSize") document.documentElement.style.setProperty("--base-font-size", `${v}px`);
   }
   get(name) { return this.#values[name]; }
@@ -61,7 +78,8 @@ class Settings extends Emitter {
     this.emit(name, value);
     this.emit("*", { name, value });
   }
-  reset() { for (const [name, def] of Object.entries(SCHEMA)) this.set(name, defaultOf(def)); }
+  /** Back to defaults. Pass names to reset only some (the Settings page leaves out settings that live elsewhere). */
+  reset(names = Object.keys(SCHEMA)) { for (const name of names) this.set(name, defaultOf(SCHEMA[name])); }
   onChange(name, fn) { return this.on(name, fn); }
 }
 

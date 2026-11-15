@@ -3,27 +3,27 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    text-align: center;
   }
 
   .sf-welcome__hero {
-    max-width: 38rem;
+    width: 100%;
+    max-width: 36rem;
     padding: 2rem 0;
   }
 
   .sf-welcome__logo {
     font-family: var(--font-brand);
     font-weight: 400;
-    font-size: clamp(3.6rem, 12vw, 5.6rem);
+    font-size: clamp(3.4rem, 11vw, 5rem);
     line-height: 1;
     -webkit-text-stroke: .5px currentColor;
   }
 
   .sf-welcome__tagline {
     font-family: var(--font-read);
-    font-size: 1.3rem;
+    font-size: 1.35rem;
     font-weight: 600;
-    margin-top: 1rem;
+    margin-top: .9rem;
   }
 
   .sf-welcome__sub {
@@ -35,16 +35,47 @@
   .sf-welcome__actions {
     display: flex;
     gap: .6rem;
-    justify-content: center;
     flex-wrap: wrap;
-    margin-top: 1.6rem;
+    margin-top: 1.4rem;
+  }
+
+  .sf-welcome__features {
+    list-style: none;
+    margin-top: 2rem;
+    padding: 0;
+    border-top: 1px solid var(--border);
+    font-family: var(--font-read);
+  }
+
+  .sf-welcome__features li {
+    padding: .65rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sf-welcome__features strong {
+    display: block;
+    font-weight: 600;
+  }
+
+  .sf-welcome__features span {
+    color: var(--text-muted);
+    font-size: .92rem;
+  }
+
+  .sf-welcome__credit {
+    font-family: var(--font-read);
+    font-size: .8rem;
+    color: var(--text-faint);
+    margin-top: 1rem;
   }
 </style>
+
 <section class="sf-welcome__hero" aria-labelledby="welcome-title">
   <h1 class="sf-welcome__logo" id="welcome-title">Wedger</h1>
-  <p class="sf-welcome__tagline">Plain-text accounting, running entirely in your browser.</p>
-  <p class="sf-welcome__sub">Your journals stay on this device. Sign in with Google to keep them in sync through your
-    own Drive.</p>
+  <p class="sf-welcome__tagline">Personal accounting that stays in your browser.</p>
+  <p class="sf-welcome__sub">There is no server and no account to make. Your files are saved on this device. If you
+    sign in with Google, they are also copied to your own Drive, so you can open them on your other devices.</p>
+
   <div class="sf-welcome__actions">
     <button class="btn btn--primary" type="button" data-open="wedger:create-file"><span class="icon icon--new-file"
         aria-hidden="true"></span>New journal</button>
@@ -54,4 +85,17 @@
         src="assets/icons/google.svg" alt="">Sign in with Google</button>
     <button class="btn" type="button" data-open="wedger:google-settings" data-show="signed-in">Google settings</button>
   </div>
+
+  <ul class="sf-welcome__features">
+    <li><strong>Add transactions with a form</strong><span>Wedger checks that each one adds up before it saves.</span>
+    </li>
+    <li><strong>Bring in your bank statements</strong><span>Import a CSV and see exactly what will be added before you
+        confirm.</span></li>
+    <li><strong>See where your money went</strong><span>Balances, income and spending, cash flow and more, from the
+        Reports menu.</span></li>
+    <li><strong>Browse by date</strong><span>The Timeline shows every transaction on a calendar.</span></li>
+    <li><strong>Your data is a plain text file</strong><span>Edit it in the Raw text view, or download it whenever you
+        like.</span></li>
+  </ul>
+  <p class="sf-welcome__credit">Reports and checks are run by hledger, right here in your browser.</p>
 </section>

@@ -2,28 +2,37 @@
   .st-group { margin-top: 1.5rem; }
   .st-group__title { font-family: var(--font-read); font-size: .8rem; font-weight: 650; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); margin-bottom: .5rem; }
   .st-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
-  .st-row { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; padding: .85rem 1rem; }
+
+  /* A row is text on the left and one control on the right. The text always keeps room to breathe:
+     when the row gets narrow the control drops underneath instead of squeezing the words. */
+  .st-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .6rem 1.5rem; padding: .85rem 1rem; }
   .st-row + .st-row { border-top: 1px solid var(--border); }
-  .st-row__text { min-width: 0; }
+  .st-row__text { flex: 1 1 16rem; min-width: 0; }
   .st-row__label { font-family: var(--font-read); font-weight: 600; }
   .st-row__desc { font-family: var(--font-read); color: var(--text-muted); font-size: .88rem; margin-top: .1rem; }
-  .st-row__control { flex: none; }
-  .st-row--stack { flex-direction: column; align-items: stretch; gap: .9rem; }
-  .st-row--stack .st-row__control { width: 100%; }
-  @media (max-width: 560px) { .st-row:not(.st-row--stack) { flex-wrap: wrap; } }
+  .st-row__control { flex: none; max-width: 100%; }
+  .st-select { width: 13rem; }
+  .st-input-short { width: 6rem; }
 
-  /* ---- text size ---- */
-  .st-size { display: grid; grid-template-columns: auto 1fr auto auto; gap: .75rem; align-items: center; }
-  .st-size__step { width: 2.1rem; height: 2.1rem; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-family: var(--font-ui); font-weight: 600; }
-  .st-size__slider { position: relative; min-width: 8rem; }
+  /* ---- text size ----
+     Nothing in this block changes size or position while you adjust it: the readout has a fixed width,
+     "Default" is a permanent label (not text that appears and disappears), disabled buttons stay put,
+     and the preview has a fixed height. On top of that, settings.js holds the whole page still while the app
+     around it rescales, so the buttons stay exactly under your pointer. */
+  .st-row--size { display: block; }
+  .st-size__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+  .st-size { display: grid; grid-template-columns: auto minmax(8rem, 1fr) auto 4.6rem; gap: .75rem; align-items: start; margin-top: .75rem; }
+  .st-size__step { width: 2.2rem; height: 2.2rem; padding: 0; font-family: var(--font-ui); font-weight: 600; }
+  .st-size__slider { position: relative; padding-top: .5rem; }
   .st-size__slider input { display: block; width: 100%; }
-  .st-size__ticks { position: relative; height: .5rem; margin-top: .1rem; pointer-events: none; }
-  .st-size__ticks span { position: absolute; top: 0; width: 1px; height: .35rem; background: var(--border-strong); transform: translateX(-.5px); left: calc(9px + (100% - 18px) * var(--f)); }
-  .st-size__ticks span.is-default { height: .5rem; background: var(--text-muted); }
-  .st-size__value { min-width: 4.4rem; text-align: right; font-family: var(--font-ui); font-weight: 600; font-variant-numeric: tabular-nums; }
-  .st-preview { border: 1px dashed var(--border-strong); border-radius: var(--radius); padding: .8rem 1rem; background: var(--surface-2); font-family: var(--font-read); overflow: hidden; }
-  .st-preview__row { display: flex; justify-content: space-between; gap: 1rem; margin-top: .35rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
-  .st-preview__hint { font-family: var(--font-ui); font-size: .78rem; color: var(--text-faint); margin-top: .5rem; }
+  .st-size__marks { position: relative; height: 1.9rem; pointer-events: none; }
+  .st-size__marks i { position: absolute; top: .15rem; left: calc(9px + (100% - 18px) * var(--f)); width: 1px; height: .35rem; background: var(--border-strong); }
+  .st-size__marks i.is-default { height: .55rem; background: var(--text-muted); }
+  .st-size__marks b { position: absolute; top: .85rem; left: calc(9px + (100% - 18px) * var(--f)); transform: translateX(-50%); font-family: var(--font-ui); font-weight: 500; font-size: .75rem; color: var(--text-faint); white-space: nowrap; }
+  .st-size__value { padding-top: .45rem; text-align: right; font-family: var(--font-ui); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .st-preview { height: 8.5rem; margin-top: .25rem; padding: .8rem 1rem; overflow: hidden; border: 1px dashed var(--border-strong); border-radius: var(--radius); background: var(--surface-2); font-family: var(--font-read); }
+  .st-preview__row { display: flex; justify-content: space-between; gap: 1rem; margin-top: .3em; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+
   .st-footer { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-top: 1.75rem; flex-wrap: wrap; }
   .st-footer p { font-family: var(--font-read); color: var(--text-muted); font-size: .88rem; }
 </style>
@@ -31,32 +40,39 @@
 <h1 class="sf__title">Settings</h1>
 <p class="sf__subtitle">Saved on this device and applied straight away.</p>
 
+<!-- ───────────── Appearance ───────────── -->
 <section class="st-group" aria-labelledby="st-appearance">
   <h2 class="st-group__title" id="st-appearance">Appearance</h2>
   <div class="st-card">
+
     <div class="st-row">
       <div class="st-row__text">
-        <div class="st-row__label" id="st-dark-label">Dark mode</div>
-        <div class="st-row__desc">Easier on the eyes in low light.</div>
+        <div class="st-row__label" id="st-theme-label">Theme</div>
+        <div class="st-row__desc">System follows your device and switches by itself at night.</div>
       </div>
-      <label class="switch st-row__control"><input type="checkbox" role="switch" data-setting="darkMode" aria-labelledby="st-dark-label"><span class="switch__track" aria-hidden="true"></span></label>
+      <div class="seg st-row__control" role="group" aria-labelledby="st-theme-label" data-setting="theme">
+        <button class="seg__btn" type="button" data-value="system" aria-pressed="false">System</button>
+        <button class="seg__btn" type="button" data-value="light" aria-pressed="false">Light</button>
+        <button class="seg__btn" type="button" data-value="dark" aria-pressed="false">Dark</button>
+      </div>
     </div>
 
-    <div class="st-row st-row--stack">
-      <div class="st-row__text">
-        <div class="st-row__label" id="st-size-label">Text size</div>
-        <div class="st-row__desc">Scales the whole app. The change is applied when you let go of the slider.</div>
-      </div>
-      <div class="st-row__control">
-        <div class="st-size" role="group" aria-labelledby="st-size-label">
-          <button class="btn st-size__step" type="button" data-act="font-dec" aria-label="Smaller text">A−</button>
-          <div class="st-size__slider">
-            <input type="range" data-setting="fontSize" aria-labelledby="st-size-label" aria-describedby="st-size-value">
-            <div class="st-size__ticks" data-slot="ticks" aria-hidden="true"></div>
-          </div>
-          <button class="btn st-size__step" type="button" data-act="font-inc" aria-label="Larger text">A+</button>
-          <output class="st-size__value" id="st-size-value" data-slot="font-value"></output>
+    <div class="st-row st-row--size">
+      <div class="st-size__head">
+        <div class="st-row__text">
+          <div class="st-row__label" id="st-size-label">Text size</div>
+          <div class="st-row__desc">Changes the whole app. This page holds still while you adjust it; reopen it to see it at the new size.</div>
         </div>
+        <button class="btn btn--small" type="button" data-act="font-reset">Reset</button>
+      </div>
+      <div class="st-size" role="group" aria-labelledby="st-size-label">
+        <button class="btn st-size__step" type="button" data-act="font-dec" aria-label="Smaller text">A−</button>
+        <div class="st-size__slider">
+          <input type="range" data-setting="fontSize" aria-labelledby="st-size-label" aria-describedby="st-size-value">
+          <div class="st-size__marks" data-slot="marks" aria-hidden="true"></div>
+        </div>
+        <button class="btn st-size__step" type="button" data-act="font-inc" aria-label="Larger text">A+</button>
+        <output class="st-size__value" id="st-size-value" data-slot="font-value"></output>
       </div>
       <div class="st-preview" aria-hidden="true">
         <div data-slot="preview">
@@ -64,37 +80,25 @@
           <div class="st-preview__row"><span>expenses:food</span><span>₹1,240.00</span></div>
           <div class="st-preview__row"><span>assets:bank</span><span>-₹1,240.00</span></div>
         </div>
-        <div class="st-preview__hint">Preview · <button class="link-btn" type="button" data-act="font-reset">Reset to default</button></div>
       </div>
     </div>
 
-    <div class="st-row">
-      <div class="st-row__text">
-        <div class="st-row__label" id="st-group-label">Number grouping</div>
-        <div class="st-row__desc">How large amounts are separated in summaries and reports.</div>
-      </div>
-      <select class="select st-row__control" data-setting="numberGrouping" aria-labelledby="st-group-label">
-        <option value="auto">Automatic (₹ uses lakh grouping)</option>
-        <option value="indian">1,00,000</option>
-        <option value="international">100,000</option>
-        <option value="none">No separators</option>
-      </select>
-    </div>
   </div>
 </section>
 
+<!-- ───────────── Journals ───────────── -->
 <section class="st-group" aria-labelledby="st-journals">
   <h2 class="st-group__title" id="st-journals">Journals</h2>
   <div class="st-card">
     <div class="st-row">
       <div class="st-row__text">
         <div class="st-row__label" id="st-view-label">Open journals in</div>
-        <div class="st-row__desc">Which view a journal starts in.</div>
+        <div class="st-row__desc">The view a journal starts in. You can switch any time from its View menu.</div>
       </div>
-      <select class="select st-row__control" data-setting="defaultView" aria-labelledby="st-view-label">
-        <option value="rendered">Rendered view</option>
-        <option value="raw">Raw text</option>
-      </select>
+      <div class="seg st-row__control" role="group" aria-labelledby="st-view-label" data-setting="defaultView">
+        <button class="seg__btn" type="button" data-value="rendered" aria-pressed="false">Rendered</button>
+        <button class="seg__btn" type="button" data-value="raw" aria-pressed="false">Raw text</button>
+      </div>
     </div>
     <div class="st-row">
       <div class="st-row__text">
@@ -106,34 +110,78 @@
     <div class="st-row">
       <div class="st-row__text">
         <div class="st-row__label" id="st-save-label">Save as you type</div>
-        <div class="st-row__desc">Raw edits are saved automatically. Turn off to save with Ctrl+S.</div>
+        <div class="st-row__desc">Edits in the raw text are saved automatically. Turn this off to save with Ctrl+S instead.</div>
       </div>
       <label class="switch st-row__control"><input type="checkbox" role="switch" data-setting="autoSave" aria-labelledby="st-save-label"><span class="switch__track" aria-hidden="true"></span></label>
-    </div>
-    <div class="st-row">
-      <div class="st-row__text">
-        <div class="st-row__label" id="st-commodity-label">Default currency symbol</div>
-        <div class="st-row__desc">Put in front of amounts you type without one in the transaction form. Leave empty to keep amounts exactly as typed.</div>
-      </div>
-      <input class="input st-row__control" style="width:6rem" type="text" maxlength="6" placeholder="e.g. ₹" data-setting="defaultCommodity" autocomplete="off" aria-labelledby="st-commodity-label">
     </div>
   </div>
 </section>
 
-<section class="st-group" aria-labelledby="st-sync">
-  <h2 class="st-group__title" id="st-sync">Sync</h2>
+<!-- ───────────── Amounts ───────────── -->
+<section class="st-group" aria-labelledby="st-amounts">
+  <h2 class="st-group__title" id="st-amounts">Amounts</h2>
   <div class="st-card">
     <div class="st-row">
       <div class="st-row__text">
-        <div class="st-row__label" id="st-sync-label">Sync automatically</div>
-        <div class="st-row__desc">Upload changes to Google Drive a moment after you save. Only applies when you're signed in.</div>
+        <div class="st-row__label" id="st-group-label">Digit grouping</div>
+        <div class="st-row__desc">How big numbers are separated in summaries and reports. Automatic uses lakh grouping for ₹ and thousands for everything else.</div>
       </div>
-      <label class="switch st-row__control"><input type="checkbox" role="switch" data-setting="syncAuto" aria-labelledby="st-sync-label"><span class="switch__track" aria-hidden="true"></span></label>
+      <select class="select st-select st-row__control" data-setting="numberGrouping" aria-labelledby="st-group-label">
+        <option value="auto">Automatic</option>
+        <option value="indian">1,00,000 (lakh)</option>
+        <option value="international">100,000 (thousands)</option>
+        <option value="none">No separators</option>
+      </select>
+    </div>
+    <div class="st-row">
+      <div class="st-row__text">
+        <div class="st-row__label" id="st-commodity-label">Default currency symbol</div>
+        <div class="st-row__desc">Added to amounts you type without one in the transaction form. Leave empty to keep amounts exactly as typed.</div>
+      </div>
+      <input class="input st-input-short st-row__control" type="text" maxlength="6" placeholder="e.g. ₹" data-setting="defaultCommodity" autocomplete="off" aria-labelledby="st-commodity-label">
+    </div>
+  </div>
+</section>
+
+<!-- ───────────── General ───────────── -->
+<section class="st-group" aria-labelledby="st-general">
+  <h2 class="st-group__title" id="st-general">General</h2>
+  <div class="st-card">
+    <div class="st-row">
+      <div class="st-row__text">
+        <div class="st-row__label" id="st-tabs-label">Reopen my tabs on start</div>
+        <div class="st-row__desc">Pick up where you left off. When off, Wedger always starts on the Welcome page.</div>
+      </div>
+      <label class="switch st-row__control"><input type="checkbox" role="switch" data-setting="restoreTabs" aria-labelledby="st-tabs-label"><span class="switch__track" aria-hidden="true"></span></label>
+    </div>
+    <div class="st-row">
+      <div class="st-row__text">
+        <div class="st-row__label" id="st-week-label">Week starts on</div>
+        <div class="st-row__desc">For the Timeline calendar.</div>
+      </div>
+      <div class="seg st-row__control" role="group" aria-labelledby="st-week-label" data-setting="weekStart">
+        <button class="seg__btn" type="button" data-value="monday" aria-pressed="false">Monday</button>
+        <button class="seg__btn" type="button" data-value="sunday" aria-pressed="false">Sunday</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────── Data ───────────── -->
+<section class="st-group" aria-labelledby="st-data">
+  <h2 class="st-group__title" id="st-data">Data on this device</h2>
+  <div class="st-card">
+    <div class="st-row">
+      <div class="st-row__text">
+        <div class="st-row__label">Back up your files</div>
+        <div class="st-row__desc" data-slot="backup-desc"></div>
+      </div>
+      <button class="btn st-row__control" type="button" data-act="backup"><span class="icon icon--download" aria-hidden="true"></span>Download .zip</button>
     </div>
   </div>
 </section>
 
 <div class="st-footer">
   <p>Settings never leave this browser.</p>
-  <button class="btn" type="button" data-act="reset-all">Reset all settings</button>
+  <button class="btn" type="button" data-act="reset-all">Reset these settings</button>
 </div>
