@@ -1,13 +1,16 @@
 <nav class="menubar" aria-label="File menu">
 
-  <!-- Reports -->
+  <!-- Reports (journals only) -->
   <div class="menubar__item" data-menu="reports">
-    <button class="menubar__btn" type="button" aria-haspopup="true" aria-expanded="false">Reports</button>
+    <button class="menubar__btn" type="button" aria-haspopup="true" aria-expanded="false" data-needs="journal">Reports</button>
     <div class="menubar__panel" role="group" aria-label="Reports" hidden>
       <div class="menubar__group">
         <label class="field">
-          <span class="field__label">Query filter (optional)</span>
+          <span class="field__label">Query (optional)</span>
           <input class="input" type="text" name="query" placeholder="e.g. acct:assets depth:2" autocomplete="off" spellcheck="false">
+        </label>
+        <label class="menubar__check">
+          <input type="checkbox" name="forecast"> Include forecast transactions
         </label>
       </div>
       <div class="menubar__group">
@@ -35,21 +38,18 @@
         <button class="menubar__entry" type="button" data-report="incomestatement">Income statement</button>
         <button class="menubar__entry" type="button" data-report="cashflow">Cash flow</button>
         <button class="menubar__entry" type="button" data-report="budget">Budget report</button>
-        <button class="menubar__entry" type="button" data-report="forecast">Forecast</button>
       </div>
       <div class="menubar__group">
         <div class="menubar__label">Export</div>
-        <button class="menubar__entry" type="button" data-report="export">Export as .journal</button>
-      </div>
-      <div class="menubar__group">
-        <button class="menubar__entry menubar__entry--danger" type="button" data-report="clear">Clear output</button>
+        <button class="menubar__entry" type="button" data-report="printtext">Cleaned-up journal text</button>
+        <button class="menubar__entry" type="button" data-file-action="download">Download this file</button>
       </div>
     </div>
   </div>
 
-  <!-- Filters and Sorts (rendered view only) -->
+  <!-- Filters and Sorts (rendered view of journals) -->
   <div class="menubar__item" data-menu="filters">
-    <button class="menubar__btn" type="button" aria-haspopup="true" aria-expanded="false" data-needs="rendered">Filters and Sorts</button>
+    <button class="menubar__btn" type="button" aria-haspopup="true" aria-expanded="false" data-needs="rendered">Filters and Sorts<span class="menubar__badge" data-slot="filter-count" hidden></span></button>
     <form class="menubar__panel" aria-label="Filters and sorts" hidden>
       <div class="menubar__group">
         <div class="menubar__label">Filter transactions</div>
@@ -57,11 +57,11 @@
           <label class="field__label" for="jm-account">Account contains</label>
           <input class="input" id="jm-account" name="account" placeholder="e.g. expenses:food" autocomplete="off">
         </div>
-        <div class="field" style="margin-top:.5rem">
+        <div class="field menubar__gap">
           <label class="field__label" for="jm-desc">Description contains</label>
           <input class="input" id="jm-desc" name="desc" placeholder="e.g. amazon" autocomplete="off">
         </div>
-        <div class="menubar__grid" style="margin-top:.5rem">
+        <div class="menubar__grid menubar__gap">
           <div class="field"><label class="field__label" for="jm-from">From date</label><input class="input" id="jm-from" name="from" type="date"></div>
           <div class="field"><label class="field__label" for="jm-to">To date</label><input class="input" id="jm-to" name="to" type="date"></div>
           <div class="field"><label class="field__label" for="jm-min">Min amount</label><input class="input" id="jm-min" name="min" type="number" min="0" step="any" placeholder="e.g. 100"></div>
@@ -73,7 +73,9 @@
         <label class="menubar__radio"><input type="radio" name="sort" value="date-desc" checked> Date, newest first</label>
         <label class="menubar__radio"><input type="radio" name="sort" value="date-asc"> Date, oldest first</label>
         <label class="menubar__radio"><input type="radio" name="sort" value="desc-asc"> Description A–Z</label>
+        <label class="menubar__radio"><input type="radio" name="sort" value="desc-desc"> Description Z–A</label>
         <label class="menubar__radio"><input type="radio" name="sort" value="amount-desc"> Amount, high to low</label>
+        <label class="menubar__radio"><input type="radio" name="sort" value="amount-asc"> Amount, low to high</label>
       </div>
       <div class="menubar__row">
         <button class="btn" type="button" data-act="clear-filters">Clear</button>
@@ -88,10 +90,11 @@
     <div class="menubar__panel" role="group" aria-label="Search" hidden>
       <div class="menubar__group">
         <label class="field">
-          <span class="field__label">Search transactions</span>
+          <span class="field__label">Find in this file</span>
           <input class="input" type="search" name="search" placeholder="e.g. coffee" autocomplete="off">
         </label>
         <p class="menubar__hint" data-slot="search-count" aria-live="polite"></p>
+        <p class="menubar__hint" data-slot="search-help"></p>
       </div>
       <div class="menubar__group" data-slot="recent-group" hidden>
         <div class="menubar__label">Recent</div>
@@ -103,7 +106,7 @@
   <!-- View -->
   <div class="menubar__item" data-menu="view">
     <button class="menubar__btn" type="button" aria-haspopup="true" aria-expanded="false">View</button>
-    <div class="menubar__panel" role="group" aria-label="View" hidden style="min-width:12rem">
+    <div class="menubar__panel menubar__panel--narrow" role="group" aria-label="View" hidden>
       <label class="menubar__radio"><input type="radio" name="view" value="rendered"> Rendered</label>
       <label class="menubar__radio"><input type="radio" name="view" value="raw"> Raw text</label>
     </div>

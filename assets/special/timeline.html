@@ -1,20 +1,26 @@
 <style>
-  .tl__nav { display: flex; align-items: center; gap: .5rem; margin-bottom: 1rem; }
-  .tl__month { font-size: 1.2rem; font-weight: 700; min-width: 11rem; text-align: center; }
-  .tl__grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
-  .tl__dow { text-align: center; font-size: .8rem; color: var(--text-muted); padding: .2rem 0; }
+  .tl__nav { display: flex; align-items: center; gap: .5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+  .tl__month { font-family: var(--font-read); font-size: 1.2rem; font-weight: 650; min-width: 11rem; text-align: center; }
+  .tl__grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+  .tl__dow { text-align: center; font-family: var(--font-read); font-size: .8rem; color: var(--text-muted); padding: .2rem 0; }
   .tl__day {
-    position: relative; min-height: 3.6rem; padding: .3rem .4rem; text-align: left; vertical-align: top;
-    background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
+    position: relative; min-height: 3.6rem; padding: .3rem .45rem; text-align: left; vertical-align: top;
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm);
   }
-  .tl__day:hover { border-color: var(--accent); }
+  .tl__day:hover { border-color: var(--border-strong); background: var(--surface-2); }
   .tl__day--blank { background: transparent; border: 0; pointer-events: none; }
-  .tl__day.is-selected { outline: 2px solid var(--accent); }
-  .tl__day.is-today .tl__num { color: var(--accent); font-weight: 700; }
-  .tl__count { position: absolute; right: .35rem; bottom: .3rem; font-size: .75rem; padding: 0 .4rem; border-radius: 999px; background: var(--accent); color: var(--accent-contrast); }
+  .tl__day.is-selected { border-color: var(--text); box-shadow: 0 0 0 1px var(--text); }
+  .tl__day.is-today .tl__num { display: inline-flex; align-items: center; justify-content: center; min-width: 1.5rem; height: 1.5rem; margin: -.15rem 0 0 -.2rem; border-radius: 999px; background: var(--text); color: var(--bg); font-weight: 600; }
+  .tl__num { font-variant-numeric: tabular-nums; }
+  .tl__count { position: absolute; right: .35rem; bottom: .3rem; font-size: .75rem; min-width: 1.3rem; text-align: center; padding: 0 .35rem; border-radius: 999px; background: var(--selected); color: var(--text); font-variant-numeric: tabular-nums; }
   .tl__detail { margin-top: 1.25rem; }
-  .tl__txn { display: flex; justify-content: space-between; gap: 1rem; padding: .5rem 0; border-top: 1px solid var(--border); }
+  .tl__txn { display: flex; justify-content: space-between; gap: 1rem; padding: .55rem 0; border-top: 1px solid var(--border); font-family: var(--font-read); }
+  .tl__txn:first-of-type { border-top: 0; }
+  .tl__txn strong { font-weight: 600; }
   .tl__txn small { color: var(--text-muted); display: block; }
+  .tl__txn .link-btn { font-size: inherit; }
+  .tl__amount { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .tl__loading { grid-column: 1 / -1; text-align: center; padding: 2rem; color: var(--text-muted); font-family: var(--font-read); }
 </style>
 <h1 class="sf__title">Timeline</h1>
 <p class="sf__subtitle">Transactions across all your journals, by day.</p>

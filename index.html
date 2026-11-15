@@ -6,12 +6,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Wedger</title>
 
-    <link rel="stylesheet" href="./assets/css/base.css">
-    <link rel="stylesheet" href="./assets/css/components.css">
-
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Pirata+One&display=swap" rel="stylesheet">
+    <!-- Pirata One: the wordmark.  Work Sans: everything you click or type into.
+         Archivo: everything you read (headings, descriptions, figures) and the raw text editor with its line numbers. -->
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Pirata+One&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="./assets/css/base.css">
+    <link rel="stylesheet" href="./assets/css/components.css">
 </head>
 
 <body>
@@ -19,9 +21,10 @@
     <div id="loading-overlay" role="status" aria-live="polite">
         <div id="loading-title">Wedger</div>
         <div class="spinner" aria-hidden="true"></div>
-        <div id="loading-details">Initializing runtime...</div>
+        <div id="loading-details">Starting…</div>
         <button id="loading-retry" class="btn" type="button" hidden>Reload</button>
     </div>
+    <noscript><p style="padding:2rem;font-family:sans-serif">Wedger needs JavaScript to run.</p></noscript>
 
     <aside id="sidebar-left" aria-label="Sidebar">
         <header class="sidebar__header">
@@ -35,20 +38,22 @@
             <div class="sidebar__section-head">
                 <button id="journals-dropdown-btn" class="sidebar__section-toggle" type="button" aria-expanded="true"
                     aria-controls="journals-list">
-                    Journals
                     <span class="icon icon--dropdown" aria-hidden="true"></span>
+                    Journals
                 </button>
-                <button id="new-file-btn" class="icon-btn" type="button" aria-label="Create a new file"
+                <button id="new-file-btn" class="icon-btn" type="button" aria-label="Create a new file" title="New file"
                     data-open="wedger:create-file">
                     <span class="icon icon--new-file" aria-hidden="true"></span>
                 </button>
-                <button id="import-file-btn" class="icon-btn" type="button" aria-label="Import a file"
+                <button id="import-file-btn" class="icon-btn" type="button" aria-label="Import a file" title="Import a file"
                     data-open="wedger:import-file">
                     <span class="icon icon--import-file" aria-hidden="true"></span>
                 </button>
             </div>
             <!-- filled by sidebar.js from the file store -->
             <ul id="journals-list" class="sidebar__files"></ul>
+
+            <div class="sidebar__divider" role="separator"></div>
 
             <button id="timeline-btn" class="sidebar__row" type="button" data-open="wedger:timeline"
                 data-uri="wedger:timeline">
@@ -69,13 +74,16 @@
                 Sign in with Google
             </button>
             <!-- signed in -->
-            <div id="sidebar-sync-status" class="sidebar__sync-status" role="status" hidden></div>
-            <div id="user-profile-container" hidden>
-                <button type="button" id="user-avatar-btn" class="avatar" aria-label="Google settings">
-                    <span id="user-avatar"></span>
+            <div id="user-profile-container" class="sidebar__account" hidden>
+                <button type="button" id="user-avatar-btn" class="sidebar__account-btn" aria-label="Google settings">
+                    <span id="user-avatar" class="avatar" aria-hidden="true"></span>
+                    <span class="sidebar__account-text">
+                        <span id="user-name" class="sidebar__account-name"></span>
+                        <span id="user-email" class="sidebar__account-email"></span>
+                    </span>
                 </button>
             </div>
-            <button id="settings-btn" class="icon-btn" type="button" aria-label="Open settings">
+            <button id="settings-btn" class="icon-btn" type="button" aria-label="Open settings" title="Settings">
                 <span class="icon icon--settings" aria-hidden="true"></span>
             </button>
         </footer>
@@ -83,7 +91,7 @@
 
     <!-- drag handle (behaviour: assets/js/ui/helpers.js) -->
     <div id="resizer" role="separator" aria-orientation="vertical" aria-label="Resize sidebar" aria-valuemin="15"
-        aria-valuemax="40" tabindex="0"></div>
+        aria-valuemax="35" tabindex="0"></div>
 
     <div id="workbench">
         <header id="file-tab-bar" class="tabstrip">
@@ -115,14 +123,8 @@
 
     <div id="overlay-root" aria-live="polite"></div>
 
-    <!-- New UI shell (phase 1: UI only) -->
     <script type="module" src="./assets/js/shell/main.js"></script>
     <script src="./assets/js/ui/helpers.js" defer></script>
-
-    <!-- Parked until the integration phase (engine, state, storage) -->
-    <!-- <script src="./assets/js/init.js" defer></script> -->
-    <!-- <script type="module" src="./assets/js/state.js"></script> -->
-    <!-- <script type="module" src="./assets/js/app.js"></script> -->
 </body>
 
 </html>

@@ -5,7 +5,9 @@
       "viewType": "wedger.journalViewer",
       "id": "journal",
       "renderer": "journal",
-      "selector": { "scheme": "file" },
+      "selector": {
+        "scheme": "file"
+      },
       "priority": 0,
       "template": "views/journal.html",
       "menuTemplate": "views/journal-menu.html"
@@ -15,7 +17,9 @@
       "id": "welcome",
       "renderer": "special",
       "title": "Welcome",
-      "selector": { "uri": "wedger:welcome" },
+      "selector": {
+        "uri": "wedger:welcome"
+      },
       "priority": 10,
       "template": "special/welcome.html"
     },
@@ -24,7 +28,9 @@
       "id": "create-file",
       "renderer": "special",
       "title": "Create file",
-      "selector": { "uri": "wedger:create-file" },
+      "selector": {
+        "uri": "wedger:create-file"
+      },
       "priority": 10,
       "template": "special/create-file.html",
       "controller": "special/create-file.js"
@@ -34,7 +40,9 @@
       "id": "import-file",
       "renderer": "special",
       "title": "Import file",
-      "selector": { "uri": "wedger:import-file" },
+      "selector": {
+        "uri": "wedger:import-file"
+      },
       "priority": 10,
       "template": "special/import-file.html",
       "controller": "special/import-file.js"
@@ -44,7 +52,9 @@
       "id": "google-settings",
       "renderer": "special",
       "title": "Google settings",
-      "selector": { "uri": "wedger:google-settings" },
+      "selector": {
+        "uri": "wedger:google-settings"
+      },
       "priority": 10,
       "template": "special/google-settings.html",
       "controller": "special/google-settings.js"
@@ -54,7 +64,9 @@
       "id": "settings",
       "renderer": "special",
       "title": "Settings",
-      "selector": { "uri": "wedger:settings" },
+      "selector": {
+        "uri": "wedger:settings"
+      },
       "priority": 10,
       "template": "special/settings.html",
       "controller": "special/settings.js"
@@ -64,7 +76,9 @@
       "id": "timeline",
       "renderer": "special",
       "title": "Timeline",
-      "selector": { "uri": "wedger:timeline" },
+      "selector": {
+        "uri": "wedger:timeline"
+      },
       "priority": 10,
       "template": "special/timeline.html",
       "controller": "special/timeline.js"
@@ -74,10 +88,13 @@
       "id": "reports-output",
       "renderer": "special",
       "title": "Reports output",
-      "selector": { "uri": "wedger:reports-output" },
+      "selector": {
+        "uri": "wedger:reports-output"
+      },
       "priority": 10,
       "template": "special/reports-output.html",
-      "controller": "special/reports-output.js"
+      "controller": "special/reports-output.js",
+      "menuTemplate": "special/reports-output-menu.html"
     }
   ]
 }

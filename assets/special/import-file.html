@@ -1,57 +1,172 @@
 <style>
-  .imp__step { margin-top: 1rem; }
-  .imp__step-title { font-weight: 700; margin-bottom: .4rem; }
-  .dropzone { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .3rem; padding: 1.6rem 1rem; text-align: center; border: 2px dashed var(--border); border-radius: var(--radius); background: var(--surface); cursor: pointer; }
-  .dropzone:hover, .dropzone.is-over { border-color: var(--accent); background: var(--accent-soft); }
-  .dropzone input { position: absolute; opacity: 0; width: 1px; height: 1px; }
-  .dropzone:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .dropzone__file { color: var(--text-muted); }
-  .imp__dest { display: flex; flex-direction: column; gap: .6rem; }
-  .imp__option { display: flex; gap: .6rem; align-items: flex-start; padding: .7rem .9rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer; }
-  .imp__option:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
-  .imp__option .field { flex: 1; }
+  .imp__layout { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 1.25rem; align-items: start; margin-top: 1.25rem; }
+  @media (max-width: 900px) { .imp__layout { grid-template-columns: 1fr; } }
+  .imp__steps { display: grid; gap: .9rem; }
+
+  .imp-step { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; }
+  .imp-step__title { display: flex; align-items: center; gap: .6rem; font-family: var(--font-read); font-size: 1rem; font-weight: 650; margin-bottom: .8rem; }
+  .imp-step__num { display: inline-flex; align-items: center; justify-content: center; width: 1.5rem; height: 1.5rem; border-radius: 50%; background: var(--text); color: var(--bg); font-family: var(--font-ui); font-size: .8rem; font-weight: 600; }
+  .imp-step__note { font-family: var(--font-read); color: var(--text-muted); font-size: .88rem; margin-top: .5rem; }
+
+  .imp-drop { display: flex; flex-direction: column; align-items: center; gap: .25rem; text-align: center; padding: 1.5rem 1rem; border: 1.5px dashed var(--border-strong); border-radius: var(--radius); cursor: pointer; transition: border-color .12s, background .12s; }
+  .imp-drop:hover, .imp-drop.is-over, .imp-drop:focus-within { border-color: var(--text-muted); background: var(--hover); }
+  .imp-drop .icon { width: 1.6rem; height: 1.6rem; color: var(--text-muted); }
+  .imp-drop strong { font-family: var(--font-read); }
+  .imp-drop span:not(.icon) { font-family: var(--font-read); font-size: .85rem; color: var(--text-muted); }
+
+  .imp-file { display: flex; align-items: center; gap: .75rem; padding: .65rem .8rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-2); }
+  .imp-file .icon { width: 1.4rem; height: 1.4rem; color: var(--text-muted); flex: none; }
+  .imp-file__text { min-width: 0; flex: 1; }
+  .imp-file__name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .imp-file__meta { font-family: var(--font-read); font-size: .82rem; color: var(--text-muted); }
+
+  .imp__raw { font-family: var(--font-raw); font-variant-numeric: tabular-nums; white-space: pre; font-size: .9rem; min-height: 9rem; }
+  .imp-tools { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin-bottom: .6rem; }
+  .imp-tools .select { flex: 1 1 11rem; min-width: 0; }
+  .imp-cols { display: flex; flex-wrap: wrap; gap: .3rem; margin: .1rem 0 .6rem; }
+  .imp-cols .chip { cursor: default; font-family: var(--font-raw); }
+
+  .imp-dest { display: grid; gap: .5rem; }
+  .imp-option { display: grid; grid-template-columns: auto 1fr; gap: .15rem .7rem; padding: .7rem .8rem; border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer; }
+  .imp-option:hover { border-color: var(--border-strong); }
+  .imp-option:has(input:checked) { border-color: var(--text); box-shadow: 0 0 0 1px var(--text); }
+  .imp-option:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .imp-option input[type=radio] { grid-row: 1 / span 2; margin-top: .2rem; accent-color: var(--text); }
+  .imp-option__title { font-family: var(--font-read); font-weight: 600; }
+  .imp-option__desc { font-family: var(--font-read); font-size: .85rem; color: var(--text-muted); }
+  .imp-option__field { grid-column: 2; margin-top: .45rem; }
+  .imp-option__field[hidden] { display: none; }
+
+  .imp-preview { position: sticky; top: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; min-width: 0; }
+  @media (max-width: 900px) { .imp-preview { position: static; } }
+  .imp-preview__head { display: flex; align-items: center; justify-content: space-between; gap: .6rem; margin-bottom: .75rem; }
+  .imp-preview__head h2 { font-family: var(--font-read); font-size: 1rem; font-weight: 650; }
+  .imp-preview__label { font-family: var(--font-read); font-size: .78rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); margin: .9rem 0 .35rem; }
+  .imp-preview__label:first-of-type { margin-top: 0; }
+  .imp-code { margin: 0; padding: .6rem .75rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-2); font-family: var(--font-raw); font-size: .84rem; line-height: 1.5; font-variant-numeric: tabular-nums; white-space: pre; overflow: auto; max-height: 15rem; }
+  .imp-preview__empty { font-family: var(--font-read); color: var(--text-muted); text-align: center; padding: 2.2rem 1rem; }
+  .imp-preview__more { font-family: var(--font-read); font-size: .82rem; color: var(--text-muted); margin-top: .3rem; }
+  .imp-table-wrap { overflow: auto; border: 1px solid var(--border); border-radius: var(--radius); max-height: 12rem; }
+  .imp-table { border-collapse: collapse; width: 100%; font-family: var(--font-read); font-size: .84rem; white-space: nowrap; }
+  .imp-table th, .imp-table td { padding: .3rem .6rem; text-align: left; border-bottom: 1px solid var(--border); }
+  .imp-table th { position: sticky; top: 0; background: var(--surface-2); font-weight: 600; }
+  .imp-table tr:last-child td { border-bottom: 0; }
+  .imp-footer { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-top: 1.1rem; }
+  .imp-footer__summary { font-family: var(--font-read); color: var(--text-muted); }
 </style>
+
 <form data-slot="form" novalidate>
   <h1 class="sf__title">Import file</h1>
-  <p class="sf__subtitle">Bring in a journal, or convert a CSV using hledger rules.</p>
+  <p class="sf__subtitle">Bring in a journal, time log or bank CSV. You'll see exactly what will be added before anything is saved.</p>
 
-  <div class="banner banner--error" data-slot="error" role="alert" hidden></div>
+  <div class="imp__layout">
+    <div class="imp__steps">
 
-  <section class="imp__step" aria-labelledby="imp-1">
-    <div class="imp__step-title" id="imp-1">1 · File</div>
-    <label class="dropzone" data-slot="dropzone">
-      <input type="file" name="file" accept=".journal,.timeclock,.timedot,.csv">
-      <strong>Choose a file or drop it here</strong>
-      <span class="dropzone__file" data-slot="file-name">No file chosen · .journal, .timeclock, .timedot or .csv</span>
-    </label>
-  </section>
+      <!-- 1 · source -->
+      <section class="imp-step" aria-labelledby="imp-s1">
+        <h2 class="imp-step__title" id="imp-s1"><span class="imp-step__num" aria-hidden="true">1</span>Source</h2>
+        <div class="seg" role="group" aria-label="Where the data comes from">
+          <button type="button" class="seg__btn" data-src="file" aria-pressed="true">File</button>
+          <button type="button" class="seg__btn" data-src="paste" aria-pressed="false">Paste text</button>
+        </div>
 
-  <section class="imp__step" data-slot="rules-step" aria-labelledby="imp-2" hidden>
-    <div class="imp__step-title" id="imp-2">2 · CSV rules</div>
-    <label class="field">
-      <span class="field__hint">Tell hledger how to read the columns.</span>
-      <textarea class="textarea" name="rules" rows="6" spellcheck="false" placeholder="e.g. skip 1&#10;fields date, description, amount"></textarea>
-    </label>
-  </section>
+        <div data-slot="src-file" style="margin-top:.8rem">
+          <label class="imp-drop" data-slot="dropzone">
+            <input class="sr-only" type="file" name="file" accept=".journal,.timeclock,.timedot,.csv,.txt">
+            <span class="icon icon--import-file" aria-hidden="true"></span>
+            <strong>Drop a file here, or browse</strong>
+            <span>.journal · .csv · .timeclock · .timedot</span>
+          </label>
+          <div class="imp-file" data-slot="file-card" hidden>
+            <span class="icon icon--file" aria-hidden="true"></span>
+            <div class="imp-file__text">
+              <div class="imp-file__name" data-slot="file-name"></div>
+              <div class="imp-file__meta" data-slot="file-meta"></div>
+            </div>
+            <button class="btn btn--small" type="button" data-act="remove-file">Remove</button>
+          </div>
+        </div>
 
-  <section class="imp__step" aria-labelledby="imp-3">
-    <div class="imp__step-title" id="imp-3" data-slot="dest-title">2 · Destination</div>
-    <div class="imp__dest" role="radiogroup" aria-label="Destination">
-      <label class="imp__option">
-        <input type="radio" name="dest" value="new" checked>
-        <div class="field"><span class="field__label">Import as new file</span>
-          <input class="input" name="newName" placeholder="file name" autocomplete="off" aria-label="New file name"></div>
-      </label>
-      <label class="imp__option">
-        <input type="radio" name="dest" value="append">
-        <div class="field"><span class="field__label">Append to existing file</span>
-          <select class="select" name="target" aria-label="Existing file"></select></div>
-      </label>
+        <div data-slot="src-paste" style="margin-top:.8rem" hidden>
+          <div class="field" style="max-width:14rem;margin-bottom:.6rem">
+            <label class="field__label" for="imp-paste-type">Format</label>
+            <select class="select" id="imp-paste-type" name="pasteType">
+              <option value=".journal">Journal</option>
+              <option value=".csv">CSV</option>
+              <option value=".timeclock">Timeclock</option>
+              <option value=".timedot">Timedot</option>
+            </select>
+          </div>
+          <label class="sr-only" for="imp-paste-text">Pasted text</label>
+          <textarea class="textarea imp__raw" id="imp-paste-text" name="pasteText" rows="8" spellcheck="false" wrap="off" placeholder="Paste journal entries or CSV rows here"></textarea>
+        </div>
+      </section>
+
+      <!-- 2 · rules (CSV only) -->
+      <section class="imp-step" data-slot="rules-step" aria-labelledby="imp-s2" hidden>
+        <h2 class="imp-step__title" id="imp-s2"><span class="imp-step__num" aria-hidden="true">2</span>Rules for this CSV</h2>
+        <p class="imp-step__note" style="margin:-.3rem 0 .7rem">Rules tell hledger which column is the date, the description and the amount.</p>
+        <div class="imp-cols" data-slot="columns" aria-label="Columns found in the CSV"></div>
+        <div class="imp-tools">
+          <select class="select" name="savedRules" aria-label="Use a saved rules file"></select>
+          <button class="btn btn--small" type="button" data-act="suggest-rules">Suggest from columns</button>
+          <label class="btn btn--small" style="cursor:pointer">Upload .rules<input class="sr-only" type="file" name="rulesFile" accept=".rules,.txt"></label>
+        </div>
+        <label class="sr-only" for="imp-rules">CSV rules</label>
+        <textarea class="textarea imp__raw" id="imp-rules" name="rules" rows="9" spellcheck="false" wrap="off" placeholder="skip 1&#10;fields date, description, amount&#10;date-format %d/%m/%Y&#10;account1 assets:bank"></textarea>
+        <label class="check" style="margin-top:.6rem" data-slot="save-rules-wrap">
+          <input type="checkbox" name="saveRules" checked> <span>Save these rules as <strong data-slot="rules-name">a .rules file</strong> so I can reuse them</span>
+        </label>
+      </section>
+
+      <!-- 3 · destination -->
+      <section class="imp-step" aria-labelledby="imp-s3">
+        <h2 class="imp-step__title" id="imp-s3"><span class="imp-step__num" aria-hidden="true" data-slot="dest-num">2</span>Where should it go?</h2>
+        <div class="imp-dest" role="radiogroup" aria-label="Destination">
+          <label class="imp-option">
+            <input type="radio" name="dest" value="new" checked>
+            <span class="imp-option__title">Create a new file</span>
+            <span class="imp-option__desc">Nothing existing is touched.</span>
+            <span class="imp-option__field" data-for="new">
+              <input class="input" name="newName" placeholder="imported" autocomplete="off" spellcheck="false" aria-label="New file name">
+            </span>
+          </label>
+          <label class="imp-option">
+            <input type="radio" name="dest" value="append">
+            <span class="imp-option__title">Add to an existing file</span>
+            <span class="imp-option__desc">Appended after the file's current entries.</span>
+            <span class="imp-option__field" data-for="append" hidden>
+              <select class="select" name="target" aria-label="File to add to"></select>
+            </span>
+          </label>
+          <label class="imp-option">
+            <input type="radio" name="dest" value="replace">
+            <span class="imp-option__title">Replace an existing file</span>
+            <span class="imp-option__desc">Overwrites everything in it. You'll be asked to confirm.</span>
+            <span class="imp-option__field" data-for="replace" hidden>
+              <select class="select" name="replaceTarget" aria-label="File to replace"></select>
+            </span>
+          </label>
+        </div>
+        <p class="field__error" data-slot="dest-error" role="alert" hidden style="margin-top:.5rem"></p>
+      </section>
     </div>
-  </section>
 
-  <div class="sf__actions">
-    <button class="btn" type="button" data-action="close">Cancel</button>
-    <button class="btn btn--primary" type="submit" data-slot="submit">Import</button>
+    <!-- preview -->
+    <aside class="imp-preview" aria-label="Import preview" aria-live="polite">
+      <div class="imp-preview__head">
+        <h2>Preview</h2>
+        <span class="pill" data-slot="pill">Waiting for a file</span>
+      </div>
+      <div data-slot="preview"></div>
+    </aside>
+  </div>
+
+  <div class="imp-footer">
+    <span class="imp-footer__summary" data-slot="summary"></span>
+    <div class="sf__actions" style="margin:0">
+      <button class="btn" type="button" data-action="close">Cancel</button>
+      <button class="btn btn--primary" type="submit" data-slot="submit" disabled>Import</button>
+    </div>
   </div>
 </form>

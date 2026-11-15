@@ -1,55 +1,68 @@
 <style>
-  .gs__account { display: flex; align-items: center; gap: .9rem; }
-  .gs__account .avatar { width: 2.6rem; height: 2.6rem; font-size: 1.2rem; }
-  .gs__name { font-weight: 700; }
-  .gs__email { color: var(--text-muted); }
-  .gs__head { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
-  .gs__files { list-style: none; margin: .6rem 0; }
-  .gs__file { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .55rem 0; border-top: 1px solid var(--border); }
-  .gs__file-err { flex-basis: 100%; }
-  .gs__file-wrap { flex-wrap: wrap; }
-  .gs__toggle { padding-top: .8rem; border-top: 1px solid var(--border); }
-  .gs__empty { text-align: center; padding: 2rem 1rem; }
-  .gs__empty p { margin-bottom: 1rem; color: var(--text-muted); }
+  .gs-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.1rem; margin-top: 1rem; }
+  .gs-card__title { font-family: var(--font-read); font-size: .8rem; font-weight: 650; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); margin-bottom: .8rem; }
+  .gs-account { display: flex; align-items: center; gap: .9rem; flex-wrap: wrap; }
+  .gs-avatar { width: 3rem; height: 3rem; border-radius: 50%; background: var(--selected); display: inline-flex; align-items: center; justify-content: center; font-weight: 600; font-size: 1.2rem; overflow: hidden; flex: none; }
+  .gs-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .gs-account__text { flex: 1; min-width: 10rem; }
+  .gs-account__name { font-family: var(--font-read); font-weight: 650; font-size: 1.05rem; }
+  .gs-account__email { font-family: var(--font-read); color: var(--text-muted); overflow-wrap: anywhere; }
+  .gs-status { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+  .gs-status__main { font-family: var(--font-read); font-weight: 600; }
+  .gs-status__sub { font-family: var(--font-read); color: var(--text-muted); font-size: .9rem; margin-top: .1rem; }
+  .gs-autosync { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); font-family: var(--font-read); }
+  .gs-autosync small { display: block; color: var(--text-muted); }
+  .gs-files { width: 100%; border-collapse: collapse; font-family: var(--font-read); }
+  .gs-files th { text-align: left; font-size: .8rem; font-weight: 600; color: var(--text-muted); padding: 0 .5rem .4rem 0; }
+  .gs-files td { padding: .5rem .5rem .5rem 0; border-top: 1px solid var(--border); vertical-align: top; }
+  .gs-files td:last-child, .gs-files th:last-child { text-align: right; padding-right: 0; white-space: nowrap; }
+  .gs-files__name { overflow-wrap: anywhere; }
+  .gs-files__err { color: var(--danger); font-size: .85rem; }
+  .gs-note { font-family: var(--font-read); color: var(--text-muted); font-size: .88rem; margin-top: .8rem; }
+  .gs-signedout { text-align: center; padding: 2rem 1rem; }
+  .gs-signedout p { font-family: var(--font-read); color: var(--text-muted); max-width: 30rem; margin: .5rem auto 1.1rem; }
 </style>
 
 <h1 class="sf__title">Google settings</h1>
+<p class="sf__subtitle">Sign in to keep your journals in your own Google Drive.</p>
 
-<!-- signed out -->
-<section class="card gs__empty" data-show="signed-out" aria-label="Signed out">
-  <p>You're not signed in. Sign in with Google to back up and sync your journals to Drive.</p>
+<div data-show="signed-out" class="gs-card gs-signedout">
+  <h2 class="sf__title" style="font-size:1.2rem">You're not signed in</h2>
+  <p>Wedger works fine without an account: everything stays on this device. Signing in adds a copy of your files to Drive, so they follow you to other devices.</p>
   <button class="btn btn--primary" type="button" data-action="sign-in"><img class="icon-google" src="assets/icons/google.svg" alt="">Sign in with Google</button>
-</section>
+</div>
 
-<!-- signed in -->
 <div data-show="signed-in" hidden>
-  <p class="sf__subtitle" data-slot="email"></p>
-
-  <section class="card" aria-label="Account">
-    <div class="gs__account">
-      <span class="avatar" data-slot="avatar" aria-hidden="true"></span>
-      <div><div class="gs__name" data-slot="name"></div><div class="gs__email" data-slot="email2">Signed in</div></div>
+  <section class="gs-card" aria-labelledby="gs-account-title">
+    <h2 class="gs-card__title" id="gs-account-title">Account</h2>
+    <div class="gs-account">
+      <div class="gs-avatar" data-slot="avatar" aria-hidden="true"></div>
+      <div class="gs-account__text">
+        <div class="gs-account__name" data-slot="name"></div>
+        <div class="gs-account__email" data-slot="email"></div>
+      </div>
+      <button class="btn" type="button" data-act="sign-out">Sign out</button>
     </div>
   </section>
 
-  <section class="card" aria-label="Drive sync">
-    <div class="gs__head">
-      <div class="card__title" style="margin:0">Drive sync</div>
-      <span class="field__hint" data-slot="last-sync"></span>
+  <section class="gs-card" aria-labelledby="gs-sync-title">
+    <h2 class="gs-card__title" id="gs-sync-title">Sync</h2>
+    <div class="gs-status">
+      <div>
+        <div class="gs-status__main" data-slot="sync-main" role="status"></div>
+        <div class="gs-status__sub" data-slot="sync-sub"></div>
+      </div>
+      <button class="btn" type="button" data-act="sync-now"><span class="icon icon--refresh" aria-hidden="true"></span><span data-slot="sync-btn-label">Sync now</span></button>
     </div>
-    <div class="banner banner--ok" data-slot="summary" style="margin-top:.7rem"></div>
-    <ul class="gs__files" data-slot="files"></ul>
-    <div class="gs__toggle">
-      <label class="switch">
-        <input type="checkbox" data-setting="syncAuto">
-        <span class="switch__track" aria-hidden="true"></span>
-        <span>Sync automatically after each save</span>
-      </label>
+    <div class="gs-autosync">
+      <div><strong>Sync automatically</strong><small>Upload a moment after each save.</small></div>
+      <label class="switch"><input type="checkbox" role="switch" data-act="auto-sync" aria-label="Sync automatically"><span class="switch__track" aria-hidden="true"></span></label>
     </div>
   </section>
 
-  <div class="sf__actions">
-    <button class="btn" type="button" data-slot="refresh"><span class="icon icon--refresh" aria-hidden="true"></span> Refresh</button>
-    <button class="btn btn--danger" type="button" data-action="sign-out">Log out</button>
-  </div>
+  <section class="gs-card" aria-labelledby="gs-files-title">
+    <h2 class="gs-card__title" id="gs-files-title">Files</h2>
+    <div data-slot="files"></div>
+    <p class="gs-note">Wedger can only see files it created in your Drive. Signing out removes the copies on this device; the files stay in Drive.</p>
+  </section>
 </div>

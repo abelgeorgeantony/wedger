@@ -13,10 +13,11 @@ function overlayRoot() {
 }
 
 /* ---------- toasts ---------- */
-export function toast(message, type = "info", ms = 3500) {
+export function toast(message, type = "info", ms = type === "error" ? 6000 : 3500) {
   const root = overlayRoot();
   let stack = root.querySelector(".toast-stack");
   if (!stack) { stack = h("div", { class: "toast-stack", role: "status" }); root.append(stack); }
+  for (const old of stack.children) if (old.textContent === message) old.remove();   // no stacks of duplicates
   const el = h("div", { class: `toast toast--${type}` }, message);
   stack.append(el);
   setTimeout(() => el.remove(), ms);
@@ -82,7 +83,11 @@ export function showDialog(content, { label = "Dialog", wide = false } = {}) {
   let result = null;
   const done = new Promise((resolve) =>
     dialog.addEventListener("close", () => { dialog.remove(); resolve(result); }));
-  dialog.addEventListener("click", (e) => { if (e.target === dialog) dialog.close(); });
+  // Close on a backdrop click only when the press STARTED on the backdrop too,
+  // so dragging a text selection out of a field never throws the form away.
+  let pressedOnBackdrop = false;
+  dialog.addEventListener("pointerdown", (e) => { pressedOnBackdrop = e.target === dialog; });
+  dialog.addEventListener("click", (e) => { if (e.target === dialog && pressedOnBackdrop) dialog.close(); });
   dialog.showModal();
   return { dialog, close: (value = null) => { result = value; dialog.close(); }, done };
 }
@@ -138,3 +143,4 @@ export async function openTemplate(template, { controller, params = {}, label = 
   api?.dispose?.();
   return result;
 }
+

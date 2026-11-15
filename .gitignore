@@ -9,5 +9,6 @@ wedger.txt
 prompt_context.*
 tree.txt
 *.zip
+*.bak
 
 !assets/js/vendor

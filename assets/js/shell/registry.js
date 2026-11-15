@@ -5,12 +5,11 @@
  * is the lowest-priority fallback for any "file:" URI, so nothing is ever
  * un-openable.
  */
-import { ASSETS, mock, parseUri, sleep } from "./core.js";
+import { ASSETS, parseUri } from "./core.js";
 
 const cache = new Map();
 
 async function fetchText(rel) {
-  if (mock.has("slow")) await sleep(1400);
   const res = await fetch(new URL(rel, ASSETS), { cache: "no-cache" });
   if (!res.ok) throw new Error(`Could not load "${rel}" (HTTP ${res.status}).`);
   return res.text();

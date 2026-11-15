@@ -51,12 +51,15 @@ export async function mount({ root, view, host, assets }) {
     const err = base ? host.files.validateName(name) : "Give the file a name.";
     if (err) { showError(err); form.elements.name.focus(); return; }
 
-    const tpl = templates.find((t) => t.id === selected);
-    host.files.create(name, tpl ? resolve(tpl) : "");
-    if (ext === ".csv" && !host.files.exists(`${name}.rules`)) host.files.create(`${name}.rules`, RULES_STARTER);
+    try {
+      const tpl = templates.find((t) => t.id === selected);
+      host.files.create(name, tpl ? resolve(tpl) : "");
+      if (ext === ".csv" && !host.files.exists(`${name}.rules`)) host.files.create(`${name}.rules`, RULES_STARTER);
+    } catch (failure) { showError(failure.message); return; }      // e.g. device storage full
     await host.open(fileUri(name));
     view.close();
   });
 
   form.elements.name.focus();
 }
+

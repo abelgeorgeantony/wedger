@@ -1,20 +1,7 @@
-/* core.js — tiny shared basics: paths, mock flags, emitter, DOM helper. */
+/* core.js — tiny shared basics: paths, emitter, DOM helper, small utilities. */
 
 /** Absolute URL of the /assets/ folder (works under any baseurl). */
 export const ASSETS = new URL("../../", import.meta.url);
-
-/**
- * UI-phase demo switches, set with ?mock=a,b,c in the address bar:
- *   empty       start with no journals
- *   signedin    pretend Google sign-in is active
- *   sync-error  one file fails to sync
- *   slow        slow down template loading so loading states are visible
- */
-export const mock = (() => {
-  const raw = new URLSearchParams(globalThis.location?.search ?? "").get("mock") ?? "";
-  const flags = new Set(raw.split(",").map((s) => s.trim()).filter(Boolean));
-  return { flags, has: (f) => flags.has(f) };
-})();
 
 export class Emitter {
   #listeners = new Map();
@@ -43,6 +30,33 @@ export function extOf(name) {
 }
 
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+export function debounce(fn, ms) {
+  let t;
+  const wrapped = (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+  wrapped.cancel = () => clearTimeout(t);
+  wrapped.flush = (...args) => { clearTimeout(t); fn(...args); };
+  return wrapped;
+}
+
+export function formatBytes(n) {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+export function relativeTime(ts, now = Date.now()) {
+  if (!ts) return "never";
+  const s = Math.max(0, Math.round((now - ts) / 1000));
+  if (s < 45) return "just now";
+  const m = Math.round(s / 60);
+  if (m < 60) return `${m} min ago`;
+  const hr = Math.round(m / 60);
+  if (hr < 24) return `${hr} ${hr === 1 ? "hour" : "hours"} ago`;
+  const d = Math.round(hr / 24);
+  if (d < 30) return `${d} ${d === 1 ? "day" : "days"} ago`;
+  return new Date(ts).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
 
 /** h("div", {class:"x", dataset:{a:1}, onclick:fn}, child, "text") — always text-safe. */
 export function h(tag, attrs = {}, ...children) {

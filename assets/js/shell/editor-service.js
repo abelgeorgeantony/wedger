@@ -36,6 +36,16 @@ class EditorService extends Emitter {
       if (e.key === "End") next = this.tabs[this.tabs.length - 1];
       if (next) { e.preventDefault(); this.activate(next.id); dom.tabs.querySelector('[aria-selected="true"]')?.focus(); }
     });
+    // Many tabs overflow the strip: a plain mouse wheel (or trackpad swipe) over it scrolls sideways, no Shift needed.
+    dom.tabs.addEventListener("wheel", (e) => {
+      if (dom.tabs.scrollWidth <= dom.tabs.clientWidth) return;
+      const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? dom.tabs.clientWidth : 1;
+      const delta = (Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY) * unit;
+      if (!delta) return;
+      e.preventDefault();
+      dom.tabs.scrollLeft += delta;
+    }, { passive: false });
+
     document.addEventListener("keydown", (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") { e.preventDefault(); this.saveActive(); }
     });
@@ -59,6 +69,7 @@ class EditorService extends Emitter {
     this.#dom.area.append(tab.panel);
     this.#dom.menuBar.append(tab.menu);
     if (focus || !this.active) this.activate(id); else this.#sync();
+    this.#revealActive();
     await this.#mount(tab);
     return tab;
   }
@@ -102,7 +113,7 @@ class EditorService extends Emitter {
       container: tab.panel,
       menubar: tab.menu,
       setTitle(title) { tab.title = title; self.#sync(); },
-      setDirty(dirty) { tab.dirty = !!dirty; self.#sync(); },
+      setDirty(dirty) { if (tab.dirty === !!dirty) return; tab.dirty = !!dirty; self.#sync(); },
       close() { return self.close(tab.id, { force: true }); },
     };
   }
@@ -119,6 +130,7 @@ class EditorService extends Emitter {
     tab.panel.hidden = false; tab.menu.hidden = false;
     if (prev?.id !== id) tab.instance?.onShow?.();
     this.#sync();
+    this.#revealActive();
     this.emit("activechange", tab);
   }
 
@@ -151,7 +163,7 @@ class EditorService extends Emitter {
     for (const t of this.tabs.filter((t) => t.uri === uri)) await this.close(t.id, { force: true });
   }
   async closeWhere(predicate) {
-    for (const t of this.tabs.filter(predicate)) await this.close(t.id);
+    for (const t of this.tabs.filter((t) => predicate(t))) await this.close(t.id);
   }
 
   /** A file was renamed: keep its tab, point it at the new URI. */
@@ -168,11 +180,24 @@ class EditorService extends Emitter {
     if (tab?.instance?.save) await tab.instance.save();
   }
 
+  /** Scrolls the active tab into view. Only on open/activate, never on incidental re-renders. */
+  #revealActive() {
+    this.#dom?.tabs.querySelector('[aria-selected="true"]')?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+  }
+
+  #tabMenu(tab, anchor) {
+    const idx = this.tabs.indexOf(tab);
+    this.#host.dialogs.menu(anchor, [
+      { label: "Close", onSelect: () => this.close(tab.id) },
+      { label: "Close others", disabled: this.tabs.length < 2, onSelect: () => this.closeWhere((t) => t.id !== tab.id) },
+      { label: "Close to the right", disabled: idx >= this.tabs.length - 1, onSelect: () => this.closeWhere((t) => this.tabs.indexOf(t) > idx) },
+    ]);
+  }
+
   /** Re-renders the strip and chrome (menu bar, empty state, window title). */
   #sync() {
     const { tabs: strip, menuBar, empty } = this.#dom;
     strip.replaceChildren(...this.tabs.map((t) => this.#tabEl(t)));
-    strip.querySelector('[aria-selected="true"]')?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
     const active = this.active;
     menuBar.hidden = !active || active.menu.childElementCount === 0;
     empty.hidden = this.tabs.length > 0;
@@ -186,6 +211,7 @@ class EditorService extends Emitter {
       "aria-selected": String(selected), "aria-controls": `panel-${tab.id}`, title: tab.uri,
       onclick: (e) => { if (!e.target.closest(".tab__close")) this.activate(tab.id); },
       onauxclick: (e) => { if (e.button === 1) { e.preventDefault(); this.close(tab.id); } },
+      oncontextmenu: (e) => { e.preventDefault(); this.#tabMenu(tab, { x: e.clientX, y: e.clientY }); },
     },
       h("span", { class: "tab__title" }, tab.title),
       tab.dirty && h("span", { class: "tab__dirty", role: "img", "aria-label": "Unsaved changes" }, "●"),
@@ -194,3 +220,4 @@ class EditorService extends Emitter {
 }
 
 export const editors = new EditorService();
+

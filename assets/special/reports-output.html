@@ -1,21 +1,43 @@
 <style>
-  .ro__head { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; flex-wrap: wrap; }
-  .ro__entry { margin-top: .9rem; }
-  .ro__entry-head { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: .5rem; }
-  .ro__type { font-weight: 700; }
-  .ro__meta { color: var(--text-muted); font-size: .85rem; }
-  .ro__body { padding: .7rem; background: var(--surface-2); border-radius: 6px; font-family: var(--font-mono); font-size: .88rem; white-space: pre-wrap; color: var(--text-muted); }
-  .ro__empty { text-align: center; color: var(--text-muted); padding: 3rem 1rem; border: 1px dashed var(--border); border-radius: var(--radius); margin-top: 1rem; }
+  /* Full-height page: scrolling list above a status bar, like a journal. */
+  .sf-reports-output { max-width: none; padding: 0; height: 100%; display: flex; flex-direction: column; }
+  .ro { flex: 1; min-height: 0; overflow: auto; padding: 1.25rem clamp(1rem, 4vw, 2.5rem) 2.5rem; }
+  .ro__inner { max-width: 62rem; margin: 0 auto; }
+  .ro__empty { text-align: center; padding: 3.5rem 1rem; border: 1px dashed var(--border-strong); border-radius: var(--radius); color: var(--text-muted); font-family: var(--font-read); }
+  .ro__empty strong { display: block; color: var(--text); font-size: 1.05rem; margin-bottom: .3rem; }
+  .ro__chips { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: .8rem; }
+
+  .ro-entry { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: .75rem; overflow: hidden; }
+  .ro-entry__head { display: flex; align-items: center; gap: .5rem; padding: .4rem .5rem .4rem .35rem; background: var(--surface-2); border-bottom: 1px solid var(--border); }
+  .ro-entry.is-collapsed .ro-entry__head { border-bottom: 0; }
+  .ro-entry__toggle { display: flex; align-items: center; gap: .45rem; min-width: 0; flex: 1; padding: .3rem .4rem; border-radius: var(--radius-sm); text-align: left; }
+  .ro-entry__toggle:hover { background: var(--hover); }
+  .ro-entry__chev { flex: none; transition: transform .12s; }
+  .ro-entry.is-collapsed .ro-entry__chev { transform: rotate(-90deg); }
+  .ro-entry__title { font-family: var(--font-read); font-weight: 650; white-space: nowrap; }
+  .ro-entry__meta { font-family: var(--font-read); color: var(--text-muted); font-size: .85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ro-entry__query { font-family: var(--font-raw); font-size: .82rem; padding: .05rem .45rem; border-radius: 999px; background: var(--selected); white-space: nowrap; }
+  .ro-entry__actions { display: flex; gap: .05rem; flex: none; }
+  .ro-entry__body { padding: .9rem 1rem; }
+  .ro-entry.is-collapsed .ro-entry__body { display: none; }
+  .ro-entry__status { display: flex; align-items: center; gap: .6rem; color: var(--text-muted); font-family: var(--font-read); }
+
+  .ro-raw { margin: 0; padding: .7rem .85rem; max-height: 28rem; overflow: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-2); font-family: var(--font-raw); font-size: .88rem; line-height: 1.5; font-variant-numeric: tabular-nums; white-space: pre; }
+
+  .ro-status { flex: none; display: flex; gap: 1.1rem; align-items: center; flex-wrap: wrap; padding: .28rem .9rem; font-size: .8rem; color: var(--text-muted); background: var(--sidebar-bg); border-top: 1px solid var(--border); }
+  .ro-status__spacer { flex: 1; }
 </style>
-<div class="ro__head">
-  <div>
-    <h1 class="sf__title">Reports output</h1>
-    <p class="sf__subtitle">Results of the reports you run from a journal's Reports menu.</p>
+
+<div class="ro" data-slot="scroll">
+  <div class="ro__inner">
+    <div class="ro__chips" data-slot="chips" hidden></div>
+    <div data-slot="list"></div>
+    <div class="ro__empty" data-slot="empty" hidden></div>
   </div>
-  <button class="btn btn--danger" type="button" data-act="clear">Clear output</button>
 </div>
-<div data-slot="list"></div>
-<div class="ro__empty" data-slot="empty">
-  <p>No reports run yet.</p>
-  <p>Open a journal and pick one from its <strong>Reports</strong> menu.</p>
-</div>
+<footer class="ro-status">
+  <span data-slot="status-count"></span>
+  <span data-slot="status-mode"></span>
+  <span class="ro-status__spacer"></span>
+  <span data-slot="status-engine"></span>
+</footer>

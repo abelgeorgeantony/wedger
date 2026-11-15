@@ -1,4 +1,11 @@
 // wedger/storage.js
+//
+// Google sign-in (Google Identity Services), Drive file calls and the
+// per-user local file store. The UI never calls this directly: shell/host.js
+// wraps it (host.auth, host.files, host.sync).
+
+// File types Wedger keeps in Drive and on this device.
+const SYNCED_EXTENSIONS = [".journal", ".timeclock", ".timedot", ".csv", ".rules"];
 
 const CLIENT_ID = "711223624758-9vp7unh4huct33aq38rpi5sbiov78a6f.apps.googleusercontent.com";
 const SCOPES = "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email";
@@ -13,6 +20,9 @@ export const StorageManager = {
     _refreshResolve: null,
     _refreshReject: null,
 
+    // Set by the host so the UI can react to sign-in problems.
+    onError: null,
+
     // --- Local Storage State ---
     currentUserEmail: "guest",
 
@@ -23,6 +33,16 @@ export const StorageManager = {
             this.tokenClient = google.accounts.oauth2.initTokenClient({
                 client_id: CLIENT_ID,
                 scope: SCOPES,
+                // Fired when the popup is blocked or closed before finishing.
+                error_callback: (err) => {
+                    if (this._refreshReject) {
+                        this._refreshReject(new Error(err?.type || "Token acquisition failed"));
+                        this._refreshResolve = null;
+                        this._refreshReject = null;
+                    } else if (this.onError) {
+                        this.onError(err);
+                    }
+                },
                 callback: async (tokenResponse) => {
                     if (tokenResponse && tokenResponse.access_token) {
                         this.accessToken = tokenResponse.access_token;
@@ -31,6 +51,19 @@ export const StorageManager = {
                             await this.fetchUserProfile();
                         } catch (e) {
                             console.warn("Could not fetch user profile details:", e);
+                        }
+
+                        // Without a profile there is no email to key the local store by.
+                        if (!this.user || !this.user.email) {
+                            this.accessToken = null;
+                            if (this._refreshReject) {
+                                this._refreshReject(new Error("Could not read the Google profile"));
+                                this._refreshResolve = null;
+                                this._refreshReject = null;
+                            } else if (this.onError) {
+                                this.onError({ type: "profile_unavailable" });
+                            }
+                            return;
                         }
                         
                         const expiresIn = tokenResponse.expires_in || 3600;
@@ -113,10 +146,13 @@ export const StorageManager = {
         document.head.appendChild(script);
     },
 
+    get isReady() { return !!this.tokenClient; },
+
+    /** Returns false when Google's script hasn't loaded yet (slow network or blocked). */
     promptLogin() {
-        if (this.tokenClient) {
-            this.tokenClient.requestAccessToken();
-        }
+        if (!this.tokenClient) return false;
+        this.tokenClient.requestAccessToken();
+        return true;
     },
 
     refreshToken() {
@@ -180,18 +216,24 @@ export const StorageManager = {
 
     async listDriveFiles() {
         if (!this.accessToken) throw new Error("Not authorized for Google Drive.");
-        const query = encodeURIComponent("trashed=false and name contains '.journal'");
-        const response = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id,name,modifiedTime)`, {
-            method: 'GET',
-            headers: { 'Authorization': `Bearer ${this.accessToken}` }
-        });
-        
-        if (!response.ok) {
-            if (response.status === 401) throw new Error("401");
-            throw new Error(`Drive API error: ${response.status}`);
-        }
-        const data = await response.json();
-        return data.files || [];
+        const clause = SYNCED_EXTENSIONS.map(ext => `name contains '${ext}'`).join(" or ");
+        const query = encodeURIComponent(`trashed=false and (${clause})`);
+        const files = [];
+        let pageToken = "";
+        do {
+            const url = `https://www.googleapis.com/drive/v3/files?q=${query}&pageSize=1000&fields=nextPageToken,files(id,name,modifiedTime)`
+                + (pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : "");
+            const response = await fetch(url, { method: 'GET', headers: { 'Authorization': `Bearer ${this.accessToken}` } });
+            if (!response.ok) {
+                if (response.status === 401) throw new Error("401");
+                throw new Error(`Drive API error: ${response.status}`);
+            }
+            const data = await response.json();
+            files.push(...(data.files || []));
+            pageToken = data.nextPageToken || "";
+        } while (pageToken);
+        // "name contains" also matches e.g. "x.journal.bak"; keep real extensions only.
+        return files.filter(f => SYNCED_EXTENSIONS.some(ext => f.name.toLowerCase().endsWith(ext)));
     },
 
     async getFileFromDrive(fileId) {

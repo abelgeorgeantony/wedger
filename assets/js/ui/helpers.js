@@ -1,5 +1,5 @@
 /* assets/js/ui/helpers.js
- * Left-sidebar drag-to-resize.
+ * Left-sidebar drag-to-resize. The width is remembered between visits.
  * Change CONFIG to taste — everything else adapts.
  */
 (function () {
@@ -12,6 +12,7 @@
     step: 1,       // % per arrow key press
     bigStep: 5,    // % per shift+arrow key press
   };
+  const STORAGE_KEY = 'wedger_sidebar_width';
 
   const root = document.documentElement;
   const resizer = document.getElementById('resizer');
@@ -25,16 +26,20 @@
   const clamp = (v) => Math.min(CONFIG.max, Math.max(CONFIG.min, v));
 
   let current = CONFIG.initial;
+  try {
+    const saved = parseFloat(localStorage.getItem(STORAGE_KEY));
+    if (Number.isFinite(saved)) current = saved;
+  } catch (_) { /* storage blocked */ }
 
-  function apply(percent) {
+  function apply(percent, { remember = false } = {}) {
     current = clamp(percent);
-    console.log(current);
     root.style.setProperty('--sidebar-width', current + '%');
     resizer.setAttribute('aria-valuenow', current.toFixed(1));
+    if (remember) { try { localStorage.setItem(STORAGE_KEY, String(current)); } catch (_) { } }
   }
 
   // --- init ---
-  apply(CONFIG.initial);
+  apply(current);
   resizer.setAttribute('aria-valuemin', CONFIG.min);
   resizer.setAttribute('aria-valuemax', CONFIG.max);
 
@@ -53,8 +58,7 @@
   resizer.addEventListener('pointermove', (e) => {
     if (!dragging) return;
     // sidebar starts at x = 0, so clientX is directly its width
-    const percent = (e.clientX / window.innerWidth) * 100;
-    apply(percent);
+    apply((e.clientX / window.innerWidth) * 100);
   });
 
   function stopDrag(e) {
@@ -62,6 +66,7 @@
     dragging = false;
     resizer.classList.remove('dragging');
     body.classList.remove('resizing');
+    apply(current, { remember: true });
     if (e && e.pointerId != null) {
       try { resizer.releasePointerCapture(e.pointerId); } catch (_) { }
     }
@@ -77,27 +82,27 @@
     switch (e.key) {
       case 'ArrowLeft':
       case 'ArrowDown':
-        apply(current - step);
+        apply(current - step, { remember: true });
         e.preventDefault();
         break;
       case 'ArrowRight':
       case 'ArrowUp':
-        apply(current + step);
+        apply(current + step, { remember: true });
         e.preventDefault();
         break;
       case 'Home':
-        apply(CONFIG.min);
+        apply(CONFIG.min, { remember: true });
         e.preventDefault();
         break;
       case 'End':
-        apply(CONFIG.max);
+        apply(CONFIG.max, { remember: true });
         e.preventDefault();
         break;
     }
   });
 
   // double-click resets to the initial width
-  resizer.addEventListener('dblclick', () => apply(CONFIG.initial));
+  resizer.addEventListener('dblclick', () => apply(CONFIG.initial, { remember: true }));
 
   // keep percentages sane if the window gets very narrow
   window.addEventListener('resize', () => apply(current));

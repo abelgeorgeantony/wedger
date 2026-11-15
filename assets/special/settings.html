@@ -1,46 +1,139 @@
 <style>
-  .st__row { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: .7rem 0; border-top: 1px solid var(--border); }
-  .st__row:first-of-type { border-top: 0; }
-  .st__label { font-weight: 600; }
-  .st__hint { color: var(--text-muted); font-size: .88rem; }
-  .st__control { display: flex; align-items: center; gap: .7rem; flex: none; }
-  .st__range { width: 10rem; accent-color: var(--accent); }
-  .st__value { min-width: 3.2rem; text-align: right; font-variant-numeric: tabular-nums; color: var(--text-muted); }
-  .st__select { width: auto; }
-</style>
-<h1 class="sf__title">Settings</h1>
-<p class="sf__subtitle">Changes apply immediately and are kept on this device.</p>
+  .st-group { margin-top: 1.5rem; }
+  .st-group__title { font-family: var(--font-read); font-size: .8rem; font-weight: 650; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); margin-bottom: .5rem; }
+  .st-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+  .st-row { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; padding: .85rem 1rem; }
+  .st-row + .st-row { border-top: 1px solid var(--border); }
+  .st-row__text { min-width: 0; }
+  .st-row__label { font-family: var(--font-read); font-weight: 600; }
+  .st-row__desc { font-family: var(--font-read); color: var(--text-muted); font-size: .88rem; margin-top: .1rem; }
+  .st-row__control { flex: none; }
+  .st-row--stack { flex-direction: column; align-items: stretch; gap: .9rem; }
+  .st-row--stack .st-row__control { width: 100%; }
+  @media (max-width: 560px) { .st-row:not(.st-row--stack) { flex-wrap: wrap; } }
 
-<section class="card" aria-label="Appearance">
-  <div class="card__title">Appearance</div>
-  <div class="st__row">
-    <div><div class="st__label">Dark mode</div><div class="st__hint">Easier on the eyes in low light.</div></div>
-    <label class="switch st__control"><input type="checkbox" data-setting="darkMode"><span class="switch__track" aria-hidden="true"></span><span class="sr-only">Dark mode</span></label>
-  </div>
-  <div class="st__row">
-    <div><div class="st__label">Text size</div><div class="st__hint">Scales the whole interface.</div></div>
-    <div class="st__control">
-      <input class="st__range" type="range" data-setting="fontSize" min="11" max="20" step="0.5" aria-label="Text size">
-      <span class="st__value" data-setting-display="fontSize"></span>
+  /* ---- text size ---- */
+  .st-size { display: grid; grid-template-columns: auto 1fr auto auto; gap: .75rem; align-items: center; }
+  .st-size__step { width: 2.1rem; height: 2.1rem; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-family: var(--font-ui); font-weight: 600; }
+  .st-size__slider { position: relative; min-width: 8rem; }
+  .st-size__slider input { display: block; width: 100%; }
+  .st-size__ticks { position: relative; height: .5rem; margin-top: .1rem; pointer-events: none; }
+  .st-size__ticks span { position: absolute; top: 0; width: 1px; height: .35rem; background: var(--border-strong); transform: translateX(-.5px); left: calc(9px + (100% - 18px) * var(--f)); }
+  .st-size__ticks span.is-default { height: .5rem; background: var(--text-muted); }
+  .st-size__value { min-width: 4.4rem; text-align: right; font-family: var(--font-ui); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .st-preview { border: 1px dashed var(--border-strong); border-radius: var(--radius); padding: .8rem 1rem; background: var(--surface-2); font-family: var(--font-read); overflow: hidden; }
+  .st-preview__row { display: flex; justify-content: space-between; gap: 1rem; margin-top: .35rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .st-preview__hint { font-family: var(--font-ui); font-size: .78rem; color: var(--text-faint); margin-top: .5rem; }
+  .st-footer { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-top: 1.75rem; flex-wrap: wrap; }
+  .st-footer p { font-family: var(--font-read); color: var(--text-muted); font-size: .88rem; }
+</style>
+
+<h1 class="sf__title">Settings</h1>
+<p class="sf__subtitle">Saved on this device and applied straight away.</p>
+
+<section class="st-group" aria-labelledby="st-appearance">
+  <h2 class="st-group__title" id="st-appearance">Appearance</h2>
+  <div class="st-card">
+    <div class="st-row">
+      <div class="st-row__text">
+        <div class="st-row__label" id="st-dark-label">Dark mode</div>
+        <div class="st-row__desc">Easier on the eyes in low light.</div>
+      </div>
+      <label class="switch st-row__control"><input type="checkbox" role="switch" data-setting="darkMode" aria-labelledby="st-dark-label"><span class="switch__track" aria-hidden="true"></span></label>
+    </div>
+
+    <div class="st-row st-row--stack">
+      <div class="st-row__text">
+        <div class="st-row__label" id="st-size-label">Text size</div>
+        <div class="st-row__desc">Scales the whole app. The change is applied when you let go of the slider.</div>
+      </div>
+      <div class="st-row__control">
+        <div class="st-size" role="group" aria-labelledby="st-size-label">
+          <button class="btn st-size__step" type="button" data-act="font-dec" aria-label="Smaller text">A−</button>
+          <div class="st-size__slider">
+            <input type="range" data-setting="fontSize" aria-labelledby="st-size-label" aria-describedby="st-size-value">
+            <div class="st-size__ticks" data-slot="ticks" aria-hidden="true"></div>
+          </div>
+          <button class="btn st-size__step" type="button" data-act="font-inc" aria-label="Larger text">A+</button>
+          <output class="st-size__value" id="st-size-value" data-slot="font-value"></output>
+        </div>
+      </div>
+      <div class="st-preview" aria-hidden="true">
+        <div data-slot="preview">
+          <strong>Groceries</strong>
+          <div class="st-preview__row"><span>expenses:food</span><span>₹1,240.00</span></div>
+          <div class="st-preview__row"><span>assets:bank</span><span>-₹1,240.00</span></div>
+        </div>
+        <div class="st-preview__hint">Preview · <button class="link-btn" type="button" data-act="font-reset">Reset to default</button></div>
+      </div>
+    </div>
+
+    <div class="st-row">
+      <div class="st-row__text">
+        <div class="st-row__label" id="st-group-label">Number grouping</div>
+        <div class="st-row__desc">How large amounts are separated in summaries and reports.</div>
+      </div>
+      <select class="select st-row__control" data-setting="numberGrouping" aria-labelledby="st-group-label">
+        <option value="auto">Automatic (₹ uses lakh grouping)</option>
+        <option value="indian">1,00,000</option>
+        <option value="international">100,000</option>
+        <option value="none">No separators</option>
+      </select>
     </div>
   </div>
 </section>
 
-<section class="card" aria-label="Journals">
-  <div class="card__title">Journals</div>
-  <div class="st__row">
-    <div><div class="st__label">Open journals in</div><div class="st__hint">Which view a .journal file starts in.</div></div>
-    <select class="select st__select st__control" data-setting="defaultView" aria-label="Default view">
-      <option value="rendered">Rendered</option>
-      <option value="raw">Raw text</option>
-    </select>
-  </div>
-  <div class="st__row">
-    <div><div class="st__label">Line numbers in raw view</div></div>
-    <label class="switch st__control"><input type="checkbox" data-setting="lineNumbers"><span class="switch__track" aria-hidden="true"></span><span class="sr-only">Line numbers</span></label>
+<section class="st-group" aria-labelledby="st-journals">
+  <h2 class="st-group__title" id="st-journals">Journals</h2>
+  <div class="st-card">
+    <div class="st-row">
+      <div class="st-row__text">
+        <div class="st-row__label" id="st-view-label">Open journals in</div>
+        <div class="st-row__desc">Which view a journal starts in.</div>
+      </div>
+      <select class="select st-row__control" data-setting="defaultView" aria-labelledby="st-view-label">
+        <option value="rendered">Rendered view</option>
+        <option value="raw">Raw text</option>
+      </select>
+    </div>
+    <div class="st-row">
+      <div class="st-row__text">
+        <div class="st-row__label" id="st-lines-label">Line numbers</div>
+        <div class="st-row__desc">Show them beside the raw text.</div>
+      </div>
+      <label class="switch st-row__control"><input type="checkbox" role="switch" data-setting="lineNumbers" aria-labelledby="st-lines-label"><span class="switch__track" aria-hidden="true"></span></label>
+    </div>
+    <div class="st-row">
+      <div class="st-row__text">
+        <div class="st-row__label" id="st-save-label">Save as you type</div>
+        <div class="st-row__desc">Raw edits are saved automatically. Turn off to save with Ctrl+S.</div>
+      </div>
+      <label class="switch st-row__control"><input type="checkbox" role="switch" data-setting="autoSave" aria-labelledby="st-save-label"><span class="switch__track" aria-hidden="true"></span></label>
+    </div>
+    <div class="st-row">
+      <div class="st-row__text">
+        <div class="st-row__label" id="st-commodity-label">Default currency symbol</div>
+        <div class="st-row__desc">Put in front of amounts you type without one in the transaction form. Leave empty to keep amounts exactly as typed.</div>
+      </div>
+      <input class="input st-row__control" style="width:6rem" type="text" maxlength="6" placeholder="e.g. ₹" data-setting="defaultCommodity" autocomplete="off" aria-labelledby="st-commodity-label">
+    </div>
   </div>
 </section>
 
-<div class="sf__actions">
-  <button class="btn" type="button" data-act="reset">Reset to defaults</button>
+<section class="st-group" aria-labelledby="st-sync">
+  <h2 class="st-group__title" id="st-sync">Sync</h2>
+  <div class="st-card">
+    <div class="st-row">
+      <div class="st-row__text">
+        <div class="st-row__label" id="st-sync-label">Sync automatically</div>
+        <div class="st-row__desc">Upload changes to Google Drive a moment after you save. Only applies when you're signed in.</div>
+      </div>
+      <label class="switch st-row__control"><input type="checkbox" role="switch" data-setting="syncAuto" aria-labelledby="st-sync-label"><span class="switch__track" aria-hidden="true"></span></label>
+    </div>
+  </div>
+</section>
+
+<div class="st-footer">
+  <p>Settings never leave this browser.</p>
+  <button class="btn" type="button" data-act="reset-all">Reset all settings</button>
 </div>

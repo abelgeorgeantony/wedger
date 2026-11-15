@@ -1,0 +1,66 @@
+<nav class="menubar" aria-label="Reports output menu">
+
+  <div class="menubar__item" data-menu="view">
+    <button class="menubar__btn" type="button" aria-haspopup="true" aria-expanded="false">View</button>
+    <div class="menubar__panel" role="group" aria-label="View" hidden>
+      <div class="menubar__group">
+        <div class="menubar__label">Show reports as</div>
+        <label class="menubar__radio"><input type="radio" name="mode" value="rendered" checked> Rendered (tables and trees)</label>
+        <label class="menubar__radio"><input type="radio" name="mode" value="raw"> Raw (exactly what hledger returned)</label>
+      </div>
+      <div class="menubar__group">
+        <div class="menubar__label">Order</div>
+        <label class="menubar__radio"><input type="radio" name="order" value="newest" checked> Newest first</label>
+        <label class="menubar__radio"><input type="radio" name="order" value="oldest"> Oldest first</label>
+      </div>
+      <div class="menubar__group">
+        <button class="menubar__entry" type="button" data-act="expand-all">Expand all</button>
+        <button class="menubar__entry" type="button" data-act="collapse-all">Collapse all</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="menubar__item" data-menu="filter">
+    <button class="menubar__btn" type="button" aria-haspopup="true" aria-expanded="false">Filter<span class="menubar__badge" data-slot="filter-count" hidden></span></button>
+    <div class="menubar__panel" role="group" aria-label="Filter reports" hidden>
+      <div class="menubar__group">
+        <div class="menubar__label">Report type</div>
+        <div data-slot="type-filters"></div>
+      </div>
+      <div class="menubar__group">
+        <label class="field">
+          <span class="field__label">From file</span>
+          <select class="select" name="file"><option value="">All files</option></select>
+        </label>
+      </div>
+      <div class="menubar__row">
+        <button class="btn" type="button" data-act="reset-filters">Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="menubar__item" data-menu="search">
+    <button class="menubar__btn" type="button" aria-haspopup="true" aria-expanded="false">Search</button>
+    <div class="menubar__panel" role="group" aria-label="Search reports" hidden>
+      <div class="menubar__group">
+        <label class="field">
+          <span class="field__label">Find in reports</span>
+          <input class="input" type="search" name="search" placeholder="e.g. expenses:food" autocomplete="off" spellcheck="false">
+        </label>
+        <p class="menubar__hint" data-slot="search-count" aria-live="polite">Shows only reports whose output contains the text.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="menubar__item" data-menu="output">
+    <button class="menubar__btn" type="button" aria-haspopup="true" aria-expanded="false">Output</button>
+    <div class="menubar__panel menubar__panel--narrow" role="group" aria-label="Output" hidden>
+      <button class="menubar__entry" type="button" data-act="rerun-all">Re-run all reports</button>
+      <button class="menubar__entry" type="button" data-act="copy-all">Copy shown reports</button>
+      <button class="menubar__entry" type="button" data-act="download-all">Download shown reports (.txt)</button>
+      <div class="menubar__sep" role="separator"></div>
+      <button class="menubar__entry menubar__entry--danger" type="button" data-act="clear">Clear output…</button>
+    </div>
+  </div>
+
+</nav>
