@@ -415,14 +415,16 @@ h2#sidebar-left-logo {
   transform: rotate(-90deg);
 }
 
+/* Journal files sit one level under the "Journals" heading. The inset is on the list, so hover and active
+   fills, the active marker and the file actions all move together; Timeline and Reports output are not in this list. */
 .sidebar__files {
   list-style: none;
   margin: .1rem 0 .3rem;
-  padding: 0;
+  padding: 0 0 0 1rem;
 }
 
 .sidebar__files-empty {
-  padding: .5rem 1rem;
+  padding: .5rem 1rem .5rem .75rem;
   color: var(--text-muted);
   font-family: var(--font-read);
   font-size: .88rem;
@@ -543,9 +545,27 @@ h2#sidebar-left-logo {
   border-top: 1px solid var(--border);
 }
 
+/* The Google button gives way first: it shrinks and ellipsizes its label, and the Settings gear never does. */
 .sidebar__google-btn {
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 0;
   justify-content: center;
+  overflow: hidden;
+}
+
+.sidebar__google-btn .icon-google {
+  flex: none;
+}
+
+.sidebar__google-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar__footer > .icon-btn {
+  flex: none;
 }
 
 .sidebar__account {
@@ -715,6 +735,7 @@ body.sidebar-hidden #resizer {
 }
 
 .tab {
+  position: relative;
   display: flex;
   align-items: center;
   gap: .4rem;
@@ -732,6 +753,32 @@ body.sidebar-hidden #resizer {
 .tab:hover {
   background: var(--hover);
   color: var(--text);
+}
+
+/* Reordering by drag: the dragged tab dims, and a thin bar marks the gap it will drop into.
+   The bar is drawn over the tab edge, so no tab changes width and the strip never jumps. */
+.tab--dragging {
+  opacity: .5;
+}
+
+.tab--drop-before::before,
+.tab--drop-after::after {
+  content: "";
+  position: absolute;
+  top: .3rem;
+  bottom: .3rem;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--text);
+  pointer-events: none;
+}
+
+.tab--drop-before::before {
+  left: -1px;
+}
+
+.tab--drop-after::after {
+  right: -1px;
 }
 
 .tab[aria-selected="true"] {
@@ -816,6 +863,12 @@ body.sidebar-hidden #resizer {
   color: var(--text);
 }
 
+/* A mode that stays on after the menu closes (selection mode) keeps its trigger highlighted. */
+.menubar__btn[data-active="true"] {
+  background: var(--selected);
+  color: var(--text);
+}
+
 .menubar__badge {
   display: inline-flex;
   align-items: center;
@@ -877,6 +930,36 @@ body.sidebar-hidden #resizer {
 
 .menubar__entry:hover:not(:disabled) {
   background: var(--hover);
+}
+
+.menubar__entry:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+.menubar__entry[aria-pressed="true"] {
+  background: var(--selected);
+  font-weight: 600;
+}
+
+/* The one primary action in a menu: filled, with its icon. */
+.menubar__entry--primary {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  padding: .45rem .6rem;
+  font-weight: 600;
+  background: var(--primary);
+  color: var(--primary-contrast);
+}
+
+.menubar__entry--primary:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+
+.menubar__entry--primary .icon {
+  width: .9em;
+  height: .9em;
 }
 
 .menubar__entry--danger {

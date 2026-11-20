@@ -5,6 +5,7 @@ import { host } from "./host.js";
 import { engine } from "./engine.js";
 import { editors } from "./editor-service.js";
 import { initSidebar } from "./sidebar.js";
+import { shortcuts } from "./keyboard-shortcuts.js";
 import { fileUri, parseUri } from "./core.js";
 
 const $ = (id) => document.getElementById(id);
@@ -17,8 +18,27 @@ function tabOptionsMenu() {
     { label: "Close other tabs", disabled: editors.tabs.length < 2, onSelect: () => editors.closeWhere((t) => t.id !== editors.activeId) },
     { label: "Close all tabs", disabled: !hasTabs, onSelect: () => editors.closeWhere(() => true) },
     { separator: true },
+    { label: "Move tab left", disabled: !hasTabs || editors.tabs[0]?.id === editors.activeId, onSelect: () => editors.activeId && editors.moveBy(editors.activeId, -1) },
+    { label: "Move tab right", disabled: !hasTabs || editors.tabs[editors.tabs.length - 1]?.id === editors.activeId, onSelect: () => editors.activeId && editors.moveBy(editors.activeId, 1) },
+    { separator: true },
     { label: "Open Welcome", onSelect: () => host.open("wedger:welcome") },
   ]);
+}
+
+/* ---- keyboard shortcuts: one listener, real commands, each safe to fire when it doesn't apply ---- */
+function initShortcuts() {
+  const view = () => editors.active?.instance ?? null;
+  shortcuts.attach({
+    save: { run: () => editors.saveActive() },                                   // always handled, so the browser's own "save page" never pops up
+    focusSearch: { isEnabled: () => view()?.canFocusSearch?.() === true, run: () => view().focusSearch() },
+    addTransaction: { isEnabled: () => view()?.canAddTransaction?.() === true, run: () => view().addTransaction() },
+    newFile: { run: () => host.open("wedger:create-file") },
+    nextTab: { isEnabled: () => editors.tabs.length > 1, run: () => editors.activateRelative(1) },
+    prevTab: { isEnabled: () => editors.tabs.length > 1, run: () => editors.activateRelative(-1) },
+    closeTab: { isEnabled: () => !!editors.activeId, run: () => editors.close(editors.activeId) },   // asks first when there are unsaved changes
+    openSettings: { run: () => host.open("wedger:settings") },
+  });
+  shortcuts.init();
 }
 
 /* ---- remember which tabs were open, so a reload puts you back where you were ---- */
@@ -55,6 +75,7 @@ async function boot() {
 
     editors.init({ tabs: $("file-tabs"), menuBar: $("file-menu-bar"), area: $("editor-area"), empty: $("editor-empty") }, host);
     host.bind(editors);
+    initShortcuts();
 
     // Keep open tabs truthful when files are renamed, deleted, or swapped out by a sign-in / sign-out.
     host.files.on("changed", (ev) => {
@@ -75,6 +96,7 @@ async function boot() {
     await restoreTabs();
     editors.on("activechange", saveTabs);
     editors.on("closed", saveTabs);
+    editors.on("reordered", saveTabs);
     saveTabs();
 
     // Don't lose unsaved raw edits to an accidental reload.
@@ -93,3 +115,4 @@ async function boot() {
 
 $("loading-retry")?.addEventListener("click", () => location.reload());
 boot();
+

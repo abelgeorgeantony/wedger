@@ -81,7 +81,10 @@ export function initMenubar(bar, { onOpen } = {}) {
 
   return {
     close,
+    /** Opens a top-level menu by its data-menu name (used by keyboard shortcuts). */
+    open(name, opts) { const item = items().find((i) => i.dataset.menu === name); if (item) open(item, opts); },
     get isOpen() { return !!current; },
     dispose() { document.removeEventListener("pointerdown", onOutside); window.removeEventListener("resize", onResize); },
   };
 }
+

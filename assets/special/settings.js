@@ -1,16 +1,12 @@
-/* special/settings.js — binds the Settings page to host.settings.
+/* special/settings.js — binds the Settings page to host.settings and host.shortcuts.
  *
- * Text size is the delicate one. Every size in the app is relative to the root font size, so changing it
- * rescales the whole page, including the very buttons and slider you are using. That is what made the old
- * control jump around under the pointer. Two things fix it for good:
+ * Text size is just another setting: host.settings sets --base-font-size on the root, every size in the app (this
+ * page included) follows it live, and this controller only repaints the readout, the buttons and the slider.
+ * To keep the control under the pointer while the text around it grows or shrinks, the slider block is laid out in
+ * fixed pixels (see settings.html) and setSize() cancels any vertical drift by nudging the page's scroll position.
  *
- *   1. This page holds still. While you adjust the size, the Settings page is counter-zoomed by the exact
- *      inverse of the change, so every control stays at the same pixel position while the sidebar, tabs and
- *      open files rescale live next to it. (Reopen the tab, or switch away and back, and it catches up.)
- *   2. Nothing inside the control changes size: fixed-width readout, a permanent "Default" mark instead of
- *      text that appears and disappears, buttons that disable in place, a fixed-height preview.
- *
- * Browsers without CSS `zoom` fall back to applying the size when the slider is released.
+ * Keyboard shortcuts are configured here but owned by assets/js/shell/keyboard-shortcuts.js. This file adds no
+ * global listener: capturing a key combination is a mode of that single service.
  */
 import { formatBytes } from "../js/shell/core.js";
 
@@ -101,28 +97,29 @@ export function mount({ root, host }) {
     return mark(v, v === min ? String(min) : v === max ? String(max) : v === def ? "Default" : "");
   }).flat());
 
-  const CAN_HOLD_STILL = !!globalThis.CSS?.supports?.("zoom", "1");
-  let heldAt = S.get("fontSize");             // the size this page was laid out for
-  let zoom = 1;
-  const holdStill = () => {
-    zoom = CAN_HOLD_STILL ? heldAt / S.get("fontSize") : 1;
-    root.style.zoom = zoom === 1 ? "" : String(zoom);
+  const scroller = root.closest(".view");
+  /** Applies a size and, if the layout above the slider moved because the text rescaled, scrolls by the difference so the control stays put. */
+  const setSize = (px) => {
+    const before = slider.getBoundingClientRect().top;
+    S.set("fontSize", px);
+    if (!scroller) return;
+    const drift = slider.getBoundingClientRect().top - before;
+    if (drift) scroller.scrollTop += drift;
   };
 
   const showSize = (px) => {
     slot("font-value").textContent = `${px} px`;
-    slot("preview").style.fontSize = `${px / zoom}px`;      // the preview shows the real size, whatever the page zoom is
     slider.value = px;
     slider.setAttribute("aria-valuetext", `${px} pixels${px === def ? ", the default" : ""}`);
     dec.disabled = px <= min; inc.disabled = px >= max; reset.disabled = px === def;
   };
   const paintSize = () => showSize(S.get("fontSize"));
-  holdStill(); paintSize();
+  paintSize();
 
-  // With the page held still it is safe to rescale the app live while dragging; otherwise wait for release.
-  slider.addEventListener("input", () => { const v = Number(slider.value); if (CAN_HOLD_STILL) S.set("fontSize", v); else showSize(v); });
-  slider.addEventListener("change", () => S.set("fontSize", Number(slider.value)));
-  reset.addEventListener("click", () => S.set("fontSize", def));
+  // The whole app rescales as the slider moves (input), and once more on commit (change) for keyboards that only fire that.
+  slider.addEventListener("input", () => setSize(Number(slider.value)));
+  slider.addEventListener("change", () => setSize(Number(slider.value)));
+  reset.addEventListener("click", () => setSize(def));
 
   // A− / A+ : press once to step, press and hold to keep going. Keyboard (Enter/Space) arrives as a click with detail 0.
   let delay = null, repeat = null;
@@ -130,7 +127,7 @@ export function mount({ root, host }) {
   const step = (dir) => {
     const next = Math.min(max, Math.max(min, S.get("fontSize") + dir));
     if (next === S.get("fontSize")) { stop(); return; }
-    S.set("fontSize", next);
+    setSize(next);
   };
   for (const [btn, dir] of [[dec, -1], [inc, 1]]) {
     btn.addEventListener("pointerdown", (e) => {
@@ -162,19 +159,111 @@ export function mount({ root, host }) {
   });
   paintData();
 
+  /* ---- keyboard shortcuts ---- */
+  const K = host.shortcuts;
+  const keyList = slot("shortcut-list"), keyStatus = slot("shortcut-status");
+  const rows = new Map();                          // command id -> { li, kbd, change, clear, error }
+  let capturing = null;                            // { id, end }
+  let sayTimer = null;
+  /** Announces through the polite live region (cleared first so an identical message is still read). */
+  const say = (msg) => { keyStatus.textContent = ""; clearTimeout(sayTimer); sayTimer = setTimeout(() => { keyStatus.textContent = msg; }, 30); };
+
+  for (const cmd of K.all()) {
+    const kbd = document.createElement("kbd"); kbd.className = "st-key__binding"; kbd.id = `st-key-${cmd.id}`;
+    const change = Object.assign(document.createElement("button"), { type: "button", className: "btn btn--small" });
+    change.setAttribute("aria-pressed", "false"); change.setAttribute("aria-describedby", kbd.id);
+    const clear = Object.assign(document.createElement("button"), { type: "button", className: "btn btn--small btn--ghost", textContent: "Clear" });
+    clear.setAttribute("aria-label", `Clear the shortcut for ${cmd.label}`);
+    const error = Object.assign(document.createElement("p"), { className: "field__error st-key__error", hidden: true });
+    error.setAttribute("role", "alert");
+    const text = document.createElement("div"); text.className = "st-row__text";
+    const label = Object.assign(document.createElement("div"), { className: "st-row__label", textContent: cmd.label });
+    text.append(label);
+    if (cmd.hint) text.append(Object.assign(document.createElement("div"), { className: "st-row__desc", textContent: cmd.hint }));
+    const controls = document.createElement("div"); controls.className = "st-key__controls";
+    controls.append(kbd, change);
+    if (cmd.clearable) controls.append(clear);
+    const li = document.createElement("li"); li.className = "st-key";
+    li.append(text, controls, error);
+    keyList.append(li);
+    rows.set(cmd.id, { li, kbd, change, clear, error, cmd });
+
+    change.addEventListener("click", () => { if (capturing?.id === cmd.id) return; startCapture(cmd.id); });
+    change.addEventListener("blur", () => { if (capturing?.id === cmd.id) { stopCapture(); say(`Stopped changing the shortcut for ${cmd.label}.`); } });
+    clear.addEventListener("click", () => {
+      const res = K.clear(cmd.id);
+      if (res.ok) { error.hidden = true; say(`The shortcut for ${cmd.label} was cleared.`); change.focus(); }
+      else { error.textContent = res.error; error.hidden = false; say(res.error); }
+    });
+  }
+
+  function paintKeys() {
+    for (const c of K.all()) {
+      const r = rows.get(c.id);
+      if (!r) continue;
+      const on = capturing?.id === c.id;
+      r.kbd.textContent = on ? "Press the new keys…" : c.binding ? c.display : "Not set";
+      r.kbd.classList.toggle("is-unset", !c.binding && !on);
+      r.kbd.classList.toggle("is-capturing", on);
+      r.change.textContent = on ? "Press keys (Esc cancels)" : "Change";
+      r.change.setAttribute("aria-pressed", String(on));
+      r.change.setAttribute("aria-label", on ? `Press the new keys for ${c.label}. Escape cancels.` : `Change the shortcut for ${c.label}`);
+      r.clear.hidden = !c.binding;
+    }
+  }
+
+  function stopCapture() {
+    if (!capturing) return;
+    capturing.end();
+    capturing = null;
+    paintKeys();
+  }
+
+  function startCapture(id) {
+    stopCapture();
+    const r = rows.get(id);
+    r.error.hidden = true;
+    const end = K.beginCapture((ev) => {
+      if (ev.kind === "cancel") {
+        stopCapture();
+        if (ev.reason === "escape") { r.change.focus(); say(`Cancelled. “${r.cmd.label}” keeps ${K.get(id) ? K.label(K.get(id)) : "no shortcut"}.`); }
+        return;
+      }
+      if (ev.kind === "error") { r.error.textContent = ev.message; r.error.hidden = false; say(`${ev.message} Try another combination, or press Escape to cancel.`); return; }
+      const res = K.set(id, ev.binding);
+      if (!res.ok) { r.error.textContent = res.error; r.error.hidden = false; say(`${res.error} Try another combination, or press Escape to cancel.`); return; }
+      stopCapture();
+      r.error.hidden = true;
+      r.change.focus();
+      say(`“${r.cmd.label}” is now ${K.label(ev.binding)}.`);
+    });
+    capturing = { id, end };
+    paintKeys();
+    say(`Press the new keys for ${r.cmd.label}. Escape cancels.`);
+  }
+
+  $('[data-act="shortcuts-reset"]').addEventListener("click", () => {
+    stopCapture();
+    K.reset();
+    for (const r of rows.values()) r.error.hidden = true;
+    say("All shortcuts were reset to their defaults.");
+  });
+  paintKeys();
+
   /* ---- reset ---- */
   root.addEventListener("click", (e) => {
     if (!e.target.closest('[data-act="reset-all"]')) return;
     const names = [...new Set([...root.querySelectorAll("[data-setting]")].map((el) => el.dataset.setting))];   // only what this page shows
-    host.dialogs.confirm({ title: "Reset these settings?", message: "Every setting on this page goes back to its default. Your files aren't touched.", confirmLabel: "Reset" })
-      .then((ok) => { if (ok) S.reset(names); });
+    host.dialogs.confirm({ title: "Reset these settings?", message: "Every setting on this page, keyboard shortcuts included, goes back to its default. Your files aren't touched.", confirmLabel: "Reset" })
+      .then((ok) => { if (ok) { stopCapture(); S.reset(names); K.reset(); } });
   });
 
   /* ---- keep everything in step with the store ---- */
-  const repaint = () => { holdStill(); plain.forEach(paintPlain); segs.forEach(paintSeg); paintSize(); };
-  const offs = [S.on("*", repaint), host.files.on("changed", paintData)];
+  const repaint = () => { plain.forEach(paintPlain); segs.forEach(paintSeg); paintSize(); };
+  const offs = [S.on("*", repaint), host.files.on("changed", paintData), K.on("changed", paintKeys)];
   return {
-    onShow() { heldAt = S.get("fontSize"); repaint(); },     // coming back to the tab: catch up to the current size
-    dispose() { stop(); offs.forEach((o) => o()); },
+    onShow() { repaint(); paintKeys(); },
+    onHide() { stopCapture(); },
+    dispose() { stop(); stopCapture(); clearTimeout(sayTimer); offs.forEach((o) => o()); },
   };
 }

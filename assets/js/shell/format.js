@@ -117,6 +117,9 @@ export function amountFromHledger(a) {
   const asPrecision = typeof style.asprecision === "number" ? style.asprecision : (style.asprecision?.contents ?? null);
   return {
     value,
+    // exact integer form (value = mantissa / 10^qplaces); lets sums stay exact instead of using floats
+    mantissa: typeof q.decimalMantissa === "number" && Number.isSafeInteger(q.decimalMantissa) ? q.decimalMantissa : null,
+    qplaces: places,
     commodity: a.acommodity ?? "",
     side: style.ascommodityside === "R" ? "R" : "L",
     spaced: !!style.ascommodityspaced,
@@ -173,3 +176,4 @@ export function buildTransactionText({ date, description, postings }, defaultCom
   });
   return [`${date} ${description}`.trimEnd(), ...rows].join("\n");
 }
+

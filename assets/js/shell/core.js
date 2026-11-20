@@ -29,6 +29,16 @@ export function extOf(name) {
   return m ? m[1].toLowerCase() : "";
 }
 
+/** A copy of `list` with the item at `from` moved so that it ends up at index `to` (both clamped). Pure. */
+export function moveItem(list, from, to) {
+  const copy = list.slice();
+  if (!Number.isInteger(from) || from < 0 || from >= copy.length) return copy;
+  const dest = Math.min(copy.length - 1, Math.max(0, Number.isInteger(to) ? to : from));
+  const [item] = copy.splice(from, 1);
+  copy.splice(dest, 0, item);
+  return copy;
+}
+
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 export function debounce(fn, ms) {
@@ -73,3 +83,4 @@ export function h(tag, attrs = {}, ...children) {
 }
 
 export const icon = (name) => h("span", { class: `icon icon--${name}`, "aria-hidden": "true" });
+

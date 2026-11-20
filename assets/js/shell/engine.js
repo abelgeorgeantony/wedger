@@ -16,10 +16,20 @@ import { Emitter } from "./core.js";
 const isLocalDev = location.protocol === "file:" || location.hostname === "localhost" || location.hostname === "127.0.0.1";
 const LIB_BASE = isLocalDev ? "http://localhost:5001/" : "https://cdn.jsdelivr.net/gh/abelgeorgeantony/hledger-lib-wasm@main/";
 
+/* What an engine build must be able to do before Wedger trusts it (see engineInfo in hledger-lib-wasm). */
+const STATEMENTS_FEATURE = "statements-cli-semantics";
+const GATED_REPORTS = new Set(["balancesheet", "incomestatement"]);
+export const OUTDATED_STATEMENTS_MESSAGE =
+  "This build of the hledger engine calculates Balance sheet and Income statement totals incorrectly (liabilities and revenues carry the wrong sign, " +
+  "the Net line is wrong, and a Balance sheet with a start date drops earlier balances), so Wedger won't show them. " +
+  "Rebuild and publish hledger-lib-wasm with the corrected statement reports, then reload this page.";
+const INCLUDE_RE = /^[ \t]*!?include[ \t]/m;
+
 const REPORT_METHODS = {
   accounts: "accounts", balance: "balance", check: "check", checkstrict: "checkStrict", register: "register",
   print: "print", printtext: "printText", prices: "prices", payees: "payees", commodities: "commodities",
   tags: "tags", balancesheet: "balancesheet", incomestatement: "incomestatement", cashflow: "cashflow", budget: "budget",
+  accounttypes: "accountTypes",
 };
 
 const failure = (err) => ({ ok: false, error: err?.message ?? String(err) });
@@ -34,6 +44,7 @@ class Engine extends Emitter {
   progress = "";
 
   #session = null;
+  #caps = { bridgeVersion: 1, hledgerLib: null, features: new Set() };
   #initPromise = null;
   #chain = Promise.resolve();
   #loaded = null;             // { text, forecast, fsVersion }
@@ -42,6 +53,10 @@ class Engine extends Emitter {
   #txCache = new Map();       // name -> { text, forecast, fsVersion, result }
 
   get ready() { return this.status === "ready"; }
+
+  /** What the loaded WASM build can do. A build that predates engineInfo reports bridgeVersion 1 and no features. */
+  get capabilities() { return { bridgeVersion: this.#caps.bridgeVersion, hledgerLib: this.#caps.hledgerLib, features: [...this.#caps.features] }; }
+  supports(feature) { return this.#caps.features.has(feature); }
 
   /* ------------------------------------------------------------ lifecycle */
   init() {
@@ -52,6 +67,7 @@ class Engine extends Emitter {
       try {
         const { HledgerSession } = await import(`${LIB_BASE}js/hledger.js`);
         this.#session = await HledgerSession.init();
+        await this.#probe();
         for (const [name, content] of this.#files) this.#session.fs.setFile(name, content);
         this.error = null;
         this.#setStatus("ready");
@@ -63,6 +79,18 @@ class Engine extends Emitter {
       } finally { restoreFetch(); }
     })();
     return this.#initPromise;
+  }
+
+  async #probe() {
+    let info = null;
+    try { info = typeof this.#session.engineInfo === "function" ? await this.#session.engineInfo() : null; }
+    catch (err) { console.warn("engineInfo failed; treating the engine as an old build", err); }
+    this.#caps = {
+      bridgeVersion: Number.isInteger(info?.bridgeVersion) ? info.bridgeVersion : 1,
+      hledgerLib: info?.hledgerLib ?? null,
+      features: new Set(Array.isArray(info?.features) ? info.features : []),
+    };
+    this.emit("capabilities", this.capabilities);
   }
 
   /** Starts over after a failed init (used by the Retry buttons). */
@@ -152,7 +180,7 @@ class Engine extends Emitter {
       const loaded = await this.#use(s, text, forecast);
       if (!loaded.ok) return { ok: false, error: loaded.error };
       const result = await s.getJournalJSON();
-      const out = result?.ok ? { ok: true, data: result.data ?? [] } : { ok: false, error: result?.error ?? "Couldn't read the journal." };
+      const out = result?.ok ? { ok: true, data: this.#withEditability(result.data ?? [], text, forecast) } : { ok: false, error: result?.error ?? "Couldn't read the journal." };
       if (out.ok) this.#txCache.set(name, { text, forecast, fsVersion: this.#fsVersion, result: out });
       return out;
     }).catch(failure);
@@ -173,6 +201,9 @@ class Engine extends Emitter {
     const method = REPORT_METHODS[type];
     if (!method) return Promise.resolve({ ok: false, error: `Unknown report "${type}".` });
     return this.#run(async (s) => {
+      // Never show statement figures from a build known to get them wrong.
+      if (GATED_REPORTS.has(type) && !this.supports(STATEMENTS_FEATURE)) return { ok: false, outdated: true, error: OUTDATED_STATEMENTS_MESSAGE };
+      if (typeof s[method] !== "function") return { ok: false, unsupported: true, error: `This hledger engine build doesn't provide the "${type}" report.` };
       const loaded = await this.#use(s, text, forecast);
       if (!loaded.ok) return { ok: false, error: loaded.error };
       return (await s[method](query)) ?? { ok: false, error: "The engine returned nothing." };
@@ -184,13 +215,69 @@ class Engine extends Emitter {
     return this.#mutate(text, forecast, (s) => s.balanceTransaction(txnText));
   }
   updateTransaction(text, id, txnText, { forecast = false } = {}) {
-    return this.#mutate(text, forecast, (s) => s.updateTransaction(id, txnText));
+    return this.#mutate(text, forecast, (s) => s.updateTransaction(id, txnText), { guard: true });
   }
   deleteTransaction(text, id, { forecast = false } = {}) {
-    return this.#mutate(text, forecast, (s) => s.deleteTransaction(id));
+    return this.#mutate(text, forecast, (s) => s.deleteTransaction(id), { guard: true });
   }
-  #mutate(text, forecast, op) {
+
+  /**
+   * Deletes several transactions as ONE operation. `ids` are the ids from transactions() of this same `text`.
+   * Resolves { ok:true, text, deleted } with the new journal text, or { ok:false, error } with nothing changed
+   * (the caller only saves on ok, so a failure can never leave a half-edited file behind).
+   * Newer engines do this atomically in one call; older ones are driven here, one deletion at a time from the
+   * highest original id down (so earlier ids never shift), never in parallel, and abandoned on the first failure.
+   */
+  deleteTransactions(text, ids, { forecast = false } = {}) {
+    const unique = [...new Set(ids)];
+    if (!unique.length) return Promise.resolve({ ok: false, error: "No transactions are selected." });
+    if (unique.some((id) => !Number.isInteger(id) || id < 0)) return Promise.resolve({ ok: false, error: "The selection contains an invalid transaction." });
     return this.#run(async (s) => {
+      const blocked = this.#mutationBlocker(text, forecast);
+      if (blocked) return { ok: false, error: blocked };
+      const loaded = await this.#use(s, text, forecast);
+      if (!loaded.ok) return { ok: false, error: loaded.error };
+      if (this.supports("batch-delete") && typeof s.deleteTransactions === "function") {
+        const res = await s.deleteTransactions(unique);
+        this.#loaded = null;
+        const err = mutationError(res);
+        if (err) return { ok: false, error: err };
+        if (typeof res.rawText !== "string") return { ok: false, error: "The engine didn't return the updated journal." };
+        return { ok: true, text: res.rawText, deleted: res.deleted ?? unique.length };
+      }
+      let working = null;
+      for (const id of [...unique].sort((a, b) => b - a)) {
+        const res = await s.deleteTransaction(id);
+        const err = mutationError(res) ?? (typeof res?.rawText === "string" ? null : "The engine didn't return the updated journal.");
+        if (err) { this.#loaded = null; return { ok: false, error: `Stopped while deleting (${err}). Nothing was saved.` }; }
+        working = res.rawText;
+      }
+      this.#loaded = null;
+      return { ok: true, text: working, deleted: unique.length };
+    }).catch(failure);
+  }
+
+  /**
+   * Why edits/deletes can't be trusted on this text with this engine build (null = fine).
+   * Newer builds decide per transaction; an old build can't tell which file a transaction came from
+   * (and would splice an included file's line numbers into the root file), so it is refused outright.
+   */
+  #mutationBlocker(text, forecast) {
+    if (this.supports("mutation-source-guard")) return null;
+    if (forecast) return "Forecast transactions are included, and this engine build can't tell them from real ones. Turn off “Include forecast transactions” first.";
+    if (INCLUDE_RE.test(text)) return "This journal includes other files, and this engine build can't tell which file a transaction lives in, so changing it could damage the wrong text. Update hledger-lib-wasm, or edit the file in Raw text.";
+    return null;
+  }
+
+  #withEditability(data, text, forecast) {
+    const legacy = this.#mutationBlocker(text, forecast);
+    return data.map((t) => (typeof t.editable === "boolean" ? t : { ...t, editable: !legacy, blockedReason: legacy }));
+  }
+
+  #mutate(text, forecast, op, { guard = false } = {}) {
+    return this.#run(async (s) => {
+      const blocked = guard ? this.#mutationBlocker(text, forecast) : null;
+      if (blocked) return { ok: false, error: blocked };
       const loaded = await this.#use(s, text, forecast);
       if (!loaded.ok) return { ok: false, error: loaded.error };
       const res = await op(s);
@@ -228,3 +315,4 @@ class Engine extends Emitter {
 }
 
 export const engine = new Engine();
+

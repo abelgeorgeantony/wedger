@@ -5,51 +5,130 @@
   .jv__rendered { flex: 1; min-height: 0; overflow: auto; }
   .jv__page { max-width: 62rem; margin: 0 auto; padding: 1.5rem clamp(1rem, 4vw, 2.5rem) 3rem; }
 
-  .jv__overview { display: flex; gap: 1rem; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; }
-  .jv__heading { font-family: var(--font-read); font-size: 1.55rem; font-weight: 650; letter-spacing: -.01em; line-height: 1.2; }
-  .jv__sub { font-family: var(--font-read); color: var(--text-muted); margin-top: .25rem; }
+  .visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
-  .jv__stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: .75rem; margin: 1.1rem 0 .75rem; }
-  .jv-stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: .85rem 1rem .8rem; min-width: 0; }
-  .jv-stat__label { font-family: var(--font-read); color: var(--text-muted); font-size: .82rem; font-weight: 500; }
-  .jv-stat__value { font-family: var(--font-read); font-size: 1.45rem; font-weight: 650; font-variant-numeric: tabular-nums; margin-top: .15rem; overflow-wrap: anywhere; }
-  .jv-stat__value.is-neg { color: var(--neg); }
-  .jv-stat__note { font-family: var(--font-read); color: var(--text-muted); font-size: .8rem; margin-top: .15rem; }
+  /* ---------- overview: statement previews ---------- */
+  .ov { margin-bottom: 2rem; }
+  .ov__bar { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .9rem; margin-bottom: .75rem; }
+  .ov__ctl { display: inline-flex; align-items: center; gap: .45rem; }
+  .ov__ctl--end { margin-left: auto; }
+  .ov__ctl-label { font-family: var(--font-read); font-size: .82rem; color: var(--text-muted); }
+  .ov__select { width: auto; min-width: 9.5rem; padding-block: .3rem; }
+  .ov__custom { display: inline-flex; align-items: center; gap: .4rem; flex-wrap: wrap; }
+  .ov__custom .input { width: auto; padding-block: .3rem; }
+  .ov__to { font-family: var(--font-read); color: var(--text-muted); font-size: .85rem; }
+  .ov__outdated { grid-column: 1 / -1; }
+  .ov__outdated p { margin-top: .3rem; }
+  .ov__msg { font-family: var(--font-read); color: var(--danger); padding: .8rem 0; }
 
-  .jv-top { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: .85rem 1rem; margin-bottom: 1.4rem; }
-  .jv-top__title { font-family: var(--font-read); font-size: .85rem; font-weight: 600; color: var(--text-muted); margin-bottom: .55rem; }
-  .jv-top__row { display: grid; grid-template-columns: minmax(7rem, 11rem) 1fr auto; gap: .8rem; align-items: center; padding: .22rem 0; font-family: var(--font-read); }
-  .jv-top__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .jv-top__bar { height: .45rem; border-radius: 999px; background: var(--hover); overflow: hidden; }
-  .jv-top__bar > span { display: block; height: 100%; border-radius: inherit; background: var(--text-faint); }
-  .jv-top__amount { font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }
-  @media (max-width: 520px) { .jv-top__row { grid-template-columns: 1fr auto; } .jv-top__bar { display: none; } }
+  .ov__cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: 1rem; align-items: start; }
+  .stmt { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); min-width: 0; }
+  .stmt__head { display: flex; justify-content: space-between; align-items: flex-start; gap: .75rem; padding: .8rem 1rem .7rem; border-bottom: 1px solid var(--border); }
+  .stmt__titles { min-width: 0; }
+  .stmt__title { font-family: var(--font-read); font-size: 1rem; font-weight: 650; }
+  .stmt__sub { font-family: var(--font-read); color: var(--text-muted); font-size: .82rem; margin-top: .15rem; overflow-wrap: anywhere; }
+  .ov__open { flex: none; color: var(--text-muted); }
+  .stmt__body { padding: .35rem 1rem .9rem; font-family: var(--font-read); }
+  .stmt__sec { padding-top: .65rem; }
+  .stmt__sec-title { font-size: .74rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); margin-bottom: .25rem; }
+  .stmt__rows { list-style: none; }
+  .stmt__row, .stmt__total, .stmt__net { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; }
+  .stmt__row { padding: .22rem 0; }
+  .stmt__name { display: flex; flex-direction: column; gap: .3rem; min-width: 0; flex: 1; overflow-wrap: anywhere; }
+  .stmt__bar { display: block; height: 3px; border-radius: 2px; background: var(--hover); max-width: 14rem; }
+  .stmt__bar > span { display: block; height: 100%; border-radius: inherit; background: var(--text-faint); }
+  .stmt__amt { display: inline-flex; flex-direction: column; align-items: flex-end; flex: none; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .stmt__amt .is-neg { color: var(--neg); }
+  .stmt__total { margin-top: .25rem; padding-top: .35rem; border-top: 1px solid var(--border); font-weight: 600; font-size: .92rem; }
+  .stmt__net { margin-top: .85rem; padding-top: .6rem; border-top: 1px solid var(--border-strong); font-weight: 650; font-size: 1.02rem; }
+  .stmt__more { margin: .25rem 0 0; padding: .1rem 0; font-size: .82rem; color: var(--text-muted); text-decoration: underline; text-underline-offset: 2px; text-decoration-color: var(--border-strong); }
+  .stmt__more:hover { color: var(--text); text-decoration-color: currentColor; }
+  .stmt__empty { color: var(--text-muted); font-size: .92rem; padding: .8rem 0 .4rem; }
+  .stmt__body .banner { margin-top: .6rem; }
+  .stmt__body .banner .btn { margin-top: .5rem; }
+  .stmt__skeleton { display: flex; flex-direction: column; gap: .7rem; padding: .9rem 0 .4rem; }
+  .stmt__skeleton > span { display: block; height: .7rem; border-radius: 4px; background: var(--hover); animation: stmt-pulse 1.4s ease-in-out infinite; }
+  @keyframes stmt-pulse { 50% { opacity: .45; } }
+  @media (prefers-reduced-motion: reduce) { .stmt__skeleton > span { animation: none; } }
 
-  .jv__listhead { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: .5rem; }
+  .ov__note { margin-top: .75rem; padding: .55rem .85rem; border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent); background: var(--warn-soft); color: var(--warn); border-radius: var(--radius); font-family: var(--font-read); font-size: .88rem; }
+  .ov__note summary { display: flex; align-items: center; gap: .5rem; cursor: pointer; font-weight: 600; }
+  .ov__note p { margin-top: .4rem; overflow-wrap: anywhere; }
+  .ov__note code { font-family: var(--font-raw); background: rgba(127, 127, 127, .15); padding: .05rem .3rem; border-radius: 4px; }
+
+  /* ---------- transactions: one continuous ledger, not a stack of cards ----------
+     Date headings group the rows (date sorts); the description is the focal line; accounts and amounts are
+     aligned supporting detail. Separators are hairlines, the selected row uses a fill plus an inset marker
+     (no borders, so nothing overflows or shifts), and edit / delete appear on hover or focus. */
+  .jv__listhead { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: .6rem; }
   .jv__listtitle { font-family: var(--font-read); font-size: 1.05rem; font-weight: 650; }
-  .jv__listmeta { font-family: var(--font-read); color: var(--text-muted); font-size: .85rem; }
+  .jv__listmeta { font-family: var(--font-read); color: var(--text-muted); font-size: .85rem; text-align: right; }
 
-  .jv__chips { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; margin-bottom: .5rem; }
+  .jv__chips { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; margin-bottom: .6rem; }
   .jv__chips-clear { font-size: .85rem; color: var(--text-muted); padding: .15rem .4rem; border-radius: 6px; }
   .jv__chips-clear:hover { color: var(--text); background: var(--hover); }
 
-  .jv__date { margin: 1.15rem 0 .4rem; font-family: var(--font-read); font-size: .8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; }
-  .jv-txn { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: .7rem 1rem .7rem; margin-bottom: .4rem; }
-  .jv-txn:hover { border-color: var(--border-strong); }
-  .jv-txn__top { display: flex; justify-content: space-between; gap: 1rem; align-items: baseline; padding-right: 4.4rem; }
-  .jv-txn__desc { font-family: var(--font-read); font-weight: 600; overflow-wrap: anywhere; }
-  .jv-txn__total { font-family: var(--font-read); font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .jv-txn__postings { margin-top: .3rem; display: grid; grid-template-columns: 1fr auto; gap: .05rem 1.5rem; font-family: var(--font-read); font-size: .9rem; color: var(--text-muted); }
-  .jv-txn__account { overflow-wrap: anywhere; }
-  .jv-txn__amount { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .jv-txn__amount.is-neg { color: var(--neg); }
-  .jv-txn__actions { position: absolute; top: .4rem; right: .45rem; display: flex; gap: .1rem; opacity: 0; transition: opacity .12s; }
-  .jv-txn:hover .jv-txn__actions, .jv-txn:focus-within .jv-txn__actions { opacity: 1; }
-  @media (hover: none) { .jv-txn__actions { opacity: 1; } }
-  .jv-txn__top { min-height: 1.6rem; }
+  .jv__notice { margin-bottom: .6rem; display: flex; flex-direction: column; gap: .4rem; }
+  .jv__selbar { position: sticky; top: 0; z-index: 4; display: flex; align-items: center; gap: .25rem .75rem; flex-wrap: wrap; margin-bottom: .5rem; padding: .4rem .5rem .4rem .85rem; background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius); box-shadow: var(--shadow-sm); font-family: var(--font-read); font-size: .9rem; }
+  .jv__selbar strong { font-weight: 650; }
+  .jv__selbar-note { color: var(--text-muted); font-size: .84rem; flex: 1 1 14rem; min-width: 0; }
+  .jv__selbar .btn { margin-left: auto; }
+
+  .ledger { border-top: 1px solid var(--border); }
+  .ledger__date { margin: 0; padding: 1.3rem .5rem .4rem; font-family: var(--font-read); font-size: .82rem; font-weight: 600; letter-spacing: .01em; color: var(--text-muted); }
+  .ledger__date:first-child { padding-top: .9rem; }
+
+  .txn {
+    position: relative; display: grid; align-items: start;
+    grid-template-columns: auto auto minmax(0, 1fr) auto;
+    grid-template-areas: "sel date main act";
+    padding: .75rem .5rem; border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+    font-family: var(--font-read);
+    transition: background-color .12s ease;
+    content-visibility: auto; contain-intrinsic-size: auto 4.8rem;      /* keeps thousands of rows cheap to scroll */
+  }
+  .txn:hover { background: var(--hover); }
+  .txn.is-selected { background: var(--selected); box-shadow: inset 3px 0 0 var(--text-muted); }
+  .txn__select { grid-area: sel; display: flex; align-items: center; padding: .3rem .7rem .3rem .15rem; margin: -.3rem 0; cursor: pointer; }
+  .txn__select input { width: 1.1rem; height: 1.1rem; margin: 0; accent-color: var(--text); cursor: pointer; }
+  .txn__select input:disabled { cursor: not-allowed; }
+  .txn__date { grid-area: date; width: 6.4rem; padding-right: .75rem; font-size: .85rem; color: var(--text-muted); font-variant-numeric: tabular-nums; white-space: nowrap; padding-top: .12rem; }
+  .ledger--grouped .txn__date { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); padding: 0; }     /* the heading above says it; screen readers still get it */
+  .txn__main { grid-area: main; min-width: 0; }
+  .txn__desc { display: flex; flex-wrap: wrap; align-items: baseline; gap: .1rem .65rem; font-size: 1.02rem; font-weight: 600; line-height: 1.35; overflow-wrap: anywhere; }
+  .txn__desc.is-empty { font-weight: 500; color: var(--text-muted); font-style: italic; }
+  .txn__note { font-size: .78rem; font-weight: 500; color: var(--text-muted); white-space: nowrap; }
+  .txn__postings { margin-top: .3rem; display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 1.5rem; row-gap: .12rem; font-size: .9rem; }
+  .txn__account { color: var(--text-muted); overflow-wrap: anywhere; }
+  .txn__amount { text-align: right; font-variant-numeric: tabular-nums; white-space: pre-line; }
+  .txn__amount.is-neg { color: var(--neg); }
+  .txn__actions { grid-area: act; display: flex; gap: .1rem; padding-left: .5rem; margin: -.25rem -.25rem 0 0; }
+  .txn__actions .icon-btn { color: var(--text-faint); }
+  .txn__actions .icon-btn:hover:not(.is-disabled), .txn__actions .icon-btn:focus-visible { color: var(--text); }
+  .txn__actions .icon-btn--danger:hover:not(.is-disabled) { color: var(--danger); }
+  .txn__actions .icon-btn:focus-visible, .txn__select input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .txn__actions .icon-btn.is-disabled { opacity: .35; cursor: not-allowed; }
+  .txn.is-locked .txn__desc { color: var(--text-muted); }
+  .ledger.is-selecting .txn { cursor: pointer; }
+  .ledger.is-selecting .txn.is-locked { cursor: default; }
+  /* Mouse users see the actions on hover or keyboard focus; touch users always see them. */
+  @media (hover: hover) and (pointer: fine) {
+    .txn__actions { opacity: 0; }
+    .txn:hover .txn__actions, .txn:focus-within .txn__actions { opacity: 1; }
+  }
+  @media (pointer: coarse) { .txn__actions .icon-btn { width: 2.5rem; height: 2.5rem; } .txn__select { padding-right: .85rem; } .txn__select input { width: 1.3rem; height: 1.3rem; } }
+  @media (prefers-reduced-motion: reduce) { .txn { transition: none; } }
+  @media (max-width: 560px) {
+    .txn { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "sel date act" "sel main main"; }
+    .ledger--grouped .txn { grid-template-areas: "sel main act"; }
+    .txn__date { width: auto; padding: 0 0 .15rem; }
+    .txn__postings { column-gap: .85rem; }
+    .jv__listhead { flex-direction: column; gap: .15rem; }
+    .jv__listmeta { text-align: left; }
+  }
 
   .jv__empty { text-align: center; color: var(--text-muted); padding: 2.6rem 1rem; border: 1px dashed var(--border-strong); border-radius: var(--radius); font-family: var(--font-read); }
-  .jv__empty .btn { margin-top: .8rem; }
+  .jv__empty .btn { margin: .8rem .25rem 0; }
   .jv__state { margin: 2rem auto; max-width: 34rem; text-align: center; font-family: var(--font-read); color: var(--text-muted); }
   .jv__state .spinner { margin: 0 auto .7rem; }
   .jv__state .banner { text-align: left; }
@@ -86,24 +165,29 @@
     <div class="jv__state" data-slot="state" role="status"></div>
 
     <div data-slot="content" hidden>
-      <header class="jv__overview">
-        <div>
-          <h1 class="jv__heading" data-slot="heading"></h1>
-          <p class="jv__sub" data-slot="subheading"></p>
+      <h1 class="visually-hidden" data-slot="heading">Journal</h1>
+
+      <section class="ov" data-slot="overview" aria-label="Financial statements" hidden>
+        <div class="ov__bar" data-slot="ov-bar"></div>
+        <div class="ov__cards" data-slot="ov-cards" aria-live="polite"></div>
+        <div data-slot="ov-notes"></div>
+      </section>
+
+      <section aria-label="Transactions">
+        <div class="jv__listhead">
+          <h2 class="jv__listtitle">Transactions</h2>
+          <span class="jv__listmeta" data-slot="list-meta"></span>
         </div>
-        <button class="btn btn--primary" type="button" data-act="add-txn"><span class="icon icon--plus" aria-hidden="true"></span>Add transaction</button>
-      </header>
-
-      <div class="jv__stats" data-slot="stats"></div>
-      <section class="jv-top" data-slot="top" aria-label="Top spending" hidden></section>
-
-      <div class="jv__listhead">
-        <h2 class="jv__listtitle">Transactions</h2>
-        <span class="jv__listmeta" data-slot="list-meta"></span>
-      </div>
-      <div class="jv__chips" data-slot="chips" hidden></div>
-      <div data-slot="list"></div>
-      <div class="jv__empty" data-slot="empty" hidden></div>
+        <div class="jv__chips" data-slot="chips" hidden></div>
+        <div class="jv__notice" data-slot="list-notice" hidden></div>
+        <div class="jv__selbar" data-slot="selbar" role="status" aria-live="polite" hidden>
+          <strong data-slot="sel-count"></strong>
+          <span class="jv__selbar-note" data-slot="sel-note"></span>
+          <button class="btn btn--small" type="button" data-act="exit-select">Done</button>
+        </div>
+        <div class="ledger" data-slot="list"></div>
+        <div class="jv__empty" data-slot="empty" hidden></div>
+      </section>
     </div>
   </div>
 </section>
@@ -123,3 +207,5 @@
   <span>UTF-8</span>
   <span data-slot="status-saved"></span>
 </footer>
+
+

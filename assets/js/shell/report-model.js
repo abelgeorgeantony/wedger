@@ -15,25 +15,36 @@ const payloadOf = (result) => (result && typeof result === "object" && "data" in
 
 /* --------------------------------------------------------------- amounts */
 /** hledger amount list -> [{value, commodity, side, spaced, places}] */
-const amountsOf = (list) => (Array.isArray(list) ? list.map(amountFromHledger).filter(Boolean) : []);
+export const amountsOf = (list) => (Array.isArray(list) ? list.map(amountFromHledger).filter(Boolean) : []);
 
-/** Sums amounts per commodity, keeping the first style seen for each. */
+/**
+ * Sums amounts per commodity (never across commodities), keeping the first style seen for each.
+ * Exact: uses hledger's integer mantissas (BigInt), so there is no floating-point drift. This only
+ * gives a PARENT account in a tree the total of its listed children; statement totals and the Net
+ * line always come from hledger itself.
+ */
 function sumAmounts(lists) {
-  const byCommodity = new Map();
+  const acc = new Map();
   for (const list of lists) {
     for (const a of list) {
-      const cur = byCommodity.get(a.commodity);
-      if (cur) { cur.value += a.value; cur.places = Math.max(cur.places, a.places); }
-      else byCommodity.set(a.commodity, { ...a });
+      let cur = acc.get(a.commodity);
+      if (!cur) { cur = { style: a, big: 0n, places: a.qplaces ?? 0, exact: true, approx: 0 }; acc.set(a.commodity, cur); }
+      cur.approx += a.value;
+      if (a.mantissa == null) { cur.exact = false; continue; }
+      if (a.qplaces > cur.places) { cur.big *= 10n ** BigInt(a.qplaces - cur.places); cur.places = a.qplaces; }
+      cur.big += BigInt(a.mantissa) * 10n ** BigInt(cur.places - a.qplaces);
     }
   }
-  return [...byCommodity.values()];
+  return [...acc.values()].map((c) => ({ ...c.style, value: c.exact ? Number(c.big) / 10 ** c.places : c.approx, places: Math.max(c.style.places, c.places), mantissa: null }));
 }
 
 export function formatAmounts(list, grouping = "auto") {
   if (!list.length) return "";
   return list.map((a) => formatMoney(a.value, a, grouping)).join(", ");
 }
+
+/** One formatted string per commodity (so a multi-commodity amount can be stacked, never merged). */
+export const formatAmountLines = (list, grouping = "auto") => list.map((a) => formatMoney(a.value, a, grouping));
 
 /* ----------------------------------------------------------------- trees */
 /**
@@ -82,10 +93,12 @@ function balanceModel(result) {
   return { kind: "tree", sections: [{ title: "", nodes: buildTree(rows), total: totals.length ? totals : null }] };
 }
 
-function statementModel(result) {
+export const NO_STATEMENT_DATA = "No data returned by hledger for this statement. Check the reporting period and account type declarations.";
+
+function statementModel(result, { totalLabel = "Net" } = {}) {
   const payload = payloadOf(result);
   const subs = payload?.cbrSubreports;
-  if (!Array.isArray(subs)) return { kind: "empty", message: "No data for this statement." };
+  if (!Array.isArray(subs)) return { kind: "empty", message: NO_STATEMENT_DATA };
   const sections = [];
   for (const sub of subs) {
     const title = typeof sub?.[0] === "string" ? sub[0] : "";
@@ -94,9 +107,54 @@ function statementModel(result) {
     const total = amountsOf(sub[1].prTotals?.prrTotal);
     sections.push({ title, nodes: buildTree(rows.map((r) => ({ name: r.prrName, amounts: amountsOf(r.prrTotal) }))), total: total.length ? total : null });
   }
-  if (!sections.length) return { kind: "empty", message: "No data for this statement." };
+  if (!sections.length) return { kind: "empty", message: NO_STATEMENT_DATA };
   const net = amountsOf(payload.cbrTotals?.prrTotal);
-  return { kind: "tree", sections, total: net.length ? net : null, totalLabel: "Net" };
+  return { kind: "tree", sections, total: net.length ? net : null, totalLabel };
+}
+
+/**
+ * Compact, flat model for the journal overview cards. Rows and totals are exactly what hledger returned
+ * (no parent synthesis, no sums of our own). Statuses:
+ *   "empty"  hledger returned no rows at all -> never presented as zero
+ *   "ok"     at least one section has rows
+ * A section's / the net's `amounts` is [] only when hledger reports a genuine zero for rows that exist.
+ */
+export function statementPreviewModel(result) {
+  const payload = payloadOf(result);
+  const subs = payload?.cbrSubreports;
+  if (!Array.isArray(subs)) return { status: "empty", sections: [], net: null };
+  const sections = [];
+  for (const sub of subs) {
+    const title = typeof sub?.[0] === "string" ? sub[0] : "";
+    const rows = sub?.[1]?.prRows;
+    if (!Array.isArray(rows) || !rows.length) continue;
+    sections.push({
+      title,
+      rows: sortComparable(rows.map((r) => ({ name: String(r.prrName ?? ""), amounts: amountsOf(r.prrTotal) }))),
+      total: amountsOf(sub[1].prTotals?.prrTotal),
+    });
+  }
+  if (!sections.length) return { status: "empty", sections: [], net: null };
+  return { status: "ok", sections, net: amountsOf(payload.cbrTotals?.prrTotal) };
+}
+
+/** Display order only: biggest first, but ONLY when every row is a single amount in one shared commodity. */
+function sortComparable(rows) {
+  const commodities = new Set();
+  for (const r of rows) {
+    if (r.amounts.length !== 1) return rows;
+    commodities.add(r.amounts[0].commodity);
+  }
+  if (commodities.size !== 1) return rows;
+  return [...rows].sort((a, b) => Math.abs(b.amounts[0].value) - Math.abs(a.amounts[0].value) || a.name.localeCompare(b.name));
+}
+
+/** Result of the engine's "accounttypes" diagnostic -> { total, untyped: [name] } (null when unavailable). */
+export function accountTypesSummary(result) {
+  const payload = payloadOf(result);
+  if (!Array.isArray(payload)) return null;
+  const untyped = payload.filter((r) => r && r.type == null).map((r) => String(r.account));
+  return { total: payload.length, untyped };
 }
 
 function registerModel(result) {
@@ -160,9 +218,9 @@ function textModel(result) {
 const BUILDERS = {
   balance: balanceModel,
   register: registerModel,
-  balancesheet: statementModel,
-  incomestatement: statementModel,
-  cashflow: statementModel,
+  balancesheet: (r) => statementModel(r, { totalLabel: "Net assets" }),
+  incomestatement: (r) => statementModel(r, { totalLabel: "Net" }),
+  cashflow: (r) => statementModel(r, { totalLabel: "Net" }),
   budget: periodicModel,
   accounts: (r) => listModel(r, "Account"),
   payees: (r) => listModel(r, "Payee"),
@@ -206,3 +264,4 @@ export function modelToCsv(model, grouping = "auto") {
   }
   return null;
 }
+

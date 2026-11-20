@@ -9,6 +9,7 @@ import { Emitter, extOf } from "./core.js";
 import { assets } from "./registry.js";
 import * as overlays from "./overlays.js";
 import { engine } from "./engine.js";
+import { shortcuts } from "./keyboard-shortcuts.js";
 import { StorageManager } from "../storage.js";
 
 /* ------------------------------------------------------------------ settings */
@@ -500,7 +501,7 @@ const actions = {
 let initialised = false;
 
 export const host = {
-  files, settings, auth, sync, reports, actions, assets, engine, download,
+  files, settings, auth, sync, reports, actions, assets, engine, download, shortcuts,
   dialogs: overlays,
   notify: overlays.toast,
 
@@ -525,3 +526,4 @@ export const host = {
   open: (uri, opts) => editors.open(uri, opts),
   close: (uri) => editors.closeByUri(uri),
 };
+
