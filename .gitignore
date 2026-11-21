@@ -10,5 +10,6 @@ prompt_context.*
 tree.txt
 *.zip
 *.bak
+*.patch
 
 !assets/js/vendor
