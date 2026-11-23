@@ -24,7 +24,7 @@ export function toast(message, type = "info", ms = type === "error" ? 6000 : 350
 }
 
 /* ---------- popup menu ---------- */
-/** items: [{label, onSelect, danger, disabled}] | {separator:true}.  anchor: Element or {x, y}. */
+/** items: [{label, onSelect, danger, disabled, shortcut}] | {separator:true}. `shortcut` is a display label ("⌘K").  anchor: Element or {x, y}. */
 export function menu(anchor, items) {
   const root = overlayRoot();
   const el = h("div", { class: "popup-menu", role: "menu" });
@@ -47,7 +47,7 @@ export function menu(anchor, items) {
       class: `popup-menu__item${item.danger ? " popup-menu__item--danger" : ""}`,
       role: "menuitem", type: "button", disabled: item.disabled,
       onclick: () => { close(); item.onSelect?.(); },
-    }, item.label);
+    }, h("span", { class: "popup-menu__label" }, item.label), item.shortcut && h("span", { class: "kbd" }, item.shortcut));
     buttons.push(b);
     el.append(b);
   }

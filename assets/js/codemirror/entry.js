@@ -1,19 +1,24 @@
-// assets/js/cm/entry.js
+// assets/js/codemirror/entry.js
 //
 // Wedger CodeMirror 6 bridge.
 //
 // This creates CodeMirror editors for Wedger textareas while keeping the
 // original textarea elements as hidden value bridges. Existing Wedger code
 // can continue reading/writing textarea.value and textarea.disabled.
+//
+// Application code imports the BUILT bundle (assets/js/codemirror/bundle.js,
+// produced by `npm run build:codemirror`), never this file: the browser cannot
+// resolve the bare "@codemirror/..." specifiers below.
 
 import {
   EditorView,
   keymap,
   placeholder,
+  drawSelection,
   lineNumbers,
   highlightActiveLineGutter,
 } from "@codemirror/view";
-import { EditorState, Compartment } from "@codemirror/state";
+import { EditorState, EditorSelection, Compartment } from "@codemirror/state";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { search, searchKeymap } from "@codemirror/search";
 
@@ -43,6 +48,40 @@ function setNativeDisabled(textarea, disabled) {
   disabledDescriptor.set.call(textarea, disabled);
 }
 
+// Colours come from Wedger's design tokens, so light and dark mode just work (no second palette here).
+const wedgerTheme = EditorView.theme({
+  "&": {
+    height: "100%",
+    color: "var(--text)",
+    backgroundColor: "var(--surface)",
+    fontFamily: "var(--font-raw)",
+    fontSize: ".92rem",
+  },
+  "&.cm-focused": { outline: "none" },
+  ".cm-scroller": { fontFamily: "var(--font-raw)", lineHeight: "1.55", overflow: "auto", height: "100%" },
+  ".cm-content": { caretColor: "var(--accent)", padding: ".75rem 0", fontVariantNumeric: "tabular-nums" },
+  ".cm-line": { padding: "0 .75rem" },
+  ".cm-cursor, .cm-dropCursor": { borderLeftColor: "var(--accent)" },
+  "&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection": {
+    backgroundColor: "var(--accent-soft)",
+  },
+  ".cm-gutters": {
+    backgroundColor: "var(--surface-2)",
+    color: "var(--text-faint)",
+    border: "none",
+    borderRight: "1px solid var(--border)",
+  },
+  ".cm-lineNumbers .cm-gutterElement": { padding: "0 .65rem 0 .5rem", minWidth: "2.6rem" },
+  ".cm-activeLineGutter": { backgroundColor: "var(--hover)", color: "var(--text)" },
+  ".cm-placeholder": { color: "var(--text-faint)" },
+  ".cm-panels": { backgroundColor: "var(--surface-2)", color: "var(--text)", borderColor: "var(--border)" },
+  ".cm-panel input, .cm-panel button": { fontFamily: "var(--font-ui)", color: "var(--text)" },
+  ".cm-searchMatch": { backgroundColor: "var(--warn-soft)", outline: "1px solid var(--warn)" },
+  ".cm-searchMatch.cm-searchMatch-selected": { backgroundColor: "var(--accent-soft)" },
+});
+
+const gutterExtensions = (on) => (on ? [lineNumbers(), highlightActiveLineGutter()] : []);
+
 export function createBoundEditor(textarea, options = {}) {
   if (!textarea) {
     throw new Error("createBoundEditor requires a textarea element");
@@ -50,9 +89,10 @@ export function createBoundEditor(textarea, options = {}) {
 
   const dispatchInput = options.dispatchInput ?? false;
   const resetHistoryOnSet = options.resetHistoryOnSet ?? false;
-  const lineWrapping = options.lineWrapping ?? true;
+  const lineWrapping = options.lineWrapping ?? false;            // hledger text is columnar: wrapping lies about columns
   const forcedEditable = options.editable;
-  const showLineNumbers = options.lineNumbers ?? true;
+  let showLineNumbers = options.lineNumbers ?? true;
+  const onSelection = options.onSelection;                       // (update) => void, on cursor moves and edits
 
   function computeEditable() {
     if (typeof forcedEditable === "boolean") {
@@ -65,6 +105,7 @@ export function createBoundEditor(textarea, options = {}) {
 
   const editableCompartment = new Compartment();
   const readOnlyCompartment = new Compartment();
+  const lineNumbersCompartment = new Compartment();
 
   let programmaticChange = false;
 
@@ -86,8 +127,10 @@ export function createBoundEditor(textarea, options = {}) {
 
   function buildExtensions() {
     return [
-      showLineNumbers ? lineNumbers() : [],
-      showLineNumbers ? highlightActiveLineGutter() : [],
+      lineNumbersCompartment.of(gutterExtensions(showLineNumbers)),
+      wedgerTheme,
+      drawSelection(),                      // the selection stays visible while focus is in the search field
+      EditorState.tabSize.of(4),
 
       history(),
       keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap]),
@@ -100,14 +143,15 @@ export function createBoundEditor(textarea, options = {}) {
       editableCompartment.of(EditorView.editable.of(currentEditable)),
       readOnlyCompartment.of(EditorState.readOnly.of(!currentEditable)),
       EditorView.updateListener.of((update) => {
-        if (!update.docChanged || programmaticChange) return;
+        if (update.docChanged && !programmaticChange) {
+          const value = update.state.doc.toString();
+          setNativeValue(textarea, value);
 
-        const value = update.state.doc.toString();
-        setNativeValue(textarea, value);
-
-        if (dispatchInput) {
-          textarea.dispatchEvent(new Event("input", { bubbles: true }));
+          if (dispatchInput) {
+            textarea.dispatchEvent(new Event("input", { bubbles: true }));
+          }
         }
+        if ((update.selectionSet || update.docChanged) && onSelection) onSelection(update);
       }),
     ];
   }
@@ -123,6 +167,10 @@ export function createBoundEditor(textarea, options = {}) {
     state: createState(getNativeValue(textarea) || ""),
     parent: wrapper,
   });
+
+  if (textarea.getAttribute("aria-label")) {
+    view.contentDOM.setAttribute("aria-label", textarea.getAttribute("aria-label"));
+  }
 
   // If a visible <label for="..."> points at the hidden textarea, make it
   // focus the CodeMirror editor instead.
@@ -214,6 +262,35 @@ export function createBoundEditor(textarea, options = {}) {
       });
     },
 
+    setLineNumbers(on) {
+      showLineNumbers = Boolean(on);
+      view.dispatch({ effects: lineNumbersCompartment.reconfigure(gutterExtensions(showLineNumbers)) });
+    },
+
+    /** Document offsets of the main selection: { from, to } (from <= to). */
+    getSelection() {
+      const { from, to } = view.state.selection.main;
+      return { from, to };
+    },
+
+    /** 1-based { line, col } of the cursor (the selection head). */
+    getCursor() {
+      const head = view.state.selection.main.head;
+      const line = view.state.doc.lineAt(head);
+      return { line: line.number, col: head - line.from + 1 };
+    },
+
+    /** Selects [from, to] (document offsets) and scrolls it into view. Does not move focus. */
+    setSelection(from, to = from, { scroll = true } = {}) {
+      const len = view.state.doc.length;
+      const clamp = (n) => Math.max(0, Math.min(len, Number.isFinite(n) ? n : 0));
+      const a = clamp(from), b = clamp(to);
+      view.dispatch({
+        selection: EditorSelection.range(a, b),
+        effects: scroll ? EditorView.scrollIntoView(EditorSelection.range(a, b), { y: "center" }) : [],
+      });
+    },
+
     refresh() {
       view.requestMeasure();
     },
@@ -224,14 +301,23 @@ export function createBoundEditor(textarea, options = {}) {
 
     destroy() {
       displayObserver.disconnect();
+      const last = view.state.doc.toString();
       view.destroy();
       wrapper.remove();
 
+      // Give the textarea back its native behaviour (value, disabled, focus) and its last text.
+      delete textarea.value;
+      delete textarea.disabled;
+      delete textarea.focus;
+      setNativeValue(textarea, last);
       textarea.classList.remove("cm-textarea-proxy");
       textarea.removeAttribute("aria-hidden");
       textarea.tabIndex = 0;
     },
   };
+
+  // textarea.focus() moves focus into the editor.
+  textarea.focus = () => view.focus();
 
   // Preserve textarea.value semantics for existing Wedger code.
   Object.defineProperty(textarea, "value", {
@@ -264,93 +350,10 @@ export function createBoundEditor(textarea, options = {}) {
   return controller;
 }
 
+/**
+ * Kept so old imports don't break. It used to look up element ids that no longer exist in the shell and did nothing.
+ * Views mount their own editors with createBoundEditor() and destroy() them when they close.
+ */
 export function initWedgerEditors() {
-  if (window.wedgerEditors) {
-    return window.wedgerEditors;
-  }
-
-  const editors = {};
-
-  function bind(id, options) {
-    const el = document.getElementById(id);
-
-    if (!el || el.dataset.cmBound === "true") {
-      return null;
-    }
-
-    el.dataset.cmBound = "true";
-    return createBoundEditor(el, options);
-  }
-
-  // Main journal editor.
-  //
-  // dispatchInput: true allows the existing journalText input listener in
-  // app.js to continue working.
-  //
-  // resetHistoryOnSet: true avoids undo history leaking across journal files
-  // when Wedger programmatically replaces the whole document.
-  editors.journal = bind("journal-text", {
-    dispatchInput: true,
-    resetHistoryOnSet: true,
-  });
-
-  // Output/report viewer.
-  editors.output = bind("output", {
-    editable: false,
-    dispatchInput: false,
-    resetHistoryOnSet: false,
-  });
-
-  // CSV import textareas.
-  editors.csvData = bind("csv-import-text", {
-    dispatchInput: false,
-    resetHistoryOnSet: false,
-  });
-
-  editors.csvRules = bind("csv-import-rules", {
-    dispatchInput: false,
-    resetHistoryOnSet: false,
-  });
-
-  // Raw transaction preview.
-  //
-  // The current HTML uses readonly. If you want raw transaction text to be
-  // user-editable, remove readonly from the textarea and change this to:
-  //
-  // editable: true
-  editors.rawTxn = bind("raw-txn-input", {
-    dispatchInput: false,
-    resetHistoryOnSet: false,
-  });
-
-  // Refresh editors when dialogs open.
-  //
-  // CodeMirror can measure incorrectly if it is initialized while inside a
-  // closed <dialog> element. Refreshing on open avoids layout glitches.
-  function refreshEditorsWithin(root) {
-    for (const editor of Object.values(editors)) {
-      if (editor && root.contains(editor.view.dom)) {
-        editor.refresh();
-      }
-    }
-  }
-
-  document.querySelectorAll("dialog").forEach((dialog) => {
-    const observer = new MutationObserver(() => {
-      if (dialog.open) {
-        requestAnimationFrame(() => {
-          refreshEditorsWithin(dialog);
-        });
-      }
-    });
-
-    observer.observe(dialog, {
-      attributes: true,
-      attributeFilter: ["open"],
-    });
-  });
-
-  window.wedgerEditors = editors;
-
-  return editors;
+  return {};
 }

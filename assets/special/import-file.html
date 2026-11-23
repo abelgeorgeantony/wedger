@@ -20,7 +20,9 @@
   .imp-file__name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .imp-file__meta { font-family: var(--font-read); font-size: .82rem; color: var(--text-muted); }
 
-  .imp__raw { font-family: var(--font-raw); font-variant-numeric: tabular-nums; white-space: pre; font-size: .9rem; min-height: 9rem; }
+  .imp__raw { font-family: var(--font-raw); font-variant-numeric: tabular-nums; white-space: pre; font-size: .9rem; min-height: 9rem; }   /* the value bridge; hidden once its editor is mounted */
+  .imp-step .cm-wrapper { height: 12rem; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .imp-step .cm-wrapper:focus-within { border-color: var(--accent); }
   .imp-tools { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin-bottom: .6rem; }
   .imp-tools .select { flex: 1 1 11rem; min-width: 0; }
   .imp-cols { display: flex; flex-wrap: wrap; gap: .3rem; margin: .1rem 0 .6rem; }
@@ -98,7 +100,7 @@
             </select>
           </div>
           <label class="sr-only" for="imp-paste-text">Pasted text</label>
-          <textarea class="textarea imp__raw" id="imp-paste-text" name="pasteText" rows="8" spellcheck="false" wrap="off" placeholder="Paste journal entries or CSV rows here"></textarea>
+          <textarea class="textarea imp__raw" id="imp-paste-text" name="pasteText" rows="8" spellcheck="false" wrap="off" aria-label="Pasted text" placeholder="Paste journal entries or CSV rows here"></textarea>
         </div>
       </section>
 
@@ -113,7 +115,7 @@
           <label class="btn btn--small" style="cursor:pointer">Upload .rules<input class="sr-only" type="file" name="rulesFile" accept=".rules,.txt"></label>
         </div>
         <label class="sr-only" for="imp-rules">CSV rules</label>
-        <textarea class="textarea imp__raw" id="imp-rules" name="rules" rows="9" spellcheck="false" wrap="off" placeholder="skip 1&#10;fields date, description, amount&#10;date-format %d/%m/%Y&#10;account1 assets:bank"></textarea>
+        <textarea class="textarea imp__raw" id="imp-rules" name="rules" rows="9" spellcheck="false" wrap="off" aria-label="CSV rules" placeholder="skip 1&#10;fields date, description, amount&#10;date-format %d/%m/%Y&#10;account1 assets:bank"></textarea>
         <label class="check" style="margin-top:.6rem" data-slot="save-rules-wrap">
           <input type="checkbox" name="saveRules" checked> <span>Save these rules as <strong data-slot="rules-name">a .rules file</strong> so I can reuse them</span>
         </label>

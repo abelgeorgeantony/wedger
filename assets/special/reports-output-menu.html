@@ -2,11 +2,13 @@
 
   <div class="menubar__item" data-menu="view">
     <button class="menubar__btn" type="button" aria-haspopup="true" aria-expanded="false">View</button>
-    <div class="menubar__panel" role="group" aria-label="View" hidden>
+    <form class="menubar__panel" aria-label="View" autocomplete="off" novalidate hidden>
       <div class="menubar__group">
         <div class="menubar__label">Show reports as</div>
-        <label class="menubar__radio"><input type="radio" name="mode" value="rendered" checked> Rendered (tables and trees)</label>
-        <label class="menubar__radio"><input type="radio" name="mode" value="raw"> Raw (exactly what hledger returned)</label>
+        <label class="menubar__radio"><input type="radio" name="mode" value="rendered" checked> Rendered (tables and
+          trees)</label>
+        <label class="menubar__radio"><input type="radio" name="mode" value="raw"> Raw (exactly what hledger
+          returned)</label>
       </div>
       <div class="menubar__group">
         <div class="menubar__label">Order</div>
@@ -17,11 +19,12 @@
         <button class="menubar__entry" type="button" data-act="expand-all">Expand all</button>
         <button class="menubar__entry" type="button" data-act="collapse-all">Collapse all</button>
       </div>
-    </div>
+    </form>
   </div>
 
   <div class="menubar__item" data-menu="filter">
-    <button class="menubar__btn" type="button" aria-haspopup="true" aria-expanded="false">Filter<span class="menubar__badge" data-slot="filter-count" hidden></span></button>
+    <button class="menubar__btn" type="button" aria-haspopup="true" aria-expanded="false">Filter<span
+        class="menubar__badge" data-slot="filter-count" hidden></span></button>
     <div class="menubar__panel" role="group" aria-label="Filter reports" hidden>
       <div class="menubar__group">
         <div class="menubar__label">Report type</div>
@@ -30,7 +33,9 @@
       <div class="menubar__group">
         <label class="field">
           <span class="field__label">From file</span>
-          <select class="select" name="file"><option value="">All files</option></select>
+          <select class="select" name="file">
+            <option value="">All files</option>
+          </select>
         </label>
       </div>
       <div class="menubar__row">
@@ -45,9 +50,11 @@
       <div class="menubar__group">
         <label class="field">
           <span class="field__label">Find in reports</span>
-          <input class="input" type="search" name="search" placeholder="e.g. expenses:food" autocomplete="off" spellcheck="false">
+          <input class="input" type="search" name="search" placeholder="e.g. expenses:food" autocomplete="off"
+            spellcheck="false">
         </label>
-        <p class="menubar__hint" data-slot="search-count" aria-live="polite">Shows only reports whose output contains the text.</p>
+        <p class="menubar__hint" data-slot="search-count" aria-live="polite">Shows only reports whose output contains
+          the text.</p>
       </div>
     </div>
   </div>

@@ -3,105 +3,76 @@
 
   /* ---------- rendered ---------- */
   .jv__rendered { flex: 1; min-height: 0; overflow: auto; }
-  .jv__page { max-width: 62rem; margin: 0 auto; padding: 1.5rem clamp(1rem, 4vw, 2.5rem) 3rem; }
+  .jv__page { max-width: 62rem; margin: 0 auto; padding: 1rem clamp(1rem, 4vw, 2.5rem) 3rem; }
 
   .visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
-  /* ---------- overview: statement previews ---------- */
-  .ov { margin-bottom: 2rem; }
-  .ov__bar { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .9rem; margin-bottom: .75rem; }
-  .ov__ctl { display: inline-flex; align-items: center; gap: .45rem; }
-  .ov__ctl--end { margin-left: auto; }
-  .ov__ctl-label { font-family: var(--font-read); font-size: .82rem; color: var(--text-muted); }
-  .ov__select { width: auto; min-width: 9.5rem; padding-block: .3rem; }
-  .ov__custom { display: inline-flex; align-items: center; gap: .4rem; flex-wrap: wrap; }
-  .ov__custom .input { width: auto; padding-block: .3rem; }
-  .ov__to { font-family: var(--font-read); color: var(--text-muted); font-size: .85rem; }
-  .ov__outdated { grid-column: 1 / -1; }
-  .ov__outdated p { margin-top: .3rem; }
-  .ov__msg { font-family: var(--font-read); color: var(--danger); padding: .8rem 0; }
-
-  .ov__cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: 1rem; align-items: start; }
-  .stmt { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); min-width: 0; }
-  .stmt__head { display: flex; justify-content: space-between; align-items: flex-start; gap: .75rem; padding: .8rem 1rem .7rem; border-bottom: 1px solid var(--border); }
-  .stmt__titles { min-width: 0; }
-  .stmt__title { font-family: var(--font-read); font-size: 1rem; font-weight: 650; }
-  .stmt__sub { font-family: var(--font-read); color: var(--text-muted); font-size: .82rem; margin-top: .15rem; overflow-wrap: anywhere; }
-  .ov__open { flex: none; color: var(--text-muted); }
-  .stmt__body { padding: .35rem 1rem .9rem; font-family: var(--font-read); }
-  .stmt__sec { padding-top: .65rem; }
-  .stmt__sec-title { font-size: .74rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); margin-bottom: .25rem; }
-  .stmt__rows { list-style: none; }
-  .stmt__row, .stmt__total, .stmt__net { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; }
-  .stmt__row { padding: .22rem 0; }
-  .stmt__name { display: flex; flex-direction: column; gap: .3rem; min-width: 0; flex: 1; overflow-wrap: anywhere; }
-  .stmt__bar { display: block; height: 3px; border-radius: 2px; background: var(--hover); max-width: 14rem; }
-  .stmt__bar > span { display: block; height: 100%; border-radius: inherit; background: var(--text-faint); }
-  .stmt__amt { display: inline-flex; flex-direction: column; align-items: flex-end; flex: none; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .stmt__amt .is-neg { color: var(--neg); }
-  .stmt__total { margin-top: .25rem; padding-top: .35rem; border-top: 1px solid var(--border); font-weight: 600; font-size: .92rem; }
-  .stmt__net { margin-top: .85rem; padding-top: .6rem; border-top: 1px solid var(--border-strong); font-weight: 650; font-size: 1.02rem; }
-  .stmt__more { margin: .25rem 0 0; padding: .1rem 0; font-size: .82rem; color: var(--text-muted); text-decoration: underline; text-underline-offset: 2px; text-decoration-color: var(--border-strong); }
-  .stmt__more:hover { color: var(--text); text-decoration-color: currentColor; }
-  .stmt__empty { color: var(--text-muted); font-size: .92rem; padding: .8rem 0 .4rem; }
-  .stmt__body .banner { margin-top: .6rem; }
-  .stmt__body .banner .btn { margin-top: .5rem; }
-  .stmt__skeleton { display: flex; flex-direction: column; gap: .7rem; padding: .9rem 0 .4rem; }
-  .stmt__skeleton > span { display: block; height: .7rem; border-radius: 4px; background: var(--hover); animation: stmt-pulse 1.4s ease-in-out infinite; }
-  @keyframes stmt-pulse { 50% { opacity: .45; } }
-  @media (prefers-reduced-motion: reduce) { .stmt__skeleton > span { animation: none; } }
-
-  .ov__note { margin-top: .75rem; padding: .55rem .85rem; border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent); background: var(--warn-soft); color: var(--warn); border-radius: var(--radius); font-family: var(--font-read); font-size: .88rem; }
-  .ov__note summary { display: flex; align-items: center; gap: .5rem; cursor: pointer; font-weight: 600; }
-  .ov__note p { margin-top: .4rem; overflow-wrap: anywhere; }
-  .ov__note code { font-family: var(--font-raw); background: rgba(127, 127, 127, .15); padding: .05rem .3rem; border-radius: 4px; }
-
-  /* ---------- transactions: one continuous ledger, not a stack of cards ----------
-     Date headings group the rows (date sorts); the description is the focal line; accounts and amounts are
-     aligned supporting detail. Separators are hairlines, the selected row uses a fill plus an inset marker
-     (no borders, so nothing overflows or shifts), and edit / delete appear on hover or focus. */
-  .jv__listhead { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: .6rem; }
-  .jv__listtitle { font-family: var(--font-read); font-size: 1.05rem; font-weight: 650; }
-  .jv__listmeta { font-family: var(--font-read); color: var(--text-muted); font-size: .85rem; text-align: right; }
+  /* ---------- transactions: a day-pinned register ----------
+     Two ways to see a date: while the list is sorted by date a pill per day sticks to the top of the scroll area
+     (.day__pill), and EVERY row carries its own two-line date rail (.txn__date), so the eye can stay on one transaction
+     and still read its date. Rows are not cards: a hairline between them, nothing else. */
+  .jv__listmeta { margin: 0 0 .5rem; min-height: 0; font-family: var(--font-read); color: var(--text-muted); font-size: .85rem; }
+  .jv__listmeta:empty { display: none; }
 
   .jv__chips { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; margin-bottom: .6rem; }
   .jv__chips-clear { font-size: .85rem; color: var(--text-muted); padding: .15rem .4rem; border-radius: 6px; }
   .jv__chips-clear:hover { color: var(--text); background: var(--hover); }
 
   .jv__notice { margin-bottom: .6rem; display: flex; flex-direction: column; gap: .4rem; }
-  .jv__selbar { position: sticky; top: 0; z-index: 4; display: flex; align-items: center; gap: .25rem .75rem; flex-wrap: wrap; margin-bottom: .5rem; padding: .4rem .5rem .4rem .85rem; background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius); box-shadow: var(--shadow-sm); font-family: var(--font-read); font-size: .9rem; }
+
+  /* One quiet toolbar: "3 selected · Select all visible · Clear · Delete… · Done". Sticky above the day pills. */
+  .jv__selbar { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; flex-wrap: wrap; gap: .15rem .6rem; margin-bottom: .5rem; padding: .3rem .4rem .3rem .85rem; background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius); box-shadow: var(--shadow-sm); font-family: var(--font-read); font-size: .9rem; }
   .jv__selbar strong { font-weight: 650; }
-  .jv__selbar-note { color: var(--text-muted); font-size: .84rem; flex: 1 1 14rem; min-width: 0; }
-  .jv__selbar .btn { margin-left: auto; }
+  .jv__selbar-note { color: var(--text-muted); font-size: .84rem; }
+  .jv__selbar-actions { margin-left: auto; display: flex; flex-wrap: wrap; gap: .15rem; }
 
   .ledger { border-top: 1px solid var(--border); }
-  .ledger__date { margin: 0; padding: 1.3rem .5rem .4rem; font-family: var(--font-read); font-size: .82rem; font-weight: 600; letter-spacing: .01em; color: var(--text-muted); }
-  .ledger__date:first-child { padding-top: .9rem; }
+
+  .day { position: relative; }
+  .day__pill {
+    position: sticky; top: var(--pinned-top, 0px); z-index: 3;
+    display: flex; align-items: baseline; gap: .55rem; width: fit-content; max-width: 100%;
+    margin: .7rem 0 .25rem .35rem; padding: .22rem .8rem;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 999px;
+    box-shadow: 0 0 0 .35rem var(--bg);        /* rows never show through right around a stuck pill */
+    font-family: var(--font-read); font-size: .82rem; font-weight: 600; color: var(--text-muted);
+  }
+  .day__count { font-weight: 500; color: var(--text-faint); font-variant-numeric: tabular-nums; }
 
   .txn {
     position: relative; display: grid; align-items: start;
-    grid-template-columns: auto auto minmax(0, 1fr) auto;
+    grid-template-columns: auto 2.6rem minmax(0, 1fr) auto;
     grid-template-areas: "sel date main act";
-    padding: .75rem .5rem; border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+    padding: .7rem .5rem; border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
     font-family: var(--font-read);
     transition: background-color .12s ease;
-    content-visibility: auto; contain-intrinsic-size: auto 4.8rem;      /* keeps thousands of rows cheap to scroll */
+    content-visibility: auto; contain-intrinsic-size: auto 4.4rem;      /* keeps thousands of rows cheap to scroll */
   }
   .txn:hover { background: var(--hover); }
-  .txn.is-selected { background: var(--selected); box-shadow: inset 3px 0 0 var(--text-muted); }
-  .txn__select { grid-area: sel; display: flex; align-items: center; padding: .3rem .7rem .3rem .15rem; margin: -.3rem 0; cursor: pointer; }
-  .txn__select input { width: 1.1rem; height: 1.1rem; margin: 0; accent-color: var(--text); cursor: pointer; }
+  .txn.is-selected { background: var(--accent-soft); }
+  .txn.is-selected::before { content: ""; position: absolute; inset-block: 0; inset-inline-start: 0; width: 2px; background: var(--accent); }
+  .txn__select { grid-area: sel; display: flex; align-items: center; justify-content: center; min-width: 1.6rem; min-height: 1.6rem; padding-right: .5rem; cursor: pointer; }
+  .txn__select input { width: 1.1rem; height: 1.1rem; margin: 0; accent-color: var(--accent); cursor: pointer; }
   .txn__select input:disabled { cursor: not-allowed; }
-  .txn__date { grid-area: date; width: 6.4rem; padding-right: .75rem; font-size: .85rem; color: var(--text-muted); font-variant-numeric: tabular-nums; white-space: nowrap; padding-top: .12rem; }
-  .ledger--grouped .txn__date { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); padding: 0; }     /* the heading above says it; screen readers still get it */
+
+  .txn__date { grid-area: date; display: flex; flex-direction: column; align-items: flex-start; line-height: 1.15; font-variant-numeric: tabular-nums; color: var(--text-muted); padding-top: .1rem; }
+  .txn__day { font-size: 1.02rem; font-weight: 600; color: var(--text); }
+  .txn__wd { font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; }
+
   .txn__main { grid-area: main; min-width: 0; }
-  .txn__desc { display: flex; flex-wrap: wrap; align-items: baseline; gap: .1rem .65rem; font-size: 1.02rem; font-weight: 600; line-height: 1.35; overflow-wrap: anywhere; }
+  .txn__head { display: flex; flex-wrap: wrap; align-items: baseline; gap: .1rem .75rem; }
+  .txn__desc { flex: 1 1 12rem; min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: .1rem .65rem; font-size: 1.02rem; font-weight: 600; line-height: 1.35; overflow-wrap: anywhere; }
   .txn__desc.is-empty { font-weight: 500; color: var(--text-muted); font-style: italic; }
   .txn__note { font-size: .78rem; font-weight: 500; color: var(--text-muted); white-space: nowrap; }
-  .txn__postings { margin-top: .3rem; display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 1.5rem; row-gap: .12rem; font-size: .9rem; }
-  .txn__account { color: var(--text-muted); overflow-wrap: anywhere; }
-  .txn__amount { text-align: right; font-variant-numeric: tabular-nums; white-space: pre-line; }
+  .txn__headline { margin-left: auto; font-size: 1rem; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .txn__headline.is-neg { color: var(--neg); }
+
+  .txn__postings { list-style: none; margin: .25rem 0 0; padding: 0; font-size: .9rem; }
+  .txn__posting { display: flex; align-items: baseline; justify-content: space-between; gap: 1.25rem; padding: .05rem 0; }
+  .txn__account { flex: 1 1 auto; min-width: 0; color: var(--text-muted); overflow-wrap: anywhere; }
+  .txn__amount { flex: none; text-align: right; font-variant-numeric: tabular-nums; white-space: pre; }
   .txn__amount.is-neg { color: var(--neg); }
+
   .txn__actions { grid-area: act; display: flex; gap: .1rem; padding-left: .5rem; margin: -.25rem -.25rem 0 0; }
   .txn__actions .icon-btn { color: var(--text-faint); }
   .txn__actions .icon-btn:hover:not(.is-disabled), .txn__actions .icon-btn:focus-visible { color: var(--text); }
@@ -111,20 +82,19 @@
   .txn.is-locked .txn__desc { color: var(--text-muted); }
   .ledger.is-selecting .txn { cursor: pointer; }
   .ledger.is-selecting .txn.is-locked { cursor: default; }
+  .ledger.is-selecting .txn__actions { display: none; }          /* editing one row while bulk-selecting is how people mis-tap */
   /* Mouse users see the actions on hover or keyboard focus; touch users always see them. */
   @media (hover: hover) and (pointer: fine) {
     .txn__actions { opacity: 0; }
     .txn:hover .txn__actions, .txn:focus-within .txn__actions { opacity: 1; }
   }
-  @media (pointer: coarse) { .txn__actions .icon-btn { width: 2.5rem; height: 2.5rem; } .txn__select { padding-right: .85rem; } .txn__select input { width: 1.3rem; height: 1.3rem; } }
+  @media (pointer: coarse) { .txn__actions .icon-btn { width: 2.5rem; height: 2.5rem; } .txn__select { min-width: 2.2rem; min-height: 2.2rem; } .txn__select input { width: 1.3rem; height: 1.3rem; } }
   @media (prefers-reduced-motion: reduce) { .txn { transition: none; } }
   @media (max-width: 560px) {
-    .txn { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "sel date act" "sel main main"; }
-    .ledger--grouped .txn { grid-template-areas: "sel main act"; }
-    .txn__date { width: auto; padding: 0 0 .15rem; }
-    .txn__postings { column-gap: .85rem; }
-    .jv__listhead { flex-direction: column; gap: .15rem; }
-    .jv__listmeta { text-align: left; }
+    .txn { padding-inline: .25rem; }
+    .txn__headline { margin-left: 0; flex-basis: 100%; }         /* wraps under the description instead of overflowing */
+    .txn__postings { font-size: .88rem; }
+    .txn__posting { gap: .85rem; }
   }
 
   .jv__empty { text-align: center; color: var(--text-muted); padding: 2.6rem 1rem; border: 1px dashed var(--border-strong); border-radius: var(--radius); font-family: var(--font-read); }
@@ -138,13 +108,7 @@
   /* ---------- raw ---------- */
   .jv__raw { flex: 1; min-height: 0; display: flex; background: var(--surface); }
   .rawedit { flex: 1; display: flex; min-width: 0; min-height: 0; }
-  .rawedit__gutter {
-    flex: none; min-width: 3.4rem; padding: .75rem .65rem calc(.75rem + 16px) .5rem; overflow: hidden;
-    text-align: right; white-space: pre; user-select: none;
-    font-family: var(--font-raw); font-size: .92rem; line-height: 1.55; font-variant-numeric: tabular-nums;
-    color: var(--text-faint); background: var(--surface-2); border-right: 1px solid var(--border);
-  }
-  .rawedit__text {
+  .rawedit__text {            /* the value bridge behind the CodeMirror editor (hidden once it is mounted) */
     flex: 1; min-width: 0; padding: .75rem; border: 0; resize: none; outline: none;
     font-family: var(--font-raw); font-size: .92rem; line-height: 1.55; font-variant-numeric: tabular-nums;
     white-space: pre; overflow: auto; background: transparent; tab-size: 4;
@@ -156,6 +120,7 @@
     padding: .28rem .9rem; font-size: .8rem; color: var(--text-muted);
     background: var(--sidebar-bg); border-top: 1px solid var(--border);
   }
+  .statusbar[hidden] { display: none; }
   .statusbar__spacer { flex: 1; }
   .statusbar__warn { color: var(--danger); }
 </style>
@@ -167,23 +132,19 @@
     <div data-slot="content" hidden>
       <h1 class="visually-hidden" data-slot="heading">Journal</h1>
 
-      <section class="ov" data-slot="overview" aria-label="Financial statements" hidden>
-        <div class="ov__bar" data-slot="ov-bar"></div>
-        <div class="ov__cards" data-slot="ov-cards" aria-live="polite"></div>
-        <div data-slot="ov-notes"></div>
-      </section>
-
       <section aria-label="Transactions">
-        <div class="jv__listhead">
-          <h2 class="jv__listtitle">Transactions</h2>
-          <span class="jv__listmeta" data-slot="list-meta"></span>
-        </div>
+        <p class="jv__listmeta" data-slot="list-meta"></p>
         <div class="jv__chips" data-slot="chips" hidden></div>
         <div class="jv__notice" data-slot="list-notice" hidden></div>
         <div class="jv__selbar" data-slot="selbar" role="status" aria-live="polite" hidden>
           <strong data-slot="sel-count"></strong>
           <span class="jv__selbar-note" data-slot="sel-note"></span>
-          <button class="btn btn--small" type="button" data-act="exit-select">Done</button>
+          <span class="jv__selbar-actions">
+            <button class="btn btn--small btn--ghost" type="button" data-act="bar-select-all">Select all visible</button>
+            <button class="btn btn--small btn--ghost" type="button" data-act="bar-clear">Clear</button>
+            <button class="btn btn--small btn--ghost btn--danger" type="button" data-act="bar-delete">Delete…</button>
+            <button class="btn btn--small" type="button" data-act="exit-select">Done</button>
+          </span>
         </div>
         <div class="ledger" data-slot="list"></div>
         <div class="jv__empty" data-slot="empty" hidden></div>
@@ -194,17 +155,16 @@
 
 <section class="jv__raw" data-pane="raw" aria-label="Raw file text" hidden>
   <div class="rawedit">
-    <div class="rawedit__gutter" data-slot="gutter" aria-hidden="true"></div>
     <textarea class="rawedit__text" data-slot="text" spellcheck="false" wrap="off" aria-label="Raw file text"></textarea>
   </div>
 </section>
 
-<footer class="statusbar" data-slot="status">
-  <span data-slot="status-view"></span>
+<!-- Editor status line: shown in raw view only (journal.js toggles `hidden`). -->
+<footer class="statusbar" data-slot="status" hidden>
   <span data-slot="status-pos"></span>
+  <span data-slot="status-lines"></span>
   <span class="statusbar__spacer"></span>
   <span data-slot="status-sync"></span>
-  <span>UTF-8</span>
   <span data-slot="status-saved"></span>
 </footer>
 

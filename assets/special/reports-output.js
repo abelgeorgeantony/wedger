@@ -7,6 +7,7 @@ import { h, icon, relativeTime } from "../js/shell/core.js";
 import { initMenubar } from "../js/shell/menubar.js";
 import { buildModel, rawText, modelToCsv } from "../js/shell/report-model.js";
 import { renderModel, setAllOpen } from "../js/shell/report-view.js";
+import { createBoundEditor } from "../js/codemirror/bundle.js";
 
 export function mount({ root, host, menubar }) {
   const slot = (n, scope = root) => scope.querySelector(`[data-slot="${n}"]`);
@@ -22,6 +23,9 @@ export function mount({ root, host, menubar }) {
     if (!modelCache.has(entry.result)) modelCache.set(entry.result, buildModel(entry.type, entry.result));
     return modelCache.get(entry.result);
   };
+  // Raw view: one read-only CodeMirror editor per VISIBLE raw entry. They are destroyed whenever the list is redrawn.
+  let rawEditors = [];
+  const destroyRawEditors = () => { rawEditors.forEach((ed) => ed.destroy()); rawEditors = []; };
   const raw = (entry) => (entry.status === "error" ? `Error: ${entry.error}` : entry.result ? rawText(entry.result) : "");
 
   function shown() {
@@ -37,7 +41,14 @@ export function mount({ root, host, menubar }) {
   function entryBody(entry) {
     if (entry.status === "running") return h("div", { class: "ro-entry__status" }, h("span", { class: "spinner spinner--inline" }), host.engine.ready ? "Running…" : "Waiting for the accounting engine…");
     if (entry.status === "error") return h("div", { class: "banner banner--error", role: "alert" }, h("strong", {}, "This report failed."), h("pre", { class: "banner__pre" }, entry.error));
-    if (view.mode === "raw") return h("pre", { class: "ro-raw", tabindex: "0" }, raw(entry));
+    if (view.mode === "raw") {
+      if (collapsed.has(entry.id)) return h("div", { class: "ro-raw" });          // hidden body: no editor until it is expanded
+      const ta = h("textarea", { class: "ro-raw__text", readonly: "", spellcheck: "false", wrap: "off", "aria-label": `${entry.label} output` });
+      ta.value = raw(entry);
+      const box = h("div", { class: "ro-raw" }, ta);
+      rawEditors.push(createBoundEditor(ta, { editable: false, lineWrapping: false, lineNumbers: true }));
+      return box;
+    }
     return renderModel(modelOf(entry), { grouping: grouping() });
   }
 
@@ -47,8 +58,10 @@ export function mount({ root, host, menubar }) {
     const btn = (label, name, onclick, extra = "") => h("button", { class: `icon-btn${extra}`, type: "button", "aria-label": label, title: label, onclick }, icon(name));
     return h("article", { class: `ro-entry${isCollapsed ? " is-collapsed" : ""}`, dataset: { id: entry.id } },
       h("header", { class: "ro-entry__head" },
-        h("button", { class: "ro-entry__toggle", type: "button", "aria-expanded": String(!isCollapsed), "aria-label": `${isCollapsed ? "Expand" : "Collapse"} ${entry.label}`,
-          onclick: () => { collapsed.has(entry.id) ? collapsed.delete(entry.id) : collapsed.add(entry.id); paint(); } },
+        h("button", {
+          class: "ro-entry__toggle", type: "button", "aria-expanded": String(!isCollapsed), "aria-label": `${isCollapsed ? "Expand" : "Collapse"} ${entry.label}`,
+          onclick: () => { collapsed.has(entry.id) ? collapsed.delete(entry.id) : collapsed.add(entry.id); paint(); }
+        },
           h("span", { class: "ro-entry__chev" }, icon("chevron")),
           h("span", { class: "ro-entry__title" }, entry.label),
           entry.query && h("span", { class: "ro-entry__query", title: "Query" }, entry.query),
@@ -92,7 +105,9 @@ export function mount({ root, host, menubar }) {
   function paint() {
     const all = host.reports.entries, list = shown();
     const filtered = view.types.size || view.file || view.search.trim();
+    destroyRawEditors();                                      // before the DOM is replaced; entryEl() makes new ones
     slot("list").replaceChildren(...list.map(entryEl));
+    requestAnimationFrame(() => rawEditors.forEach((ed) => ed.refresh()));
 
     const empty = slot("empty");
     empty.hidden = list.length > 0;
@@ -155,5 +170,12 @@ export function mount({ root, host, menubar }) {
 
   paint();
   const offs = [host.reports.on("changed", paint), host.engine.on("status", paint), host.settings.on("numberGrouping", paint)];
-  return { dispose() { offs.forEach((o) => o()); menu.dispose(); } };
+
+  /** The View menu's radios show what the state says — never what the DOM remembers. */
+  function syncMenuUI() {
+    for (const r of menubar.querySelectorAll("[name=mode]")) r.checked = r.value === view.mode;
+    for (const r of menubar.querySelectorAll("[name=order]")) r.checked = r.value === view.order;
+  }
+
+  return { onShow: syncMenuUI, dispose() { offs.forEach((o) => o()); menu.dispose(); destroyRawEditors(); } };
 }

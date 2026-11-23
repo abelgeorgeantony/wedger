@@ -17,6 +17,11 @@ export function initMenubar(bar, { onOpen } = {}) {
   const panelOf = (item) => item.querySelector(".menubar__panel");
   let current = null;
 
+  // Menu panels are real <form>s — that is what scopes each menu's radios into its own radio-button
+  // group per file tab (ownerless radios share one group document-wide, so tabs would steal each
+  // other's selection). No panel is ever submitted: Enter inside one must not reload the page.
+  bar.addEventListener("submit", (e) => e.preventDefault());
+
   function place(panel) {
     panel.style.left = "";
     if (getComputedStyle(panel).position === "fixed") return;       // phones: full-width sheet

@@ -8,6 +8,7 @@
  *                    hledger itself decides whether the transaction is valid and balanced.
  */
 import { h } from "../js/shell/core.js";
+import { createBoundEditor } from "../js/codemirror/bundle.js";
 import { buildTransactionText, parseTxnText, needsRawEditing, parseAmountText, todayIso, normalizeAmountInput, formatMoney } from "../js/shell/format.js";
 
 export function mount({ root, params, close }) {
@@ -16,6 +17,9 @@ export function mount({ root, params, close }) {
   const slot = (n) => root.querySelector(`[data-slot="${n}"]`);
   const form = slot("form"), rows = slot("postings"), raw = form.elements.raw, submitBtn = slot("submit");
   let mode = "form", busy = false;
+  // The raw tab is a CodeMirror editor; the textarea stays as its value bridge (raw.value still works everywhere below).
+  const rawEditor = createBoundEditor(raw, { dispatchInput: true, lineWrapping: false, lineNumbers: false });
+  const showRawPane = () => requestAnimationFrame(() => rawEditor.refresh());     // CodeMirror measures 0 while its pane is hidden
 
   Promise.resolve(accounts).then((list) => $("#atx-accounts").replaceChildren(...(list ?? []).map((a) => h("option", { value: a })))).catch(() => {});
 
@@ -72,8 +76,14 @@ export function mount({ root, params, close }) {
 
   function setMode(next) {
     if (next === mode) return;
-    if (next === "raw") raw.value = buildTransactionText(readForm(), defaultCommodity);
-    else {
+    if (next === "raw") {
+      try { raw.value = buildTransactionText(readForm(), defaultCommodity); }
+      catch (err) {
+        // Stay on the form: the text can't be built losslessly yet (e.g. an amount with no account).
+        for (const r of form.querySelectorAll('[name="mode"]')) r.checked = r.value === mode;
+        return showError(err.message);
+      }
+    } else {
       const p = parseTxnText(raw.value);
       if (p) {
         form.elements.date.value = p.date;
@@ -86,6 +96,7 @@ export function mount({ root, params, close }) {
     mode = next;
     slot("pane-form").hidden = mode !== "form";
     slot("pane-raw").hidden = mode !== "raw";
+    if (mode === "raw") { showRawPane(); requestAnimationFrame(() => rawEditor.focus()); }
     for (const r of form.querySelectorAll('[name="mode"]')) r.checked = r.value === mode;
     showError(null); refreshWarning();
   }
@@ -95,6 +106,7 @@ export function mount({ root, params, close }) {
     raw.value = sourceText;
     mode = "raw";
     slot("pane-form").hidden = true; slot("pane-raw").hidden = false;
+    showRawPane();
     form.querySelector('[name="mode"][value="raw"]').checked = true;
     const n = slot("notice");
     n.textContent = "This transaction has comments, tags or a status mark, so it opens as raw text to keep them.";
@@ -122,7 +134,8 @@ export function mount({ root, params, close }) {
       if (!data.date) return showError("Pick a date.");
       if (!data.description) return showError("Add a description.");
       if (data.postings.length < 2 || data.postings.some((p) => !p.account)) return showError("Add at least two postings, each with an account.");
-      text = buildTransactionText(data, defaultCommodity);
+      try { text = buildTransactionText(data, defaultCommodity); }
+      catch (err) { return showError(err.message); }
     }
     busy = true; submitBtn.disabled = true;
     const label = submitBtn.textContent; submitBtn.textContent = "Checking…";
@@ -133,4 +146,5 @@ export function mount({ root, params, close }) {
   });
 
   (mode === "raw" ? raw : form.elements.description).focus();
+  return { dispose() { rawEditor.destroy(); } };
 }

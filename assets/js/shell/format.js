@@ -25,6 +25,13 @@ export function fmtDateLong(iso) {
   return new Date(y, m - 1, d).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 }
 
+/** { day: "02", weekday: "Fri" } for the date rail on a transaction row. Falls back to the raw text for odd dates. */
+export function fmtDayParts(iso) {
+  const [y, m, d] = String(iso).split("-").map(Number);
+  if (!y || !m || !d) return { day: String(iso), weekday: "" };
+  return { day: pad(d), weekday: new Date(y, m - 1, d).toLocaleDateString("en-GB", { weekday: "short" }) };
+}
+
 export function monthLabel(iso, { short = false } = {}) {
   const [y, m] = String(iso).split("-").map(Number);
   return new Date(y, m - 1, 1).toLocaleDateString("en-GB", { month: short ? "short" : "long", year: "numeric" });
@@ -77,6 +84,19 @@ export function txnHeadline(txn) {
     if (a && Math.abs(a.value) > bestAbs) { best = p.amount; bestAbs = Math.abs(a.value); }
   }
   return best ? String(best).replace(/^-\s*/, "").replace(/^([^\d\s]*)-/, "$1") : "";
+}
+
+/**
+ * Like txnHeadline, but keeps the sign: the posting with the largest magnitude, exactly as the engine printed it.
+ * A scan aid for a transaction row, not a total (a transaction has no single total). "" when nothing parses.
+ */
+export function txnHeadlineSigned(txn) {
+  let best = "", bestAbs = -1;
+  for (const p of txn.postings ?? []) {
+    const a = parseAmountText(p.amount);
+    if (a && Math.abs(a.value) > bestAbs) { best = String(p.amount); bestAbs = Math.abs(a.value); }
+  }
+  return best;
 }
 
 const INDIAN_COMMODITIES = new Set(["₹", "INR", "Rs", "Rs."]);
@@ -169,11 +189,34 @@ export function normalizeAmountInput(raw, defaultCommodity = "") {
   return s;
 }
 
+/* hledger separates an account from its amount with TWO OR MORE spaces (or a tab).
+ * A single space belongs to the account name. So the gap is a grammar rule;
+ * the alignment column is only cosmetic and never wins over it. */
+export const PREFERRED_AMOUNT_COLUMN = 32;
+export const MIN_POSTING_SEPARATOR = 2;
+
+/**
+ * Form fields -> one transaction's text. Round-trips through parseTxnText for
+ * every account length; throws (instead of handing the engine a glued
+ * account+amount) if it ever would not.
+ */
 export function buildTransactionText({ date, description, postings }, defaultCommodity = "") {
-  const rows = postings.map((p) => {
-    const amt = normalizeAmountInput(p.amountText, defaultCommodity);
-    return amt ? `    ${p.account.padEnd(32)}${amt}` : `    ${p.account}`;
-  });
-  return [`${date} ${description}`.trimEnd(), ...rows].join("\n");
+  const entries = [];
+  for (const p of postings ?? []) {
+    const account = String(p?.account ?? "").trim().replace(/\s+/g, " ");
+    const amount = normalizeAmountInput(p?.amountText, defaultCommodity);
+    if (account || amount) entries.push({ account, amount });
+  }
+  const widest = entries.reduce((w, e) => (e.amount ? Math.max(w, e.account.length) : w), 0);
+  const column = Math.max(PREFERRED_AMOUNT_COLUMN, widest + MIN_POSTING_SEPARATOR);
+  const rows = entries.map(({ account, amount }) =>
+    amount ? `    ${account}${" ".repeat(Math.max(MIN_POSTING_SEPARATOR, column - account.length))}${amount}` : `    ${account}`);
+  const text = [`${date} ${description}`.trimEnd(), ...rows].join("\n");
+
+  const back = parseTxnText(text);
+  const ok = back && back.postings.length === entries.length
+    && entries.every((e, i) => back.postings[i].account === e.account && back.postings[i].amountText === e.amount);
+  if (!ok) throw new Error("This transaction's text would not round-trip (check the accounts and amounts for stray ';' or blank accounts), so it was not sent to hledger.");
+  return text;
 }
 

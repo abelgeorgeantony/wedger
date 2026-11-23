@@ -2,6 +2,7 @@
  * account area, settings gear, hide/show. It never renders anything itself:
  * every click is host.open(uri). */
 import { h, icon, fileUri } from "./core.js";
+import { bindShortcutHints } from "./keyboard-shortcuts.js";
 
 export function initSidebar({ host, editors }) {
   const $ = (id) => document.getElementById(id);
@@ -105,4 +106,5 @@ export function initSidebar({ host, editors }) {
   lastKey = keyOf();
   renderList();
   renderFooter();
+  bindShortcutHints($("sidebar-left"));        // New file / Settings tooltips and aria-keyshortcuts follow the live bindings
 }

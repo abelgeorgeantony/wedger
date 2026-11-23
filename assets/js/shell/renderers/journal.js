@@ -1,17 +1,18 @@
 /* renderers/journal.js — the journal viewer.
  *
  * Two views of the same text:
- *   Rendered  statement previews (hledger balancesheet + incomestatement, see journal-overview.js) and
- *             the transaction ledger. Add / edit / delete go through the engine so hledger validates
- *             and balances them; nothing here calculates money.
- *   Raw       the file text with line numbers.
+ *   Rendered  the transaction register (a day-pinned list). Add / edit / delete go through the engine so
+ *             hledger validates and balances them; nothing here calculates money. Statements live in Reports.
+ *   Raw       the file text in a CodeMirror editor (line numbers follow the setting), with an editor status line.
  * Search, filters, sort, selection and "Add transaction" live ONLY in the menu bar (Filters, Sort and
  * Transactions are three independent menus). Filters and sort apply the moment they change.
  */
 import { h, icon, parseUri, extOf, debounce } from "../core.js";
 import { initMenubar } from "../menubar.js";
-import { fmtDate, fmtDateLong, txnMaxAbs, isNegativeText } from "../format.js";
-import { createOverview } from "./journal-overview.js";
+import { fmtDate, fmtDateLong, fmtDayParts, txnMaxAbs, txnHeadlineSigned, isNegativeText } from "../format.js";
+import { compileQuery, stepRange } from "../find.js";
+import { bindShortcutHints } from "../keyboard-shortcuts.js";
+import { createBoundEditor } from "../../codemirror/bundle.js";
 
 const SORTS = {
   "date-desc": (a, b) => b.date.localeCompare(a.date) || b.index - a.index,
@@ -31,6 +32,8 @@ const FILTER_LABELS = { account: "Account", desc: "Description", from: "From", t
 const DEFAULT_SORT = "date-desc";
 const RECENT_KEY = "wedger_recent_searches";
 const PREVIEW_NAMES = 4;                 // transactions named in the bulk-delete confirmation
+/** "Friday, 2 January 2026", or the text as written when it isn't a real date. */
+const longDate = (iso) => { const s = fmtDateLong(iso); return /invalid/i.test(s) ? String(iso) : s; };
 
 export default {
   async mount(view, { host, assets, contrib }) {
@@ -44,7 +47,6 @@ export default {
 
     const $ = (sel, scope = root) => scope.querySelector(sel);
     const slot = (n, scope = root) => scope.querySelector(`[data-slot="${n}"]`);
-    const overview = createOverview({ host, root });
 
     /* ------------------------------------------------------------ state */
     const name = () => parseUri(view.uri).path;
@@ -56,6 +58,8 @@ export default {
     let filters = {};
     let sort = DEFAULT_SORT;
     let query = "";
+    const findOpts = { caseSensitive: false, wholeWord: false, regexp: false };   // not persisted
+    let compiled = compileQuery("");
     let txns = [];                        // decorated, in file order
     let txnsText = null;                  // the text `txns` was parsed from (ids below belong to THIS text)
     let byId = new Map();
@@ -73,29 +77,31 @@ export default {
     const markDirty = () => view.setDirty(isDirty() && !host.settings.get("autoSave"));
 
     /* ------------------------------------------------------------- raw pane */
-    const ta = slot("text"), gutter = slot("gutter");
-    let lineCount = 0;
-    function drawGutter() {
-      const n = ta.value.split("\n").length;
-      if (n !== lineCount) { lineCount = n; gutter.textContent = Array.from({ length: n }, (_, i) => i + 1).join("\n"); }
-      gutter.scrollTop = ta.scrollTop;
-    }
-    function applyLineNumbers() { gutter.hidden = !host.settings.get("lineNumbers"); }
+    // The textarea stays as the value bridge; CodeMirror is the editor. Programmatic `ta.value = x` replaces the document
+    // (and its undo history, as a file switch should) without firing `input`; typing fires it, so the handler below runs.
+    const ta = slot("text");
+    const editor = createBoundEditor(ta, {
+      dispatchInput: true, resetHistoryOnSet: true, lineWrapping: false,
+      lineNumbers: !!host.settings.get("lineNumbers"),
+      onSelection: () => updatePos(),
+    });
+    const lineCount = () => editor.view.state.doc.lines;
+    function applyLineNumbers() { editor.setLineNumbers(!!host.settings.get("lineNumbers")); }
     function updatePos() {
-      const upto = ta.value.slice(0, ta.selectionStart).split("\n");
-      slot("status-pos").textContent = mode === "raw" ? `Ln ${upto.length}, Col ${upto[upto.length - 1].length + 1}` : "";
+      const el = slot("status-pos");
+      if (mode !== "raw") { el.textContent = ""; return; }
+      const { line, col } = editor.getCursor();
+      el.textContent = `Ln ${line}, Col ${col}`;
     }
+    const showEditor = () => requestAnimationFrame(() => editor.refresh());      // CodeMirror measures 0 inside a hidden pane
     ta.value = text;
-    ta.addEventListener("scroll", () => { gutter.scrollTop = ta.scrollTop; });
-    ta.addEventListener("keyup", updatePos);
-    ta.addEventListener("click", updatePos);
     ta.addEventListener("input", () => {
       text = ta.value;
       markDirty();
-      drawGutter(); updatePos(); renderStatus();
+      updatePos(); renderStatus();
       if (host.settings.get("autoSave")) autosave();
     });
-    ta.addEventListener("blur", () => { if (host.settings.get("autoSave")) autosave.flush(); });
+    editor.wrapper.addEventListener("focusout", () => { if (host.settings.get("autoSave")) autosave.flush(); });
 
     /* ------------------------------------------------------------ saving */
     function save() {
@@ -110,9 +116,14 @@ export default {
     const autosave = debounce(() => { save(); }, 700);
 
     /* ---------------------------------------------------------- status bar */
+    // An editor status line: raw view only. In rendered view the list speaks for itself and the footer is hidden.
     const SYNC_TEXT = { local: "Saved on this device", pending: "Syncing to Drive…", synced: "Synced to Drive", error: "Drive sync failed" };
     function renderStatus() {
-      slot("status-view").textContent = mode === "raw" ? `Raw · ${lineCount || text.split("\n").length} lines` : `Rendered · ${loadState === "ok" ? `${txns.length} transactions` : "…"}`;
+      const footer = slot("status");
+      footer.hidden = mode !== "raw";
+      if (mode !== "raw") return;
+      const n = lineCount();
+      slot("status-lines").textContent = `${n} ${n === 1 ? "line" : "lines"}`;
       const st = host.sync.statusOf(name());
       const syncEl = slot("status-sync");
       syncEl.textContent = SYNC_TEXT[st];
@@ -134,7 +145,7 @@ export default {
       const mine = ++token;
       // The journal is being re-read: every id, every report and the selection belong to the OLD text.
       selected.clear(); anchorId = null; busy = false; shownRows = [];
-      loadState = "loading"; overview.invalidate(); drawState(); updateSelectionUI();
+      loadState = "loading"; drawState(); updateSelectionUI();
       try { await host.engine.whenReady(); }
       catch (err) { if (mine === token) { loadState = "engine-error"; loadError = err.message; drawState(); } return; }
       const snapshot = text;
@@ -144,8 +155,7 @@ export default {
       txns = decorate(res.data); txnsText = snapshot;
       byId = new Map(txns.map((t) => [String(t.id), t]));
       loadState = "ok";
-      drawState(); drawOverview(); drawList(); renderStatus();
-      if (txns.length) overview.load({ file: name(), text: snapshot, forecast });
+      drawState(); drawHeading(); drawList(); renderStatus();
     }
     const refreshSoon = debounce(refreshData, 60);
 
@@ -164,7 +174,7 @@ export default {
       } else if (loadState === "engine-error") {
         el.append(h("div", { class: "banner banner--error", role: "alert" }, h("strong", {}, "The accounting engine isn't available."), h("p", {}, loadError)),
           h("div", { class: "jv__state-actions" },
-            h("button", { class: "btn btn--primary", type: "button", onclick: () => { host.engine.retry().catch(() => {}); refreshData(); } }, "Retry"),
+            h("button", { class: "btn btn--primary", type: "button", onclick: () => { host.engine.retry().catch(() => { }); refreshData(); } }, "Retry"),
             h("button", { class: "btn", type: "button", onclick: () => setMode("raw") }, "Edit raw text")));
       } else {
         el.append(h("div", { class: "banner banner--error", role: "alert" }, h("strong", {}, "hledger couldn't read this journal."), h("pre", {}, loadError)),
@@ -172,13 +182,9 @@ export default {
       }
     }
 
-    /* ------------------------------------------------------------ overview slot */
-    // The old "N transactions dated …" strip is gone: the list says "Showing X of Y" when it is filtered and the status
-    // bar already carries the total. Only the hledger-backed statements remain, and only when there is something to report on.
-    function drawOverview() {
-      slot("overview").hidden = txns.length === 0;
-      slot("heading").textContent = name();                  // read by screen readers only
-    }
+    /* ------------------------------------------------------------ heading */
+    // The file name is read by screen readers only (the h1 is visually hidden); the register starts right at the top.
+    const drawHeading = () => { slot("heading").textContent = name(); };
 
     /* ----------------------------------------------------------- the list */
     const hasValue = (v) => v !== "" && v != null;
@@ -200,13 +206,14 @@ export default {
     }
     const filterActive = () => Object.values(effectiveFilters().f).some(hasValue);
     function visible() {
-      const q = query.trim().toLowerCase();
+      if (query.trim() && !compiled.ok) return [];                 // an invalid pattern matches nothing (the menu says why)
+      const q = query.trim();
       const { f } = effectiveFilters();
       const acc = f.account.toLowerCase(), desc = f.desc.toLowerCase();
       const min = hasValue(f.min) ? Number(f.min) : null;
       const max = hasValue(f.max) ? Number(f.max) : null;
       return txns.filter((t) => {
-        if (q && !`${t.date} ${t.description} ${t.postings.map((p) => `${p.account} ${p.amount}`).join(" ")}`.toLowerCase().includes(q)) return false;
+        if (q && !compiled.test(`${t.date} ${t.description} ${t.postings.map((p) => `${p.account} ${p.amount}`).join(" ")}`)) return false;
         if (acc && !t.postings.some((p) => p.account.toLowerCase().includes(acc))) return false;
         if (desc && !t.description.toLowerCase().includes(desc)) return false;
         if (f.from && t.date < f.from) return false;
@@ -232,20 +239,29 @@ export default {
       const isSel = selected.has(t.id);
       const note = !t.editable ? lockLabel(t) : null;
       const blocked = !t.editable ? (t.blockedReason ?? "Can't be changed here") : "";
+      const long = longDate(t.date), parts = fmtDayParts(t.date);
+      const headline = txnHeadlineSigned(t);               // the biggest posting as the engine printed it: a scan aid, not a total
       return h("article", { class: `txn${isSel ? " is-selected" : ""}${t.editable ? "" : " is-locked"}`, dataset: { id: t.id } },
         selectMode && h("label", { class: "txn__select" },
-          h("input", { type: "checkbox", checked: isSel, disabled: !t.editable,
+          h("input", {
+            type: "checkbox", checked: isSel, disabled: !t.editable,
             title: t.editable ? null : t.blockedReason,
-            "aria-label": `Select ${t.description || "transaction"} on ${fmtDate(t.date)}` })),
-        h("time", { class: "txn__date", datetime: t.date }, fmtDate(t.date)),
+            "aria-label": `Select ${t.description || "transaction"} on ${fmtDate(t.date)}`
+          })),
+        h("time", { class: "txn__date", datetime: t.date, title: long },
+          h("span", { class: "txn__day", "aria-hidden": "true" }, parts.day),
+          h("span", { class: "txn__wd", "aria-hidden": "true" }, parts.weekday),
+          h("span", { class: "sr-only" }, long)),
         h("div", { class: "txn__main" },
-          h("div", { class: `txn__desc${t.description ? "" : " is-empty"}` }, t.description || "(no description)",
-            note && h("span", { class: "txn__note", title: blocked }, note),
-            note && h("span", { class: "sr-only" }, `. ${blocked}`)),
-          h("div", { class: "txn__postings" }, ...t.postings.flatMap((p) => [
-            h("span", { class: "txn__account" }, p.account),
-            h("span", { class: `txn__amount${isNegativeText(p.amount) ? " is-neg" : ""}` }, p.amount),
-          ]))),
+          h("div", { class: "txn__head" },
+            h("div", { class: `txn__desc${t.description ? "" : " is-empty"}` }, t.description || "(no description)",
+              note && h("span", { class: "txn__note", title: blocked }, note),
+              note && h("span", { class: "sr-only" }, `. ${blocked}`)),
+            headline && h("div", { class: `txn__headline${isNegativeText(headline) ? " is-neg" : ""}` }, headline)),
+          h("ul", { class: "txn__postings" }, ...t.postings.map((p) =>
+            h("li", { class: "txn__posting" },
+              h("span", { class: "txn__account" }, p.account),
+              h("span", { class: `txn__amount${isNegativeText(p.amount) ? " is-neg" : ""}` }, p.amount))))),
         h("div", { class: "txn__actions" },
           actionBtn("Edit", "edit", t, editTxn),
           actionBtn("Delete", "trash", t, deleteTxn, " icon-btn--danger")));
@@ -309,16 +325,30 @@ export default {
         empty.replaceChildren(h("p", {}, txns.length ? "No transactions match the current filters or search." : "This journal has no transactions yet."),
           ...(txns.length
             ? [filterActive() && h("button", { class: "btn", type: "button", onclick: clearFilters }, "Clear filters"),
-               query.trim() && h("button", { class: "btn", type: "button", onclick: clearSearch }, "Clear search")]
+            query.trim() && h("button", { class: "btn", type: "button", onclick: clearSearch }, "Clear search")]
             : [h("button", { class: "btn btn--primary", type: "button", onclick: () => addTxn() }, "Add the first transaction")]));
         updateSelectionUI();
         return;
       }
       const frag = document.createDocumentFragment();
-      let lastDate = null;
-      for (const t of rows) {
-        if (grouped && t.date !== lastDate) { frag.append(h("h3", { class: "ledger__date" }, fmtDateLong(t.date))); lastDate = t.date; }
-        frag.append(txnRow(t));
+      if (grouped) {
+        // One pill per day, sticky while that day's rows are under it. Each row also carries its own date rail.
+        const counts = new Map();
+        for (const t of rows) counts.set(t.date, (counts.get(t.date) ?? 0) + 1);
+        let day = null, lastDate = null;
+        for (const t of rows) {
+          if (t.date !== lastDate) {
+            const n = counts.get(t.date);
+            day = h("section", { class: "day" },
+              h("h3", { class: "day__pill" }, longDate(t.date),
+                h("span", { class: "day__count", "aria-hidden": "true" }, String(n)),
+                h("span", { class: "sr-only" }, `, ${n} ${n === 1 ? "transaction" : "transactions"}`)));
+            frag.append(day); lastDate = t.date;
+          }
+          day.append(txnRow(t));
+        }
+      } else {
+        for (const t of rows) frag.append(txnRow(t));
       }
       list.append(frag);
       updateSelectionUI();
@@ -382,7 +412,6 @@ export default {
       const sel = visibleSelected().length;                 // selected AND shown by the current filters / search
       const hiddenSel = total - sel;                        // selected but filtered out: kept, never deleted
       const canSelect = shownRows.filter(selectable).length;
-      const lockedShown = shownRows.length - canSelect;
       const ready = loadState === "ok";
 
       const trigger = $("[data-menu=transactions] .menubar__btn", bar);
@@ -392,16 +421,14 @@ export default {
       badge.replaceChildren(String(total), h("span", { class: "sr-only" }, " selected"));
       badge.title = total ? `${total} selected` : "";
 
-      const scope = hiddenSel
-        ? `${total} selected: ${sel} visible, ${hiddenSel} hidden by the current filters or search. Only the ${sel} visible will be deleted.`
-        : `${total} selected, all visible.`;
-      const note = [lockedShown ? `${lockedShown} shown can't be selected (included files or forecast).` : ""].filter(Boolean).join(" ");
-
       slot("selbar").hidden = !selectMode || !ready;
-      slot("sel-count").textContent = busy ? "Deleting…" : `Selection mode · ${total} selected`;
+      slot("sel-count").textContent = busy ? "Deleting…" : `${total} selected`;
+      slot("sel-note").textContent = !busy && hiddenSel ? `${hiddenSel} hidden by filters, not deleted.` : "";
       $("[data-act=exit-select]").disabled = busy;
-      slot("sel-note").textContent = busy ? "Please wait. Nothing is saved until every deletion has succeeded."
-        : [total ? scope : "Tick the transactions you want, or use Transactions › Select all visible.", note].filter(Boolean).join(" ");
+      $("[data-act=bar-select-all]").disabled = busy || !ready || canSelect === 0;
+      $("[data-act=bar-clear]").disabled = busy || total === 0;
+      $("[data-act=bar-delete]").disabled = busy || sel === 0;
+      syncPinnedTop();
 
       $("[data-act=add-txn]", bar).disabled = !canAdd();
       const toggle = $("[data-act=toggle-select]", bar);
@@ -418,10 +445,16 @@ export default {
       const del = $("[data-act=delete-selected]", bar);
       del.disabled = busy || sel === 0;
       del.textContent = sel ? `Delete selected (${sel})…` : "Delete selected…";
-      slot("sel-scope", bar).textContent = busy ? "Deleting…"
-        : !selectMode ? "Turn on selection mode to choose transactions to delete."
-        : [total ? scope : "Nothing selected yet. “Select all visible” only covers what the list shows now.", note].filter(Boolean).join(" ");
     }
+
+    /** Day pills stick below the selection bar while it is showing (it is sticky at the top of the same scroll area). */
+    const rendered = $("[data-pane=rendered]");
+    function syncPinnedTop() {
+      const el = slot("selbar");
+      rendered.style.setProperty("--pinned-top", el.hidden ? "0px" : `${el.offsetHeight + 6}px`);
+    }
+    const resizeWatch = typeof ResizeObserver === "function" ? new ResizeObserver(syncPinnedTop) : null;
+    resizeWatch?.observe(slot("selbar"));
 
     // One delegated listener: the checkbox, or (in selection mode) anywhere on a row.
     slot("list").addEventListener("click", (e) => {
@@ -435,14 +468,22 @@ export default {
       if (e.target.closest(".txn__select")) return;                    // label padding: the input's own click follows
       setSelected(t, !selected.has(t.id), { range: e.shiftKey });
     });
-    slot("selbar").addEventListener("click", (e) => { if (e.target.closest("[data-act=exit-select]")) setSelectMode(false); });
+    // The selection bar and the Transactions menu call the same functions; there is one selection implementation.
+    slot("selbar").addEventListener("click", (e) => {
+      const act = e.target.closest("[data-act]")?.dataset.act;
+      if (!act || e.target.closest("button")?.disabled) return;
+      if (act === "exit-select") setSelectMode(false);
+      else if (act === "bar-select-all") selectAllVisible();
+      else if (act === "bar-clear") clearSelection();
+      else if (act === "bar-delete") deleteSelected();
+    });
 
     /* --------------------------------------------------------- mutations */
     async function commit(newText) {
       text = newText;
-      ta.value = text; drawGutter();
+      ta.value = text;
       if (!save()) return false;       // saves immediately: these are deliberate actions, not typing
-      await refreshData();             // re-reads once; clears the selection and reloads the statements
+      await refreshData();             // re-reads once; clears the selection
       return true;
     }
 
@@ -539,37 +580,49 @@ export default {
     }
 
     const searchInput = $("[name=search]", bar);
-    const runSearch = debounce(() => {
+    const recompile = () => { compiled = compileQuery(query.trim(), findOpts); };
+    /** The line under the field: a match count, or why the pattern is not usable (it then matches nothing). */
+    function paintSearchCount() {
+      const el = $("[data-slot=search-count]", bar);
+      if (!query.trim()) { el.textContent = ""; return; }
+      if (!compiled.ok) { el.textContent = `Invalid pattern: ${compiled.error}`; return; }
+      if (mode === "rendered") el.textContent = loadState === "ok" ? `${shownRows.length} matching transactions` : "";
+      else el.textContent = `${rawMatches} ${rawMatches === 1 ? "match" : "matches"}`;
+    }
+    function applySearch() {
       query = searchInput.value;
-      if (mode === "rendered") { drawList(); $("[data-slot=search-count]", bar).textContent = query.trim() ? `${visible().length} matching transactions` : ""; }
-      else { countRaw(); $("[data-slot=search-count]", bar).textContent = query.trim() ? `${rawMatches} ${rawMatches === 1 ? "match" : "matches"}` : ""; }
-    }, 120);
+      recompile();
+      if (mode === "rendered") drawList(); else countRaw();
+      paintSearchCount();
+    }
+    const runSearch = debounce(applySearch, 120);
     searchInput.addEventListener("input", runSearch);
     searchInput.addEventListener("keydown", (e) => {
       if (e.key !== "Enter") return;
       e.preventDefault();
       rememberSearch(searchInput.value.trim());
-      if (mode === "raw") findNext(e.shiftKey ? -1 : 1);
+      if (mode === "raw") { applySearch(); findNext(e.shiftKey ? -1 : 1); }
       else menu.close({ restoreFocus: true });
     });
+    // Match case / whole word / regex: one compiled query serves both the list and the raw editor.
+    const findButtons = { caseSensitive: $("[name=findCase]", bar), wholeWord: $("[name=findWord]", bar), regexp: $("[name=findRegexp]", bar) };
+    for (const [key, btn] of Object.entries(findButtons)) {
+      btn.addEventListener("click", () => {
+        findOpts[key] = !findOpts[key];
+        btn.setAttribute("aria-pressed", String(findOpts[key]));
+        runSearch.cancel(); applySearch();
+      });
+    }
 
     function countRaw() {
-      const q = query.trim().toLowerCase();
-      rawMatches = q ? text.toLowerCase().split(q).length - 1 : 0;
+      rawMatches = query.trim() && compiled.ok ? compiled.ranges(editor.value).length : 0;
     }
     function findNext(dir = 1) {
-      const q = query.trim().toLowerCase();
-      if (!q) return;
-      const hay = text.toLowerCase();
-      let i = dir > 0 ? hay.indexOf(q, ta.selectionEnd) : hay.lastIndexOf(q, Math.max(0, ta.selectionStart - 1));
-      if (i < 0) i = dir > 0 ? hay.indexOf(q) : hay.lastIndexOf(q);
-      if (i < 0) return;
-      ta.focus({ preventScroll: true });
-      ta.setSelectionRange(i, i + q.length);
-      const line = text.slice(0, i).split("\n").length - 1;
-      ta.scrollTop = Math.max(0, line * parseFloat(getComputedStyle(ta).lineHeight) - ta.clientHeight / 2);
-      drawGutter(); updatePos();
-      searchInput.focus({ preventScroll: true });
+      if (!query.trim() || !compiled.ok) return;              // an invalid pattern never moves the selection
+      const hit = stepRange(compiled.ranges(editor.value), editor.getSelection(), dir);
+      if (!hit) return;
+      editor.setSelection(hit.from, hit.to);                  // selects and scrolls it into view; focus stays in the search field
+      updatePos();
     }
 
     /* ------------------------------------------------- filters and sort: two independent controls */
@@ -586,6 +639,12 @@ export default {
       clearFiltersBtn.disabled = !Object.values(filters).some(hasValue);
     }
     function syncSortForm() { for (const r of sortRadios) r.checked = r.value === sort; }
+
+    /** The View and Sort menus show what the state says — never what the DOM remembers. */
+    function syncMenuUI() {
+      for (const r of bar.querySelectorAll("[name=view]")) r.checked = r.value === mode;
+      syncSortForm();
+    }
 
     /** Filtering feels immediate: text is debounced, everything else applies on change. */
     const applyFilterInput = () => { readFilters(); clearFiltersBtn.disabled = !Object.values(filters).some(hasValue); drawFilterIssues(); drawList(); };
@@ -605,6 +664,7 @@ export default {
     }
     function clearSearch() {
       query = ""; searchInput.value = "";
+      recompile();
       $("[data-slot=search-count]", bar).textContent = "";
       if (mode === "rendered") drawList(); else countRaw();
     }
@@ -645,12 +705,12 @@ export default {
       $("[data-pane=raw]").hidden = mode !== "raw";
       for (const r of bar.querySelectorAll("[name=view]")) r.checked = r.value === mode;
       for (const el of bar.querySelectorAll("[data-needs=rendered]")) el.disabled = mode !== "rendered" || !isJournal();
-      $("[data-slot=search-help]", bar).textContent = mode === "raw" ? "Press Enter for the next match, Shift+Enter for the previous." : "Filters the transactions below as you type.";
+      $("[data-slot=search-help]", bar).textContent = mode === "raw" ? "Enter for the next match, Shift+Enter for the previous." : "Filters the transactions below as you type.";
       if (mode === "raw") setSelectMode(false);                 // the list is hidden: selection mode would be invisible
       searchInput.dispatchEvent(new Event("input"));
       menu.close();
       if (mode === "rendered") { if (txnsText !== text || loadState !== "ok") refreshData(); drawList(); }
-      else { ta.value = text; lineCount = 0; drawGutter(); updatePos(); }
+      else { ta.value = text; showEditor(); updatePos(); }
       renderStatus();
       updateSelectionUI();
     }
@@ -664,7 +724,7 @@ export default {
         if (ev.kind === "meta" || ev.name === name() || ev.kind === "reload") {
           const f = host.files.get(name());
           if (f && f.content !== savedText && !isDirty()) {      // changed elsewhere (sync, another tab): adopt it
-            savedText = text = f.content; ta.value = text; lineCount = 0; drawGutter();
+            savedText = text = f.content; ta.value = text;
             selected.clear(); anchorId = null; updateSelectionUI();   // ids from the old text must never be acted on
             if (mode === "rendered") refreshSoon();
           }
@@ -674,7 +734,7 @@ export default {
       host.sync.on("changed", renderStatus),
       host.auth.on("changed", renderStatus),
       host.settings.on("lineNumbers", applyLineNumbers),
-      host.settings.on("numberGrouping", () => { if (loadState === "ok") overview.repaint(); }),
+      bindShortcutHints(bar),                                  // Add transaction / Search hints follow the live bindings
       host.engine.on("progress", (msg) => { const p = $("[data-slot=progress]"); if (p) p.textContent = msg; }),
       host.engine.on("status", (s) => { if (s === "ready" && mode === "rendered" && loadState !== "ok") refreshData(); }),
     ];
@@ -689,7 +749,6 @@ export default {
     applyLineNumbers();
     syncFilterForm(); syncSortForm(); drawFilterIssues();
     setMode(mode);
-    drawGutter();
     renderStatus();
     updateSelectionUI();
     if (mode === "rendered") refreshData();
@@ -700,11 +759,12 @@ export default {
       addTransaction() { if (!canAdd()) return; menu.close(); return addTxn(); },
       canFocusSearch: () => true,
       focusSearch() { menu.open("search", { focusFirst: true }); searchInput.focus({ preventScroll: true }); searchInput.select(); },
-      onShow() { if (mode === "raw") { ta.focus({ preventScroll: true }); updatePos(); } },
+      onShow() { syncMenuUI(); showEditor(); if (mode === "raw") { editor.focus(); updatePos(); } },
       save,
       dispose() {
         if (host.settings.get("autoSave") && host.files.exists(name())) autosave.flush(); else autosave.cancel();
-        offs.forEach((off) => off()); menu.dispose(); overview.dispose(); refreshSoon.cancel(); runSearch.cancel(); token++; },
+        offs.forEach((off) => off()); menu.dispose(); resizeWatch?.disconnect(); editor.destroy(); refreshSoon.cancel(); runSearch.cancel(); token++;
+      },
     };
   },
 };

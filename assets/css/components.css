@@ -121,11 +121,31 @@ input[type="range"]:active::-moz-range-thumb { background: var(--text); }
   background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--radius); box-shadow: var(--shadow);
 }
-.popup-menu__item { display: block; width: 100%; padding: .4rem .7rem; text-align: left; border-radius: 5px; }
+.popup-menu__item { display: flex; align-items: center; justify-content: space-between; gap: 1rem; width: 100%; padding: .4rem .7rem; text-align: left; border-radius: 5px; }
 .popup-menu__item:hover:not(:disabled), .popup-menu__item:focus-visible { background: var(--hover); outline: none; }
 .popup-menu__item--danger { color: var(--danger); }
 .popup-menu__item--danger:hover:not(:disabled) { background: var(--danger-soft); }
 .popup-menu__sep { height: 1px; margin: .3rem 0; background: var(--border); }
+
+/* ---------- keyboard shortcut hints: muted text on the right of a row (VS Code / Linear), never a keycap ---------- */
+.kbd {
+  margin-left: auto; padding-left: 1.25rem;
+  font-size: .75em; font-weight: 500; color: var(--text-faint);
+  font-variant-numeric: tabular-nums; letter-spacing: .01em; white-space: nowrap;
+}
+.kbd[hidden] { display: none; }
+/* Phones have no keyboard: hide the hints, keep every button. */
+@media (hover: none) and (pointer: coarse) {
+  .kbd { display: none !important; }
+}
+
+/* ---------- CodeMirror (colours come from the theme in codemirror/entry.js, which reads the tokens) ---------- */
+.cm-textarea-proxy { display: none; }
+.cm-wrapper { display: flex; flex: 1; min-height: 0; min-width: 0; height: 100%; }
+.cm-wrapper > .cm-editor { flex: 1; min-width: 0; height: 100%; }
+.cm-editor { height: 100%; }
+.cm-scroller { overflow: auto; height: 100%; }
+.cm-wrapper.cm-disabled { opacity: .6; }
 
 /* ---------- dialogs ---------- */
 dialog.dialog {

@@ -5,6 +5,7 @@
  * button only unlocks once there is something valid to import.
  */
 import { h, extOf, fileUri, debounce, formatBytes } from "../js/shell/core.js";
+import { createBoundEditor } from "../js/codemirror/bundle.js";
 
 const SUPPORTED = [".journal", ".timeclock", ".timedot", ".csv"];
 const PREVIEW_LINES = 14;
@@ -71,6 +72,10 @@ export function suggestRules(peek, defaultCommodity = "") {
 export function mount({ root, view, host }) {
   const form = root.querySelector('[data-slot="form"]');
   const el = form.elements;
+  // Both text boxes are CodeMirror editors over their textareas (value bridges), destroyed when the view closes.
+  const mountEditor = (ta) => createBoundEditor(ta, { dispatchInput: true, lineWrapping: false, lineNumbers: !!host.settings.get("lineNumbers") });
+  const editors = [mountEditor(el.pasteText), mountEditor(el.rules)];
+  const refreshEditors = () => requestAnimationFrame(() => editors.forEach((ed) => ed.refresh()));   // they measure 0 while hidden
   const slot = (n) => root.querySelector(`[data-slot="${n}"]`);
   const st = { src: "file", picked: null, preview: { state: "empty" }, busy: false };
   let seq = 0, planned = Promise.resolve();
@@ -90,6 +95,7 @@ export function mount({ root, view, host }) {
     root.querySelectorAll("[data-src]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.src === next)));
     slot("src-file").hidden = next !== "file";
     slot("src-paste").hidden = next !== "paste";
+    refreshEditors();
     onSourceChanged();
   }
   root.querySelectorAll("[data-src]").forEach((b) => b.addEventListener("click", () => setSrc(b.dataset.src)));
@@ -226,6 +232,7 @@ export function mount({ root, view, host }) {
     slot("file-card").hidden = !(st.src === "file" && st.picked);
     if (st.picked) { slot("file-name").textContent = st.picked.name; slot("file-meta").textContent = `${formatBytes(st.picked.size)} · ${st.picked.text.split(/\r?\n/).length} lines`; }
     slot("rules-step").hidden = !isCsv();
+    refreshEditors();
     slot("dest-num").textContent = isCsv() ? "3" : "2";
     if (src && !el.newName.value.trim()) el.newName.placeholder = (isCsv() ? src.name.replace(/\.csv$/i, ".journal") : src.name).replace(/^pasted/, "imported");
     const rulesName = src && st.src === "file" ? `${src.name}.rules` : "imported.csv.rules";
@@ -300,6 +307,9 @@ export function mount({ root, view, host }) {
   });
 
   renderSavedRules(); renderTargets(); showDest(); setPreview({ state: "empty" });
-  const offs = [host.files.on("changed", () => { renderSavedRules(); renderTargets(); })];
-  return { dispose() { offs.forEach((o) => o()); planSoon.cancel(); seq++; } };
+  const offs = [
+    host.files.on("changed", () => { renderSavedRules(); renderTargets(); }),
+    host.settings.on("lineNumbers", () => editors.forEach((ed) => ed.setLineNumbers(!!host.settings.get("lineNumbers")))),
+  ];
+  return { dispose() { offs.forEach((o) => o()); planSoon.cancel(); seq++; editors.forEach((ed) => ed.destroy()); } };
 }

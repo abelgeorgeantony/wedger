@@ -22,7 +22,9 @@
   .ro-entry.is-collapsed .ro-entry__body { display: none; }
   .ro-entry__status { display: flex; align-items: center; gap: .6rem; color: var(--text-muted); font-family: var(--font-read); }
 
-  .ro-raw { margin: 0; padding: .7rem .85rem; max-height: 28rem; overflow: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-2); font-family: var(--font-raw); font-size: .88rem; line-height: 1.5; font-variant-numeric: tabular-nums; white-space: pre; }
+  .ro-raw { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); overflow: hidden; }
+  .ro-raw .cm-wrapper { height: auto; }
+  .ro-raw .cm-editor { height: auto; max-height: 28rem; }       /* grows with the output, scrolls past 28rem */
 
   .ro-status { flex: none; display: flex; gap: 1.1rem; align-items: center; flex-wrap: wrap; padding: .28rem .9rem; font-size: .8rem; color: var(--text-muted); background: var(--sidebar-bg); border-top: 1px solid var(--border); }
   .ro-status__spacer { flex: 1; }

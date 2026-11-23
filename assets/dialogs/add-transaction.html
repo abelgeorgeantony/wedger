@@ -7,7 +7,8 @@
   .atx__posting { display: grid; grid-template-columns: 1fr 10rem auto; gap: .5rem; align-items: start; margin-bottom: .4rem; }
   .atx__remove { padding: .45rem .6rem; }
   .atx__hint { font-family: var(--font-read); color: var(--text-muted); font-size: .85rem; margin-top: .35rem; }
-  .atx__raw { font-family: var(--font-raw); font-variant-numeric: tabular-nums; white-space: pre; min-height: 10rem; }
+  .atx__rawbox .cm-wrapper { height: 11rem; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .atx__rawbox .cm-wrapper:focus-within { border-color: var(--accent); }
   @media (max-width: 520px) { .atx__posting { grid-template-columns: 1fr 6.5rem auto; } }
 </style>
 <form data-slot="form" novalidate>
@@ -36,7 +37,7 @@
     </div>
 
     <div data-slot="pane-raw" hidden>
-      <label class="field"><span class="field__label">Transaction text</span><textarea class="textarea atx__raw" name="raw" rows="9" spellcheck="false" wrap="off"></textarea></label>
+      <div class="field atx__rawbox"><span class="field__label">Transaction text</span><textarea class="textarea atx__raw" name="raw" rows="9" spellcheck="false" wrap="off" aria-label="Transaction text"></textarea></div>
     </div>
 
     <p class="banner banner--warn" data-slot="notice" role="status" hidden></p>

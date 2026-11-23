@@ -74,40 +74,40 @@
 }
 
 html.dark-mode {
-  --bg: #111214;
-  --surface: #191a1e;
-  --surface-2: #151619;
-  --sidebar-bg: #141518;
-  --border: #272a30;
-  --border-strong: #3a3d45;
-  --text: #e7e8eb;
-  --text-muted: #9a9ea9;
-  --text-faint: #6f737e;
+  --bg: #23262e;
+  --surface: #2c303a;
+  --surface-2: #282c35;
+  --sidebar-bg: #1e2128;
+  --border: #3c4150;
+  --border-strong: #545a6c;
+  --text: #eceef3;
+  --text-muted: #b4b9c6;
+  --text-faint: #9aa1b2;
 
   --hover: rgba(255, 255, 255, .06);
-  --selected: rgba(255, 255, 255, .1);
+  --selected: rgba(255, 255, 255, .10);
 
-  --accent: #62b891;
-  --accent-hover: #7ccaa5;
-  --accent-contrast: #0b1a13;
-  --accent-soft: rgba(98, 184, 145, .16);
+  --accent: #74d0aa;
+  --accent-hover: #90ddbc;
+  --accent-contrast: #102018;
+  --accent-soft: rgba(116, 208, 170, .18);
 
-  --primary: #e7e8eb;
+  --primary: #f2f3f6;
   --primary-hover: #ffffff;
-  --primary-contrast: #141518;
+  --primary-contrast: #1e2128;
 
-  --danger: #ff8f86;
-  --danger-soft: #371f1d;
-  --warn: #f0c45e;
-  --warn-soft: #382f14;
-  --ok: #62b891;
-  --ok-soft: #1b3328;
-  --info: #9fb9ea;
-  --info-soft: #1b2539;
-  --neg: #ff9a91;
+  --danger: #ffb0a8;
+  --danger-soft: #4a3030;
+  --warn: #f3d48a;
+  --warn-soft: #463c22;
+  --ok: #8ed4b0;
+  --ok-soft: #24382f;
+  --info: #c3d4f5;
+  --info-soft: #2a3348;
+  --neg: #ffb0a8;
 
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, .4);
-  --shadow: 0 10px 30px rgba(0, 0, 0, .55);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, .28);
+  --shadow: 0 12px 32px rgba(0, 0, 0, .40);
   color-scheme: dark;
 }
 
@@ -698,40 +698,51 @@ body.sidebar-hidden #resizer {
   align-items: stretch;
   background: var(--sidebar-bg);
   border-bottom: 1px solid var(--border);
-  min-height: 2.5rem;
+  min-height: calc(2.5rem + 6px);      /* the reserved scrollbar lane sits inside this */
 }
 
-/* A plain mouse wheel scrolls this sideways (editor-service.js); the bar is thin and only shows on hover. */
+/* A plain mouse wheel scrolls this sideways (editor-service.js). The scrollbar lane is ALWAYS reserved (same thin
+   width, same height, never toggled); only the thumb's colour changes on hover, so the tabs never move. */
 .tabstrip__tabs {
   flex: 1;
   min-width: 0;
   display: flex;
   overflow-x: auto;
   overflow-y: hidden;
-  scrollbar-width: none;
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
   overscroll-behavior-x: contain;
+  transform: scaleY(-1);
 }
 
 .tabstrip__tabs:hover {
-  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+.tabstrip__tabs > .tab {
+  transform: scaleY(-1);
 }
 
 .tabstrip__tabs::-webkit-scrollbar {
-  height: 0;
+  height: 6px;
 }
 
-.tabstrip__tabs:hover::-webkit-scrollbar {
-  height: 5px;
+.tabstrip__tabs::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .tabstrip__tabs::-webkit-scrollbar-thumb {
-  background: var(--border-strong);
+  background: transparent;
   border-radius: 3px;
 }
 
+.tabstrip__tabs:hover::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+}
+
 .tabstrip>.icon-btn {
-  align-self: center;
-  margin: 0 .25rem;
+  align-self: flex-end;
+  margin: 0 .25rem calc((2.5rem - 1.9rem) / 2);
 }
 
 .tab {
@@ -869,6 +880,10 @@ body.sidebar-hidden #resizer {
   color: var(--text);
 }
 
+.menubar__btn .kbd {
+  padding-left: .15rem;
+}
+
 .menubar__badge {
   display: inline-flex;
   align-items: center;
@@ -921,11 +936,27 @@ body.sidebar-hidden #resizer {
 }
 
 .menubar__entry {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
   width: 100%;
   text-align: left;
   padding: .32rem .5rem;
   border-radius: 5px;
+}
+
+/* icon + label stay together on the left; a .kbd hint sits on the right */
+.menubar__entry-main {
+  display: inline-flex;
+  align-items: center;
+  gap: .55rem;
+  min-width: 0;
+}
+
+.menubar__entry-main .icon {
+  width: .9em;
+  height: .9em;
 }
 
 .menubar__entry:hover:not(:disabled) {
@@ -940,26 +971,6 @@ body.sidebar-hidden #resizer {
 .menubar__entry[aria-pressed="true"] {
   background: var(--selected);
   font-weight: 600;
-}
-
-/* The one primary action in a menu: filled, with its icon. */
-.menubar__entry--primary {
-  display: flex;
-  align-items: center;
-  gap: .55rem;
-  padding: .45rem .6rem;
-  font-weight: 600;
-  background: var(--primary);
-  color: var(--primary-contrast);
-}
-
-.menubar__entry--primary:hover:not(:disabled) {
-  background: var(--primary-hover);
-}
-
-.menubar__entry--primary .icon {
-  width: .9em;
-  height: .9em;
 }
 
 .menubar__entry--danger {
@@ -1000,6 +1011,42 @@ body.sidebar-hidden #resizer {
 .menubar__radio.is-disabled {
   opacity: .5;
   cursor: not-allowed;
+}
+
+/* VS Code-style find toggles: quiet until pressed. */
+.find-opts {
+  display: flex;
+  gap: .2rem;
+  margin-top: .4rem;
+}
+
+.find-opt {
+  min-width: 1.9rem;
+  height: 1.7rem;
+  padding: 0 .4rem;
+  border-radius: 5px;
+  font-family: var(--font-raw);
+  font-size: .85rem;
+  color: var(--text-muted);
+}
+
+.find-opt:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+
+.find-opt[aria-pressed="true"] {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+.find-opt:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.find-opt u {
+  text-underline-offset: 2px;
 }
 
 .menubar__hint {

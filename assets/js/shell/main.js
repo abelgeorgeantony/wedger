@@ -13,8 +13,9 @@ const TABS_KEY = "wedger_open_tabs";
 
 function tabOptionsMenu() {
   const hasTabs = editors.tabs.length > 0;
+  const closeKeys = shortcuts.get("closeTab");                  // read when the menu opens, so it is never stale
   host.dialogs.menu($("file-tab-options-btn"), [
-    { label: "Close tab", disabled: !hasTabs, onSelect: () => editors.activeId && editors.close(editors.activeId) },
+    { label: "Close tab", shortcut: closeKeys ? shortcuts.label(closeKeys) : null, disabled: !hasTabs, onSelect: () => editors.activeId && editors.close(editors.activeId) },
     { label: "Close other tabs", disabled: editors.tabs.length < 2, onSelect: () => editors.closeWhere((t) => t.id !== editors.activeId) },
     { label: "Close all tabs", disabled: !hasTabs, onSelect: () => editors.closeWhere(() => true) },
     { separator: true },

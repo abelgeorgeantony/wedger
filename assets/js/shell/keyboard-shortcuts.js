@@ -74,6 +74,16 @@ export function labelFor(binding, mac = isMacPlatform()) {
   return [p.mod && "Ctrl", p.alt && "Alt", p.shift && "Shift", key].filter(Boolean).join(" + ");
 }
 
+const ARIA_KEYS = { Comma: ",", Period: ".", Slash: "/", Semicolon: ";", Quote: "'", BracketLeft: "[", BracketRight: "]", Backslash: "\\", Backquote: "`", Minus: "-", Equal: "=" };
+
+/** The aria-keyshortcuts spelling of a binding: "Control+K", "Meta+Alt+A", "Alt+Shift+W". */
+export function ariaShortcut(binding, mac = isMacPlatform()) {
+  const p = parseBinding(binding);
+  if (!p) return "";
+  const key = /^Key[A-Z]$/.test(p.code) ? p.code.slice(3) : /^Digit\d$/.test(p.code) ? p.code.slice(5) : (ARIA_KEYS[p.code] ?? p.code);
+  return [p.mod && (mac ? "Meta" : "Control"), p.alt && "Alt", p.shift && "Shift", key].filter(Boolean).join("+");
+}
+
 /**
  * Turns a keydown event into { binding } | { error } | null (null: only a modifier is down, keep waiting).
  * `Mod` is Meta on macOS and Ctrl elsewhere; the other one of the pair is refused rather than guessed at.
@@ -280,3 +290,32 @@ export class KeyboardShortcuts extends Emitter {
 }
 
 export const shortcuts = new KeyboardShortcuts();
+
+/** { title, "aria-keyshortcuts" } for an icon-only control: the tooltip carries the CURRENT binding. */
+export function shortcutAttrs(id, base, svc = shortcuts) {
+  const b = svc.get(id);
+  return { title: b ? `${base} (${svc.label(b)})` : base, "aria-keyshortcuts": b ? ariaShortcut(b, svc.mac) : null };
+}
+
+/**
+ * Fills `[data-shortcut="commandId"]` hints (menu rows, menubar triggers) and sets title + aria-keyshortcuts on
+ * `[data-shortcut-title="commandId"]` icon buttons, from the live bindings. Repaints when they change.
+ * Returns the unsubscribe function.
+ */
+export function bindShortcutHints(root, svc = shortcuts) {
+  const paint = () => {
+    for (const el of root.querySelectorAll("[data-shortcut]")) {
+      const b = svc.get(el.dataset.shortcut);
+      el.textContent = b ? svc.label(b) : "";
+      el.hidden = !b;
+    }
+    for (const el of root.querySelectorAll("[data-shortcut-title]")) {
+      el.dataset.titleBase ??= el.getAttribute("title") ?? "";
+      const a = shortcutAttrs(el.dataset.shortcutTitle, el.dataset.titleBase, svc);
+      el.title = a.title;
+      if (a["aria-keyshortcuts"]) el.setAttribute("aria-keyshortcuts", a["aria-keyshortcuts"]); else el.removeAttribute("aria-keyshortcuts");
+    }
+  };
+  paint();
+  return svc.on("changed", paint);
+}

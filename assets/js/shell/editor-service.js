@@ -8,6 +8,7 @@
  * `view` gives it: uri, params, container, menubar, setTitle(), setDirty(), close().
  */
 import { Emitter, h, icon, parseUri, moveItem } from "./core.js";
+import { shortcuts, shortcutAttrs } from "./keyboard-shortcuts.js";
 import { registry, assets } from "./registry.js";
 import * as overlays from "./overlays.js";
 import special from "./renderers/special.js";
@@ -28,6 +29,7 @@ class EditorService extends Emitter {
   /** dom: { tabs, menuBar, area, empty } */
   init(dom, host) {
     this.#dom = dom;
+    shortcuts.on("changed", () => this.#sync());           // the active tab's close tooltip shows the live binding
     this.#host = host;
 
     dom.tabs.addEventListener("keydown", (e) => {
@@ -312,7 +314,7 @@ class EditorService extends Emitter {
     },
       h("span", { class: "tab__title" }, tab.title),
       tab.dirty && h("span", { class: "tab__dirty", role: "img", "aria-label": "Unsaved changes" }, "●"),
-      h("button", { class: "tab__close", type: "button", "aria-label": `Close ${tab.title}`, onclick: () => this.close(tab.id) }, icon("close")));
+      h("button", { class: "tab__close", type: "button", "aria-label": `Close ${tab.title}`, ...(selected ? shortcutAttrs("closeTab", `Close ${tab.title}`) : {}), onclick: () => this.close(tab.id) }, icon("close")));
   }
 }
 
