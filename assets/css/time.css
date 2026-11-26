@@ -1,0 +1,235 @@
+/* ==========================================================================
+   Wedger — time.css
+   The .timeclock and .timedot viewers (assets/special/timeclock.* and timedot.*), their dialogs
+   (assets/dialogs/timeclock-*, timedot-*) and nothing else. Design tokens only (base.css), so light and
+   dark follow automatically. Content uses Archivo (--font-read); controls inherit Work Sans from the shell.
+
+   Organisation, in order:
+     1  shell and panes            5  timeclock: running sessions   9  diagnostics
+     2  shared register            6  timedot: entry rows            10 dialogs
+     3  selection bar              7  filter chips                   11 narrow windows, touch, motion
+     4  timeclock: session rows    8  notices and empty states
+   The register mirrors the journal viewer (.txn rows, day pills, .jv__selbar), under the .tv- prefix.
+   ========================================================================== */
+
+/* ---------- 1. shell and panes ---------- */
+/* the special-file wrapper is a padded page; these viewers fill the tab instead */
+.sf-timeclock, .sf-timedot { padding: 0; max-width: none; margin: 0; height: 100%; min-height: 100%; }
+.tv [hidden] { display: none !important; }
+.tv { height: 100%; display: flex; flex-direction: column; }
+.tv__rendered { --pinned-top: 0px; flex: 1; min-height: 0; overflow: auto; }
+.tv__raw { flex: 1; min-height: 0; display: flex; flex-direction: column; background: var(--surface); }
+.tv .rawedit { flex: 1; display: flex; min-width: 0; min-height: 0; }
+.tv .rawedit__text { flex: 1; min-width: 0; padding: .75rem; border: 0; resize: none; outline: none; font-family: var(--font-raw); font-size: .92rem; line-height: 1.55; white-space: pre; overflow: auto; background: transparent; tab-size: 4; }
+
+.tv__raw-issues { flex: none; max-height: 32%; overflow: auto; border-top: 1px solid var(--border); background: var(--surface-2); padding: .4rem .9rem .6rem; }
+.tv .statusbar { flex: none; display: flex; gap: 1.1rem; flex-wrap: wrap; align-items: center; padding: .28rem .9rem; font-size: .8rem; color: var(--text-muted); background: var(--sidebar-bg); border-top: 1px solid var(--border); }
+.tv .statusbar__spacer { flex: 1; }
+.tv .statusbar__warn { color: var(--danger); }
+.tv .statusbar__btn { padding: 0 .35rem; border-radius: 4px; color: inherit; font: inherit; }
+.tv .statusbar__btn:hover, .tv .statusbar__btn[aria-expanded="true"] { background: var(--hover); color: var(--text); }
+.tv .statusbar__btn.is-error { color: var(--danger); }
+.tv__page { max-width: 62rem; margin: 0 auto; padding: .6rem clamp(.5rem, 3vw, 2rem) 3rem; font-family: var(--font-read); }
+.tv [data-slot="content"] { display: flex; flex-direction: column; gap: .7rem; min-width: 0; }
+
+/* ---------- 2. shared register (both viewers) ---------- */
+.tv-listmeta { margin: 0 0 .3rem; font-size: .84rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.tv-listmeta:empty { display: none; }
+.tv-register { border-top: 1px solid var(--border); }
+
+/* day heading: sticky, quiet, one line (the journal's day pill, widened so totals and tools can align right) */
+.tv-day { position: relative; }
+.tv-day__head {
+  position: sticky; top: var(--pinned-top, 0px); z-index: 3;
+  display: flex; align-items: center; gap: .15rem .7rem; min-height: 2.3rem; padding: .3rem .5rem;
+  background: var(--bg); border-bottom: 1px solid var(--border);
+  font-size: .86rem; color: var(--text-muted);
+}
+.tv-day__date { margin: 0; font-size: .9rem; font-weight: 650; color: var(--text); white-space: nowrap; }
+.tv-day__count, .tv-day__desc { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tv-day__count { color: var(--text-faint); font-variant-numeric: tabular-nums; }
+.tv-day__spacer { flex: 1; }
+.tv-day__total { font-weight: 650; color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tv-day__tools { display: flex; gap: .05rem; margin-right: -.25rem; }
+.tv-day__tools .icon-btn { color: var(--text-faint); }
+.tv-day__tools .icon-btn:hover, .tv-day__tools .icon-btn:focus-visible { color: var(--text); }
+.tv-day__empty { margin: 0; padding: .7rem .5rem; font-size: .9rem; color: var(--text-faint); border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent); }
+
+/* a row: restrained separators, no card chrome; the same grid for every row so columns line up */
+.tv-row {
+  position: relative; display: grid; align-items: start; column-gap: .75rem;
+  padding: .6rem .5rem; border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  transition: background-color .12s ease;
+  content-visibility: auto; contain-intrinsic-size: auto 3.6rem;            /* keeps thousands of rows cheap to scroll */
+}
+.tv-row:hover { background: var(--hover); }
+.tv-row.is-selected { background: var(--accent-soft); }
+.tv-row.is-selected::before, .tv-row.is-open::before, .tv-row.is-problem::before {
+  content: ""; position: absolute; inset-block: 0; inset-inline-start: 0; width: 2px; background: var(--accent);
+}
+.tv-row.is-open::before { background: var(--ok); }
+.tv-row.is-problem::before { background: var(--danger); }
+.tv-row.is-selected::before { background: var(--accent); }
+
+.tv-row__select { grid-area: sel; display: none; align-items: center; justify-content: center; min-width: 1.6rem; min-height: 1.6rem; cursor: pointer; }
+.tv-register.is-selecting .tv-row__select { display: flex; }
+.tv-row__select input { width: 1.1rem; height: 1.1rem; margin: 0; accent-color: var(--accent); cursor: pointer; }
+.tv-register.is-selecting .tv-row { cursor: pointer; }
+.tv-register.is-selecting .tv-row__actions, .tv-register.is-selecting .tv-day__tools { display: none; }   /* editing one row while bulk-selecting is how people mis-tap */
+
+.tv-row__date { grid-area: date; display: flex; flex-direction: column; align-items: flex-start; line-height: 1.15; font-variant-numeric: tabular-nums; color: var(--text-muted); padding-top: .05rem; }
+.tv-row__day { font-size: 1.02rem; font-weight: 600; color: var(--text); }
+.tv-row__wd { font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; }
+.tv-row__main { grid-area: main; min-width: 0; display: flex; flex-direction: column; gap: .1rem; }
+.tv-row__head { display: flex; align-items: baseline; flex-wrap: wrap; gap: .1rem .5rem; min-width: 0; }
+.tv-row__acct { min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.tv-row__where { font-size: .82rem; color: var(--text-faint); white-space: nowrap; }
+.tv-row__desc { font-size: .9rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tv-row__comment { font-size: .85rem; color: var(--text-muted); font-style: italic; overflow-wrap: anywhere; }
+.tv-row__amount { grid-area: amt; display: flex; flex-direction: column; align-items: flex-end; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tv-dur { font-weight: 650; font-size: .98rem; }
+.tv-row__sub { font-size: .78rem; color: var(--text-muted); }
+.tv-row__actions { grid-area: act; display: flex; justify-content: flex-end; gap: .05rem; margin: -.25rem -.25rem 0 0; }
+.tv-row__actions .icon-btn { color: var(--text-faint); }
+.tv-row__actions .icon-btn:hover, .tv-row__actions .icon-btn:focus-visible { color: var(--text); }
+.tv-row__actions .icon-btn--danger:hover { color: var(--danger); }
+.tv-row__actions .icon-btn:focus-visible, .tv-row__select input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+/* Mouse users see a row's actions on hover or keyboard focus; touch users always see them. */
+@media (hover: hover) and (pointer: fine) {
+  .tv-row__actions { opacity: 0; }
+  .tv-row:hover .tv-row__actions, .tv-row:focus-within .tv-row__actions { opacity: 1; }
+}
+
+.tv-pill { font-size: .72rem; padding: .02rem .5rem; letter-spacing: .02em; }
+.tv-pill__dot { display: inline-block; width: .42rem; height: .42rem; margin-right: .3rem; border-radius: 50%; background: currentColor; vertical-align: .08em; animation: tv-pulse 1.8s ease-in-out infinite; }
+@keyframes tv-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+
+/* ---------- 3. selection bar (the journal's .jv__selbar) ---------- */
+.tv-selbar {
+  position: sticky; top: 0; z-index: 5; display: flex; align-items: center; flex-wrap: wrap; gap: .15rem .6rem;
+  margin-bottom: .5rem; padding: .3rem .4rem .3rem .85rem;
+  background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius); box-shadow: var(--shadow-sm); font-size: .9rem;
+}
+.tv-selbar strong { font-weight: 650; font-variant-numeric: tabular-nums; }
+.tv-selbar__note { color: var(--text-muted); font-size: .84rem; }
+.tv-selbar__actions { margin-left: auto; display: flex; flex-wrap: wrap; gap: .15rem; }
+.tv-selbar .btn--danger:not(:disabled) { color: var(--danger); }
+
+/* ---------- 4. timeclock: session rows ---------- */
+.tv-row--clock {
+  grid-template-columns: auto 2.6rem minmax(0, 1fr) 8.6rem 5.6rem 6.4rem;
+  grid-template-areas: "sel date main when amt act";
+}
+.tv-register--grouped .tv-row--clock { grid-template-columns: auto minmax(0, 1fr) 8.6rem 5.6rem 6.4rem; grid-template-areas: "sel main when amt act"; }
+.tv-register--grouped .tv-row__date { display: none; }
+.tv-row__when { grid-area: when; display: flex; flex-direction: column; font-variant-numeric: tabular-nums; white-space: nowrap; font-size: .92rem; }
+.tv-row__range { color: var(--text); }
+.tv-row__span { font-size: .76rem; color: var(--text-muted); }
+
+/* ---------- 5. timeclock: running sessions (the one operational area) ---------- */
+.tc-running { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); overflow: hidden; }
+.tc-running__head { display: flex; align-items: center; justify-content: space-between; gap: .6rem; padding: .35rem .5rem .35rem .8rem; }
+.tc-running__title { display: flex; align-items: center; gap: .45rem; margin: 0; font-size: .76rem; font-weight: 650; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); }
+.tc-running__count { padding: 0 .45rem; border-radius: 999px; background: var(--ok-soft); color: var(--ok); font-size: .74rem; letter-spacing: 0; }
+.tc-running__none { margin: 0; padding: 0 .8rem .6rem; font-size: .9rem; color: var(--text-muted); }
+.tc-running__list { list-style: none; margin: 0; padding: 0; }
+.tc-run { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto auto; align-items: center; gap: .6rem; padding: .5rem .5rem .5rem .8rem; border-top: 1px solid var(--border); }
+.tc-run__dot { width: .55rem; height: .55rem; border-radius: 50%; background: var(--ok); animation: tv-pulse 1.8s ease-in-out infinite; }
+.tc-run__main { display: flex; flex-direction: column; min-width: 0; }
+.tc-run__acct { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tc-run__meta { font-size: .84rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tc-run__elapsed { font-weight: 650; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tc-run__so-far { font-weight: 400; font-size: .8rem; color: var(--text-muted); }
+.tc-running__again { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem; padding: .4rem .8rem .55rem; border-top: 1px solid var(--border); font-size: .82rem; color: var(--text-muted); }
+
+/* ---------- 6. timedot: entry rows ---------- */
+.tv-row--dot {
+  grid-template-columns: auto minmax(0, 1fr) minmax(4rem, 11rem) 5.6rem 6.4rem;
+  grid-template-areas: "sel main note amt act";
+}
+.tv-row__note { grid-area: note; min-width: 0; text-align: right; padding-top: .1rem; }
+.tv-notation { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; font-family: var(--font-raw); font-size: .86rem; letter-spacing: .04em; color: var(--text-muted); white-space: pre; }
+.tv-types { display: flex; flex-wrap: wrap; gap: .25rem; }
+.tv-type { display: inline-flex; gap: .3rem; align-items: baseline; padding: 0 .45rem; border: 1px solid var(--border); border-radius: 999px; font-size: .78rem; color: var(--text-muted); background: var(--surface); font-variant-numeric: tabular-nums; }
+.tv-type b { font-family: var(--font-raw); color: var(--text); }
+
+/* ---------- 7. filter chips ---------- */
+.tv-chips { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem; margin-bottom: .4rem; }
+.tv-fchip { display: inline-flex; align-items: center; gap: .1rem; max-width: 100%; padding: .12rem .2rem .12rem .6rem; border: 1px solid var(--border-strong); border-radius: 999px; background: var(--surface); font-size: .82rem; color: var(--text-muted); }
+.tv-fchip button { display: inline-grid; place-items: center; width: 1.3rem; height: 1.3rem; border-radius: 50%; color: var(--text-faint); }
+.tv-fchip button:hover, .tv-fchip button:focus-visible { background: var(--hover); color: var(--text); }
+.tv-fchip .icon { width: .7rem; height: .7rem; }
+.tv-chips__clear { padding: .1rem .5rem; border-radius: 6px; font-size: .82rem; color: var(--text-muted); text-decoration: underline; text-underline-offset: 2px; }
+.tv-chips__clear:hover { color: var(--text); }
+
+/* ---------- 8. notices and empty states ---------- */
+.tv-banner { padding: .5rem .8rem; border-radius: var(--radius); border: 1px solid var(--border); font-size: .9rem; display: flex; gap: .6rem; align-items: baseline; flex-wrap: wrap; }
+.tv-banner--warn { background: var(--warn-soft); color: var(--warn); border-color: color-mix(in srgb, var(--warn) 35%, transparent); }
+.tv-banner--error { background: var(--danger-soft); color: var(--danger); border-color: color-mix(in srgb, var(--danger) 35%, transparent); }
+.tv-notice { display: flex; flex-direction: column; gap: .4rem; }
+.tv-empty { text-align: center; color: var(--text-muted); padding: 2.4rem 1rem; border: 1px dashed var(--border-strong); border-radius: var(--radius); }
+.tv-empty p { margin: 0; }
+.tv-empty__actions { display: flex; justify-content: center; flex-wrap: wrap; gap: .5rem; margin-top: .8rem; }
+
+/* ---------- 9. diagnostics ---------- */
+.tv-note { font-size: .85rem; color: var(--text-muted); }
+/* ---------- issues ---------- */
+.tv-issues { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+.tv-issues > summary { cursor: pointer; padding: .55rem .9rem; display: flex; gap: .6rem; align-items: center; font-weight: 600; list-style: none; }
+.tv-issues > summary::-webkit-details-marker { display: none; }
+.tv-issues > summary::before { content: "▸"; color: var(--text-faint); font-size: .8rem; }
+.tv-issues[open] > summary::before { content: "▾"; }
+.tv-issues__list { list-style: none; margin: 0; padding: 0 .4rem .5rem; display: flex; flex-direction: column; }
+.tv-issue { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: .6rem; align-items: baseline; padding: .4rem .5rem; border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent); font-size: .9rem; }
+.tv-issue__sev { font-size: .7rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; padding: .05rem .4rem; border-radius: 999px; }
+.tv-issue__sev--error { background: var(--danger-soft); color: var(--danger); }
+.tv-issue__sev--warning { background: var(--warn-soft); color: var(--warn); }
+.tv-issue__sev--info { background: var(--info-soft); color: var(--info); }
+.tv-issue__msg { overflow-wrap: anywhere; }
+.tv-issue__go { font-size: .82rem; color: var(--text-muted); padding: .1rem .5rem; border-radius: 6px; border: 1px solid var(--border); white-space: nowrap; }
+.tv-issue__go:hover { color: var(--text); background: var(--hover); }
+.tv-issues__more { padding: .3rem .9rem .6rem; }
+
+/* ---------- 10. dialogs (clock in, add/edit session, clock out, add/edit entry, add/edit day) ---------- */
+.tv-form__grid { display: grid; grid-template-columns: 1fr 1fr; gap: .7rem; }
+.tv-form__grid .is-wide { grid-column: 1 / -1; }
+.tv-form__grid .field { min-width: 0; }
+.tv-optional { font-weight: 400; color: var(--text-faint); }
+.tv-when { border: 0; margin: 0; padding: 0; min-width: 0; display: flex; flex-direction: column; gap: .3rem; }
+.tv-when legend { padding: 0; margin-bottom: .3rem; }
+.tv-when__row { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto; gap: .5rem; align-items: center; }
+.tv-form__summary { margin: 0; min-height: 1.2em; font-size: .9rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.tv-form__summary.is-error { color: var(--danger); }
+.tv-amount { display: flex; flex-direction: column; gap: .35rem; }
+.tv-amount__row { display: grid; grid-template-columns: minmax(8rem, auto) minmax(0, 1fr); gap: .5rem; }
+.tv-amount__hint { margin: 0; min-height: 1.25em; font-size: .86rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.tv-amount__hint.is-error { color: var(--danger); }
+.dialog [data-slot="submit"][aria-busy="true"] { opacity: .7; cursor: progress; }
+
+/* ---------- 11. narrow windows, touch, reduced motion ---------- */
+@media (max-width: 720px) {
+  .tv-row--clock { grid-template-columns: auto 2.6rem minmax(0, 1fr) auto; grid-template-areas: "sel date main act" ". . when amt"; row-gap: .15rem; }
+  .tv-register--grouped .tv-row--clock { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "sel main act" "sel when amt"; }
+  .tv-row--dot { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "sel main act" "sel note amt"; row-gap: .15rem; }
+  .tv-row__note { text-align: left; }
+  .tv-row__amount { align-items: flex-end; }
+  .tc-run { grid-template-columns: auto minmax(0, 1fr) auto auto; }
+  .tc-run__elapsed { grid-column: 2; grid-row: 2; }
+  .tc-run .btn { grid-column: 3; grid-row: 1 / span 2; }
+}
+@media (max-width: 560px) {
+  .tv-row { padding-inline: .25rem; column-gap: .5rem; }
+  .tv-form__grid { grid-template-columns: 1fr; }
+  .tv-when__row { grid-template-columns: 1fr 1fr; }
+  .tv-when__row .btn { grid-column: 1 / -1; justify-self: start; }
+  .tv-amount__row { grid-template-columns: 1fr; }
+}
+@media (pointer: coarse) {
+  .tv-row__actions .icon-btn, .tv-day__tools .icon-btn { width: 2.5rem; height: 2.5rem; }
+  .tv-row__select { min-width: 2.2rem; min-height: 2.2rem; }
+  .tv-row__select input { width: 1.3rem; height: 1.3rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tv-row { transition: none; }
+  .tv-pill__dot, .tc-run__dot { animation: none; }
+}

@@ -80,7 +80,17 @@ async function boot() {
 
     // Keep open tabs truthful when files are renamed, deleted, or swapped out by a sign-in / sign-out.
     host.files.on("changed", (ev) => {
-      if (ev.kind === "rename") editors.retarget(fileUri(ev.oldName), fileUri(ev.name), ev.name);
+      if (ev.kind === "rename") {
+        const [oldUri, newUri] = [fileUri(ev.oldName), fileUri(ev.name)];
+        const tab = editors.tabs.find((t) => t.uri === oldUri);
+        editors.retarget(oldUri, newUri, ev.name);
+        // Renaming across kinds (e.g. work.journal -> work.timeclock) needs a different viewer: save, close, reopen.
+        const wanted = registry.resolve(newUri);
+        if (tab && wanted && tab.contrib?.viewType !== wanted.viewType) {
+          const focus = editors.activeId === tab.id;
+          Promise.resolve(tab.instance?.save?.()).catch(() => {}).then(() => editors.close(tab.id, { force: true })).then(() => editors.open(newUri, { focus }));
+        }
+      }
       if (ev.kind === "remove") editors.closeByUri(fileUri(ev.name));
       if (ev.kind === "reload") {
         for (const t of [...editors.tabs]) {

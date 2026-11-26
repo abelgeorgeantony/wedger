@@ -7,12 +7,16 @@ import { formatAmounts, treeToRows } from "./report-model.js";
 const isNeg = isNegativeText;
 
 export function renderModel(model, { grouping = "auto" } = {}) {
+  let body;
   switch (model.kind) {
-    case "tree": return renderTree(model, grouping);
-    case "table": return renderTable(model);
-    case "text": return h("pre", { class: "rv-text", tabindex: "0" }, model.text);
-    default: return h("p", { class: "rv-empty" }, model.message ?? "Nothing to show.");
+    case "tree": body = renderTree(model, grouping); break;
+    case "table": body = renderTable(model); break;
+    case "text": body = h("pre", { class: "rv-text", tabindex: "0" }, model.text); break;
+    default: body = h("p", { class: "rv-empty" }, model.message ?? "Nothing to show.");
   }
+  // Reports Wedger computes itself carry notes (what was left out, what is an estimate). Hledger models have none.
+  if (!model.notes?.length) return body;
+  return h("div", { class: "rv-block" }, body, h("ul", { class: "rv-notes" }, ...model.notes.map((n) => h("li", {}, n))));
 }
 
 /* ---------------------------------------------------------------- table */
@@ -22,7 +26,8 @@ function renderTable(model) {
     const num = model.align[i] === "right";
     return h("td", { class: `${num ? "is-num" : ""}${num && isNeg(cell) ? " is-neg" : ""}` }, cell);
   })));
-  return h("div", { class: "rv-table-wrap", tabindex: "0" }, h("table", { class: "rv-table" }, h("thead", {}, head), h("tbody", {}, ...body)));
+  const foot = model.footer ? h("tfoot", {}, h("tr", {}, ...model.footer.map((cell, i) => h("td", { class: model.align[i] === "right" ? "is-num" : "" }, cell)))) : null;
+  return h("div", { class: "rv-table-wrap", tabindex: "0" }, h("table", { class: "rv-table" }, h("thead", {}, head), h("tbody", {}, ...body), foot));
 }
 
 /* ----------------------------------------------------------------- tree */

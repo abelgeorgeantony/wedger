@@ -187,6 +187,11 @@ html.dark-mode .toast--error { color: #1a0b0a; }
 .rv-table .is-num { text-align: right; font-variant-numeric: tabular-nums; }
 .rv-table .is-neg { color: var(--neg); }
 
+.rv-table tfoot td { position: sticky; bottom: 0; padding: .45rem .75rem; background: var(--surface-2); border-top: 1px solid var(--border-strong); font-weight: 650; }
+.rv-block { display: flex; flex-direction: column; gap: .6rem; }
+.rv-notes { margin: 0; padding-left: 1.1rem; font-family: var(--font-read); font-size: .88rem; color: var(--text-muted); }
+.rv-notes li + li { margin-top: .15rem; }
+
 .rv-tree { font-family: var(--font-read); }
 .rv-tree__section + .rv-tree__section { margin-top: 1.1rem; }
 .rv-tree__title { font-size: .8rem; font-weight: 650; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); margin-bottom: .3rem; }

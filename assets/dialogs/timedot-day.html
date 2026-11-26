@@ -1,0 +1,31 @@
+<!-- Add day / Edit day. Controller: timedot-day.js (mode: "add" | "edit"). -->
+<form data-slot="form" novalidate autocomplete="off">
+  <div class="dialog__body">
+    <div>
+      <h2 class="dialog__title" data-slot="title">Add day</h2>
+      <p class="dialog__message" data-slot="subtitle"></p>
+    </div>
+
+    <div class="tv-form__grid">
+      <div class="field">
+        <label class="field__label" for="tdd-date">Date</label>
+        <input class="input" id="tdd-date" type="date" name="date" aria-required="true">
+        <p class="field__error" data-error-for="date" role="alert" hidden></p>
+      </div>
+
+      <div class="field is-wide">
+        <label class="field__label" for="tdd-description">Description <span class="tv-optional">(optional)</span></label>
+        <input class="input" id="tdd-description" name="description" autocomplete="off" placeholder="e.g. Conference day">
+        <p class="field__error" data-error-for="description" role="alert" hidden></p>
+      </div>
+
+      <label class="check is-wide" data-slot="then-row"><input type="checkbox" name="then" checked><span>Then add an entry to this day</span></label>
+    </div>
+
+    <div class="banner banner--error" data-slot="error" role="alert" hidden></div>
+  </div>
+  <div class="dialog__actions">
+    <button class="btn" type="button" data-act="cancel">Cancel</button>
+    <button class="btn btn--primary" type="submit" data-slot="submit">Add day</button>
+  </div>
+</form>

@@ -8,7 +8,9 @@
  * `i` unless caseSensitive. "Whole word" means the match is not glued to a letter, number or underscore on either
  * side (so a colon is a boundary: `bank` is a word inside `assets:bank:checking`). \b is ASCII-only, hence lookarounds.
  */
-const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\\/-]/g, "\\$&");
+// `-` is deliberately not escaped: outside a character class it is an ordinary character, and `\-` is a SyntaxError
+// under the `u` flag (it made every plain search containing a hyphen, like a date, report "Invalid escape").
+const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\\/]/g, "\\$&");
 const WORD = String.raw`[\p{L}\p{N}_]`;
 
 // "Invalid regular expression: /((/giu: Unterminated group" -> "Unterminated group"

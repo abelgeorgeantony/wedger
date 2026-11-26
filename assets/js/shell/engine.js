@@ -12,6 +12,7 @@
  * Only init() / whenReady() reject (when the WASM itself can't be loaded).
  */
 import { Emitter } from "./core.js";
+import { isNativeTimeFile } from "./time-format.js";
 
 const isLocalDev = location.protocol === "file:" || location.hostname === "localhost" || location.hostname === "127.0.0.1";
 const LIB_BASE = isLocalDev ? "http://localhost:5001/" : "https://cdn.jsdelivr.net/gh/abelgeorgeantony/hledger-lib-wasm@main/";
@@ -136,19 +137,25 @@ class Engine extends Emitter {
   }
 
   /* ------------------------------------------------ virtual filesystem mirror */
+  /** Names currently mirrored into the engine's virtual filesystem (for diagnostics and tests). */
+  get mirroredNames() { return [...this.#files.keys()]; }
+
+  /** .timeclock / .timedot files are handled natively by Wedger and are never given to the engine, whoever asks. */
   setFile(name, content) {
+    if (isNativeTimeFile(name)) return;
     this.#files.set(name, content);
     this.#fsVersion++;
     this.#session?.fs.setFile(name, content);
   }
   removeFile(name) {
+    if (isNativeTimeFile(name) && !this.#files.has(name)) return;
     this.#files.delete(name);
     this.#txCache.delete(name);
     this.#fsVersion++;
     this.#session?.fs.deleteFile(name);
   }
   replaceAllFiles(map) {
-    for (const name of [...this.#files.keys()]) if (!map.has(name)) this.removeFile(name);
+    for (const name of [...this.#files.keys()]) if (!map.has(name) || isNativeTimeFile(name)) this.removeFile(name);
     for (const [name, content] of map) this.setFile(name, content);
   }
 

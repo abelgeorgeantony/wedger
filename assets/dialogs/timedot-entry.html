@@ -1,0 +1,45 @@
+<!-- Add entry / Edit entry. Controller: timedot-entry.js (mode: "add" | "edit"). Shared form styles live in css/time.css. -->
+<form data-slot="form" novalidate autocomplete="off">
+  <div class="dialog__body">
+    <div>
+      <h2 class="dialog__title" data-slot="title">Add entry</h2>
+      <p class="dialog__message" data-slot="subtitle"></p>
+    </div>
+
+    <div class="tv-form__grid">
+      <div class="field">
+        <label class="field__label" for="tde-date">Date</label>
+        <input class="input" id="tde-date" type="date" name="date" aria-required="true">
+        <p class="field__error" data-error-for="date" role="alert" hidden></p>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="tde-account">Account</label>
+        <input class="input" id="tde-account" name="account" list="tde-accounts" placeholder="e.g. work:programming" autocomplete="off" spellcheck="false" aria-required="true">
+        <p class="field__error" data-error-for="account" role="alert" hidden></p>
+      </div>
+
+      <div class="field is-wide">
+        <label class="field__label" for="amount">Time</label>
+        <div data-slot="amount"></div>
+        <p class="field__error" data-error-for="amount" role="alert" hidden></p>
+      </div>
+
+      <div class="field is-wide">
+        <label class="field__label" for="tde-comment">Comment <span class="tv-optional">(optional)</span></label>
+        <input class="input" id="tde-comment" name="comment" autocomplete="off">
+        <p class="field__error" data-error-for="comment" role="alert" hidden></p>
+      </div>
+
+      <label class="check is-wide" data-slot="again-row"><input type="checkbox" name="again"><span>Keep this window open to add another entry</span></label>
+    </div>
+
+    <p class="tv-form__summary" data-slot="status" role="status" aria-live="polite"></p>
+    <div class="banner banner--error" data-slot="error" role="alert" hidden></div>
+    <datalist id="tde-accounts"></datalist>
+  </div>
+  <div class="dialog__actions">
+    <button class="btn" type="button" data-act="cancel">Cancel</button>
+    <button class="btn btn--primary" type="submit" data-slot="submit">Add entry</button>
+  </div>
+</form>

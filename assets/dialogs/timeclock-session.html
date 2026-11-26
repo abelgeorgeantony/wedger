@@ -1,0 +1,60 @@
+<!-- Clock in / Add a completed session / Edit session. Controller: timeclock-session.js (mode: "in" | "add" | "edit").
+     Shared form styles (.tv-form__*, .tv-when, .tv-amount) live in css/time.css. -->
+<form data-slot="form" novalidate autocomplete="off">
+  <div class="dialog__body">
+    <div>
+      <h2 class="dialog__title" data-slot="title">Clock in</h2>
+      <p class="dialog__message" data-slot="subtitle"></p>
+    </div>
+
+    <div class="banner banner--info" data-slot="notice" role="status" hidden>
+      <span data-slot="notice-text"></span>
+      <span><button class="btn btn--small" type="button" data-act="raw">Show in Raw view</button></span>
+    </div>
+
+    <div class="tv-form__grid">
+      <div class="field is-wide">
+        <label class="field__label" for="tcs-account">Account</label>
+        <input class="input" id="tcs-account" name="account" list="tcs-accounts" placeholder="e.g. work:programming" autocomplete="off" spellcheck="false" aria-required="true">
+        <p class="field__hint">Use colons to group, like client:project.</p>
+        <p class="field__error" data-error-for="account" role="alert" hidden></p>
+      </div>
+
+      <div class="field is-wide">
+        <label class="field__label" for="tcs-description">Description <span class="tv-optional">(optional)</span></label>
+        <input class="input" id="tcs-description" name="description" autocomplete="off">
+        <p class="field__error" data-error-for="description" role="alert" hidden></p>
+      </div>
+
+      <fieldset class="tv-when is-wide" data-slot="start-group">
+        <legend class="field__label">Start</legend>
+        <div class="tv-when__row">
+          <input class="input" type="date" name="sd" aria-label="Start date" aria-required="true">
+          <input class="input" type="time" step="1" name="st" aria-label="Start time" aria-required="true">
+          <button class="btn btn--small btn--ghost" type="button" data-now="start" title="Use the current date and time">Now</button>
+        </div>
+        <p class="field__error" data-error-for="sd" role="alert" hidden></p>
+        <p class="field__error" data-error-for="st" role="alert" hidden></p>
+      </fieldset>
+
+      <fieldset class="tv-when is-wide" data-slot="end-group" hidden>
+        <legend class="field__label">End</legend>
+        <div class="tv-when__row">
+          <input class="input" type="date" name="ed" aria-label="End date" aria-required="true">
+          <input class="input" type="time" step="1" name="et" aria-label="End time" aria-required="true">
+          <button class="btn btn--small btn--ghost" type="button" data-now="end" title="Use the current date and time">Now</button>
+        </div>
+        <p class="field__error" data-error-for="ed" role="alert" hidden></p>
+        <p class="field__error" data-error-for="et" role="alert" hidden></p>
+      </fieldset>
+    </div>
+
+    <p class="tv-form__summary" data-slot="summary" aria-live="polite"></p>
+    <div class="banner banner--error" data-slot="error" role="alert" hidden></div>
+    <datalist id="tcs-accounts"></datalist>
+  </div>
+  <div class="dialog__actions">
+    <button class="btn" type="button" data-act="cancel">Cancel</button>
+    <button class="btn btn--primary" type="submit" data-slot="submit">Clock in</button>
+  </div>
+</form>

@@ -18,7 +18,7 @@ export const STORAGE_KEY = "wedger_shortcuts_v1";
 /** id, label, what it does, default binding, whether it may be unassigned, whether it still fires while typing. */
 export const COMMANDS = [
   { id: "save", label: "Save active file", hint: "Saves the file in the current tab.", default: "Mod+KeyS", clearable: false, inEditable: true },
-  { id: "focusSearch", label: "Search the journal", hint: "Opens Search in the current journal.", default: "Mod+KeyK", clearable: true },
+  { id: "focusSearch", label: "Search the file", hint: "Opens Search in the current file.", default: "Mod+KeyK", clearable: true },
   { id: "addTransaction", label: "Add transaction", hint: "Rendered journals only.", default: "Mod+Alt+KeyA", clearable: true },
   { id: "newFile", label: "New file", hint: "Opens the Create file page.", default: "Mod+Alt+KeyN", clearable: true },
   { id: "nextTab", label: "Next tab", hint: "Wraps from the last tab to the first.", default: "Mod+Alt+PageDown", clearable: true },

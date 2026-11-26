@@ -3,11 +3,12 @@
  * every click is host.open(uri). */
 import { h, icon, fileUri } from "./core.js";
 import { bindShortcutHints } from "./keyboard-shortcuts.js";
+import { fileIconEl } from "./file-icons.js";
 
 export function initSidebar({ host, editors }) {
   const $ = (id) => document.getElementById(id);
-  const list = $("journals-list");
-  const toggle = $("journals-dropdown-btn");
+  const list = $("files-list");
+  const toggle = $("files-dropdown-btn");
   const isMobile = () => window.matchMedia("(max-width: 720px)").matches;
   const hideOnMobile = () => { if (isMobile()) setHidden(true); };
 
@@ -17,7 +18,7 @@ export function initSidebar({ host, editors }) {
     const failed = host.sync.statusOf(name) === "error";
     return h("li", { class: "sidebar__file", dataset: { name }, oncontextmenu: (e) => { e.preventDefault(); openMenu(name, { x: e.clientX, y: e.clientY }); } },
       h("button", { class: "sidebar__row", type: "button", dataset: { uri }, title: name, onclick: () => { host.open(uri); hideOnMobile(); } },
-        icon("file"),
+        fileIconEl(name),
         h("span", { class: "sidebar__row-name" }, name)),
       // Only problems get a marker. A healthy file shows nothing.
       failed && h("span", { class: "sidebar__flag", role: "img", title: host.sync.errorOf(name) ?? "Sync failed", "aria-label": "Sync failed" }, icon("warning")),
@@ -40,7 +41,7 @@ export function initSidebar({ host, editors }) {
     const files = host.files.list();
     list.replaceChildren(...(files.length
       ? files.map(fileItem)
-      : [h("li", { class: "sidebar__files-empty" }, "No files yet. Create one, or import a journal or CSV.")]));
+      : [h("li", { class: "sidebar__files-empty" }, "No files yet. Create a file, or import one (a journal, time log or bank CSV).")]));
     markActive();
   }
 

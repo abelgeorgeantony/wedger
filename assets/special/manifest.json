@@ -1,5 +1,5 @@
 {
-  "$comment": "Every file the viewer can open is declared here. Paths are relative to /assets/. A special file = a template (+ optional controller). Higher priority wins; the journal viewer (priority 0) is the fallback for any file: URI.",
+  "$comment": "Every file the viewer can open is declared here. Paths are relative to /assets/. A special file = a template (+ optional controller). Higher priority wins; the journal viewer (priority 0) is the fallback for any file: URI. .timeclock and .timedot files have their own viewers (priority 5) and never reach the journal viewer.",
   "contributions": [
     {
       "viewType": "wedger.journalViewer",
@@ -11,6 +11,32 @@
       "priority": 0,
       "template": "views/journal.html",
       "menuTemplate": "views/journal-menu.html"
+    },
+    {
+      "viewType": "wedger.timeclockViewer",
+      "id": "timeclock",
+      "renderer": "special",
+      "selector": {
+        "scheme": "file",
+        "extensions": [".timeclock"]
+      },
+      "priority": 5,
+      "template": "special/timeclock.html",
+      "controller": "special/timeclock.js",
+      "menuTemplate": "special/timeclock-menu.html"
+    },
+    {
+      "viewType": "wedger.timedotViewer",
+      "id": "timedot",
+      "renderer": "special",
+      "selector": {
+        "scheme": "file",
+        "extensions": [".timedot"]
+      },
+      "priority": 5,
+      "template": "special/timedot.html",
+      "controller": "special/timedot.js",
+      "menuTemplate": "special/timedot-menu.html"
     },
     {
       "viewType": "wedger.welcome",

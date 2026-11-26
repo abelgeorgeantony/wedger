@@ -316,6 +316,23 @@ h4 {
   mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3 2.5 20h19z'/%3E%3Cpath d='M12 10v4m0 3v.01'/%3E%3C/svg%3E");
 }
 
+/* File-type icons (file-icons.js): real <img> SVGs that keep their own colours, in the same box as a masked .icon. */
+.file-icon {
+  display: inline-block;
+  flex: none;
+  width: 1.15em;
+  height: 1.15em;
+  vertical-align: -0.2em;
+  object-fit: contain;
+}
+
+.tab__icon {
+  width: 1em;
+  height: 1em;
+  margin-right: -.1rem;
+  opacity: .9;
+}
+
 .icon-google {
   width: 1.1rem;
   height: 1.1rem;
@@ -415,7 +432,7 @@ h2#sidebar-left-logo {
   transform: rotate(-90deg);
 }
 
-/* Journal files sit one level under the "Journals" heading. The inset is on the list, so hover and active
+/* Files sit one level under the "Files" heading. The inset is on the list, so hover and active
    fills, the active marker and the file actions all move together; Timeline and Reports output are not in this list. */
 .sidebar__files {
   list-style: none;

@@ -7,6 +7,41 @@
     "content": ""
   },
   {
+    "id": "timeclock-starter",
+    "name": "Timeclock starter",
+    "description": "Syntax guide in comments",
+    "types": [".timeclock"],
+    "content": "; Time log {{year}}\n;\n; Clock in:   i DATE TIME ACCOUNT[  DESCRIPTION]\n; Clock out:  o DATE TIME [ACCOUNT]\n;\n; Example (remove the leading \";\" to use it):\n; i {{year}}-03-14 09:00:00 work:project  what you are doing\n; o {{year}}-03-14 10:30:00 work:project\n;\n; Sessions are matched by account. You can be clocked in to several accounts at once;\n; a clock-out with no account closes the most recent clock-in.\n; A session that crosses midnight is split by day. Times are your local clock time.\n; Lines starting with ; # or * are comments.\n\n"
+  },
+  {
+    "id": "timeclock-projects",
+    "name": "Projects and clients",
+    "description": "Account naming guide",
+    "types": [".timeclock"],
+    "content": "; Projects and clients\n;\n; Group time with colons:  area:project:task\n;   work:meetings        work:admin         work:learning\n;   clients:acme:design  clients:acme:review\n;   personal:exercise    personal:reading\n;\n; Use the same account to clock in and out. A description can follow the\n; account after two spaces:\n;   i {{year}}-03-14 14:00:00 clients:acme:design  landing page mockups\n;\n; Start the clock with Sessions → Clock in, or type the lines below.\n\n"
+  },
+  {
+    "id": "timedot-starter",
+    "name": "Timedot starter",
+    "description": "Dots, units and letters",
+    "types": [".timedot"],
+    "content": "; Time log {{year}}\n;\n; A day starts with a date. Under it, one line per account, then at least two\n; spaces, then how long:\n;\n;   {{year}}-03-14\n;   work:programming  .... ....     each dot is 15 minutes; spaces only group them\n;   work:research     1.5            a plain number is hours\n;   personal:reading  45m            units: s m h d w mo y (no space after the number)\n;   work:admin        ccecces        letters: 15 minutes each, counted per letter (a type)\n;\n; An account with no amount counts as 0. Lines starting with ; or # are comments.\n\n"
+  },
+  {
+    "id": "timedot-projects",
+    "name": "Project tracker",
+    "description": "Accounts to copy from",
+    "types": [".timedot"],
+    "content": "; Project tracker\n;\n; Copy a line under a date and add the time after two or more spaces.\n;\n;   work:project-a\n;   work:project-b\n;   work:meetings\n;   work:admin\n;   work:learning\n;   personal:exercise\n;   personal:reading\n;   personal:errands\n;\n; Start a day with a date, for example:\n;   {{year}}-03-14\n;   work:project-a  .... ....\n\n"
+  },
+  {
+    "id": "timedot-types",
+    "name": "Time by type",
+    "description": "Letters as task types",
+    "types": [".timedot"],
+    "content": "; Time by type\n;\n; Each letter is 15 minutes and counts as a type, so one line can be split\n; by kind of work. Pick your own letters, for example:\n;   c = coding   r = review   m = meetings   e = email\n;\n;   {{year}}-03-14\n;   work:project-a  ccccrrm      (1h coding, 30m review, 15m meetings)\n;\n; Wedger totals each letter separately. Delete these comments when you like.\n\n"
+  },
+  {
     "id": "personal",
     "name": "Personal finance",
     "description": "Accounts and categories",

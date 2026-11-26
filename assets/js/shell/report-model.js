@@ -233,9 +233,20 @@ const BUILDERS = {
   checkstrict: textModel,
 };
 
+/**
+ * A report Wedger computed itself (time-report.js): already a table with an optional totals row and notes. `csv` is the
+ * machine-friendly export (ISO dates, exact seconds); it replaces the table's own cells in CSV downloads.
+ */
+function nativeModel(native) {
+  const base = { notes: native.notes ?? [], csv: native.csv ?? null };
+  if (!native.rows.length) return { kind: "empty", message: native.emptyMessage ?? "Nothing to report.", ...base };
+  return { kind: "table", columns: native.columns, align: native.align, rows: native.rows, footer: native.footer ?? null, ...base };
+}
+
 /** Never throws: a report we can't interpret still shows as text. */
 export function buildModel(type, result) {
   try {
+    if (result && typeof result === "object" && result.native) return nativeModel(result.native);
     return (BUILDERS[type] ?? textModel)(result);
   } catch (err) {
     console.error(`Couldn't render the "${type}" report`, err);
@@ -245,6 +256,7 @@ export function buildModel(type, result) {
 
 /** The report exactly as the engine returned it (the "Raw" view). */
 export function rawText(result) {
+  if (result && typeof result === "object" && result.native) return result.native.text;
   const payload = payloadOf(result);
   return typeof payload === "string" ? payload : JSON.stringify(result, null, 2);
 }
@@ -252,7 +264,10 @@ export function rawText(result) {
 /** Plain-text/CSV exports of a model (copy & download). */
 export function modelToCsv(model, grouping = "auto") {
   const esc = (v) => (/[",\n]/.test(v) ? `"${String(v).replaceAll('"', '""')}"` : String(v));
-  if (model.kind === "table") return [model.columns, ...model.rows].map((r) => r.map(esc).join(",")).join("\n");
+  if (model.kind === "table") {
+    const sheet = model.csv ?? { columns: model.columns, rows: model.rows };            // native reports bring a machine-friendly sheet
+    return [sheet.columns, ...sheet.rows].map((r) => r.map(esc).join(",")).join("\n");
+  }
   if (model.kind === "tree") {
     const rows = [["Account", "Amount"]];
     for (const s of model.sections) {

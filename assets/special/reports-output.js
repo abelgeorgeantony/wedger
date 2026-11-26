@@ -39,7 +39,7 @@ export function mount({ root, host, menubar }) {
 
   /* ----------------------------------------------------------------- entries */
   function entryBody(entry) {
-    if (entry.status === "running") return h("div", { class: "ro-entry__status" }, h("span", { class: "spinner spinner--inline" }), host.engine.ready ? "Running…" : "Waiting for the accounting engine…");
+    if (entry.status === "running") return h("div", { class: "ro-entry__status" }, h("span", { class: "spinner spinner--inline" }), entry.compute || host.engine.ready ? "Running…" : "Waiting for the accounting engine…");
     if (entry.status === "error") return h("div", { class: "banner banner--error", role: "alert" }, h("strong", {}, "This report failed."), h("pre", { class: "banner__pre" }, entry.error));
     if (view.mode === "raw") {
       if (collapsed.has(entry.id)) return h("div", { class: "ro-raw" });          // hidden body: no editor until it is expanded
@@ -112,7 +112,7 @@ export function mount({ root, host, menubar }) {
     const empty = slot("empty");
     empty.hidden = list.length > 0;
     empty.replaceChildren();
-    if (!all.length) empty.append(h("strong", {}, "No reports yet"), "Open a journal and choose a report from its Reports menu. The output appears here.");
+    if (!all.length) empty.append(h("strong", {}, "No reports yet"), "Open a file and choose a report from its Reports menu. The output appears here.");
     else if (!list.length) empty.append(h("strong", {}, "No reports match"), h("button", { class: "btn", type: "button", style: "margin-top:.8rem", onclick: resetFilters }, "Reset filters"));
 
     const chips = slot("chips");
@@ -163,7 +163,7 @@ export function mount({ root, host, menubar }) {
     else if (act === "download-all") { menu.close(); host.download("wedger-reports.txt", combined(list)); }
     else if (act === "clear") {
       menu.close();
-      const ok = await host.dialogs.confirm({ title: "Clear all report output?", message: `${host.reports.entries.length} ${host.reports.entries.length === 1 ? "report" : "reports"} will be removed from this list. Your journals aren't affected.`, confirmLabel: "Clear output", danger: true });
+      const ok = await host.dialogs.confirm({ title: "Clear all report output?", message: `${host.reports.entries.length} ${host.reports.entries.length === 1 ? "report" : "reports"} will be removed from this list. Your files aren't affected.`, confirmLabel: "Clear output", danger: true });
       if (ok) { host.reports.clear(); collapsed.clear(); }
     }
   });

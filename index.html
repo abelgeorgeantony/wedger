@@ -14,6 +14,7 @@
 
     <link rel="stylesheet" href="./assets/css/base.css">
     <link rel="stylesheet" href="./assets/css/components.css">
+    <link rel="stylesheet" href="./assets/css/time.css">
 </head>
 
 <body>
@@ -36,10 +37,10 @@
 
         <nav class="sidebar__nav" aria-label="Files">
             <div class="sidebar__section-head">
-                <button id="journals-dropdown-btn" class="sidebar__section-toggle" type="button" aria-expanded="true"
-                    aria-controls="journals-list">
+                <button id="files-dropdown-btn" class="sidebar__section-toggle" type="button" aria-expanded="true"
+                    aria-controls="files-list">
                     <span class="icon icon--dropdown" aria-hidden="true"></span>
-                    Journals
+                    Files
                 </button>
                 <button id="new-file-btn" class="icon-btn" type="button" aria-label="Create a new file" title="New file"
                     data-open="wedger:create-file" data-shortcut-title="newFile">
@@ -51,7 +52,7 @@
                 </button>
             </div>
             <!-- filled by sidebar.js from the file store -->
-            <ul id="journals-list" class="sidebar__files"></ul>
+            <ul id="files-list" class="sidebar__files" aria-label="File list"></ul>
 
             <div class="sidebar__divider" role="separator"></div>
 

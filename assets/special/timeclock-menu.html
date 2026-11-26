@@ -1,0 +1,135 @@
+<nav class="menubar" aria-label="Timeclock menu">
+
+  <!-- Sessions: what you do to a time log, and selection (the equivalent of the journal's Transactions menu) -->
+  <div class="menubar__item" data-menu="sessions">
+    <button class="menubar__btn" type="button" aria-haspopup="true" aria-expanded="false"
+      data-needs="rendered">Sessions<span class="menubar__badge" data-slot="sel-badge" hidden></span></button>
+    <div class="menubar__panel menubar__panel--narrow" role="group" aria-label="Sessions" hidden>
+      <button class="menubar__entry" type="button" data-act="clock-in"><span class="menubar__entry-main"><span class="icon icon--plus" aria-hidden="true"></span>Clock in…</span></button>
+      <button class="menubar__entry" type="button" data-act="add-session"><span class="menubar__entry-main"><span class="icon icon--calendar" aria-hidden="true"></span>Add past session…</span></button>
+      <div class="menubar__sep" role="separator"></div>
+      <button class="menubar__entry" type="button" data-act="toggle-select" aria-pressed="false">Select sessions</button>
+      <button class="menubar__entry" type="button" data-act="select-visible">Select all visible</button>
+      <button class="menubar__entry" type="button" data-act="clear-selection">Clear selection</button>
+      <div class="menubar__sep" role="separator"></div>
+      <button class="menubar__entry menubar__entry--danger" type="button" data-act="delete-selected">Delete selected…</button>
+    </div>
+  </div>
+
+  <!-- Reports: on request only. Calculated by Wedger itself from the clock intervals; the output opens in Reports output. -->
+  <div class="menubar__item" data-menu="reports">
+    <button class="menubar__btn" type="button" aria-haspopup="true" aria-expanded="false">Reports</button>
+    <form class="menubar__panel" aria-label="Reports" data-form="reports" autocomplete="off" novalidate hidden>
+      <div class="menubar__group">
+        <div class="menubar__label">Period</div>
+        <div class="menubar__chips" data-slot="presets"></div>
+        <div class="menubar__grid menubar__gap">
+          <div class="field"><label class="field__label" for="tcr-from">From date</label><input class="input" id="tcr-from" name="from" type="date"></div>
+          <div class="field"><label class="field__label" for="tcr-to">To date</label><input class="input" id="tcr-to" name="to" type="date"></div>
+        </div>
+        <div class="field menubar__gap">
+          <label class="field__label" for="tcr-account">Account (optional, includes sub-accounts)</label>
+          <input class="input" id="tcr-account" name="account" placeholder="e.g. work" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="field menubar__gap">
+          <label class="field__label" for="tcr-order">Order</label>
+          <select class="select" id="tcr-order" name="order"><option value="asc">Oldest first</option><option value="desc">Newest first</option></select>
+        </div>
+        <p class="menubar__hint">Running sessions always shows what is running now, whatever the period.</p>
+        <p class="field__error menubar__gap" data-slot="report-error" role="alert" hidden></p>
+      </div>
+      <div class="menubar__group">
+        <div class="menubar__label">Listings</div>
+        <button class="menubar__entry" type="button" data-report="register">Session register</button>
+        <button class="menubar__entry" type="button" data-report="running">Running sessions</button>
+      </div>
+      <div class="menubar__group">
+        <div class="menubar__label">Totals</div>
+        <button class="menubar__entry" type="button" data-report="by-account">Time by account</button>
+        <button class="menubar__entry" type="button" data-report="by-project">Time by project</button>
+      </div>
+      <div class="menubar__group">
+        <div class="menubar__label">By period</div>
+        <button class="menubar__entry" type="button" data-report="daily">Daily report</button>
+        <button class="menubar__entry" type="button" data-report="weekly">Weekly report</button>
+        <button class="menubar__entry" type="button" data-report="monthly">Monthly report</button>
+      </div>
+      <div class="menubar__group">
+        <div class="menubar__label">Export</div>
+        <button class="menubar__entry" type="button" data-file-action="download">Download this file</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Filters: applied as you type; they change what the list shows, never the file -->
+  <div class="menubar__item" data-menu="filters">
+    <button class="menubar__btn" type="button" aria-haspopup="true" aria-expanded="false" data-needs="rendered">Filters<span class="menubar__badge" data-slot="filter-count" hidden></span></button>
+    <form class="menubar__panel" data-form="filters" aria-label="Filters" autocomplete="off" novalidate hidden>
+      <div class="menubar__group">
+        <div class="menubar__grid">
+          <div class="field"><label class="field__label" for="tcf-from">From date</label><input class="input" id="tcf-from" name="from" type="date"></div>
+          <div class="field"><label class="field__label" for="tcf-to">To date</label><input class="input" id="tcf-to" name="to" type="date"></div>
+        </div>
+        <div class="field menubar__gap"><label class="field__label" for="tcf-account">Account (and its sub-accounts)</label><input class="input" id="tcf-account" name="account" placeholder="e.g. work:programming" spellcheck="false"></div>
+        <div class="field menubar__gap"><label class="field__label" for="tcf-project">Project (first part of the account)</label><select class="select" id="tcf-project" name="project"></select></div>
+        <div class="field menubar__gap"><label class="field__label" for="tcf-status">Status</label>
+          <select class="select" id="tcf-status" name="status">
+            <option value="all">All sessions</option>
+            <option value="running">Running</option>
+            <option value="completed">Completed</option>
+            <option value="problems">With problems</option>
+          </select></div>
+        <p class="field__error menubar__gap" data-slot="filter-error" role="alert" hidden></p>
+      </div>
+      <div class="menubar__row"><button class="btn" type="button" data-act="clear-filters">Clear filters</button></div>
+    </form>
+  </div>
+
+  <!-- Sort: independent of filters, applies the moment you pick one, never reorders the file -->
+  <div class="menubar__item" data-menu="sort">
+    <button class="menubar__btn" type="button" aria-haspopup="true" aria-expanded="false" data-needs="rendered">Sort</button>
+    <form class="menubar__panel menubar__panel--narrow" aria-label="Sort sessions" data-form="sort" autocomplete="off" novalidate hidden>
+      <label class="menubar__radio"><input type="radio" name="sort" value="date-desc" checked> Date, newest first</label>
+      <label class="menubar__radio"><input type="radio" name="sort" value="date-asc"> Date, oldest first</label>
+      <label class="menubar__radio"><input type="radio" name="sort" value="duration-desc"> Longest first</label>
+      <label class="menubar__radio"><input type="radio" name="sort" value="duration-asc"> Shortest first</label>
+      <label class="menubar__radio"><input type="radio" name="sort" value="account-asc"> Account A–Z</label>
+      <label class="menubar__radio"><input type="radio" name="sort" value="account-desc"> Account Z–A</label>
+      <p class="menubar__hint">Running sessions are ordered by their time so far. Sorting never changes the file.</p>
+    </form>
+  </div>
+
+  <!-- Search: account, description, comments, tags, dates, times and status -->
+  <div class="menubar__item" data-menu="search">
+    <button class="menubar__btn" type="button" aria-haspopup="true" aria-expanded="false">Search<span class="kbd" data-shortcut="focusSearch" hidden></span></button>
+    <div class="menubar__panel" role="group" aria-label="Search" hidden>
+      <div class="menubar__group">
+        <label class="field">
+          <span class="field__label">Find sessions</span>
+          <input class="input" type="search" name="search" placeholder="e.g. meeting" autocomplete="off">
+        </label>
+        <div class="find-opts" role="group" aria-label="Find options">
+          <button class="find-opt" type="button" name="findCase" aria-pressed="false" title="Match Case">Aa</button>
+          <button class="find-opt" type="button" name="findWord" aria-pressed="false" title="Match Whole Word"><u>ab</u></button>
+          <button class="find-opt" type="button" name="findRegexp" aria-pressed="false" title="Use Regular Expression">.*</button>
+        </div>
+        <p class="menubar__hint" data-slot="search-count" aria-live="polite"></p>
+        <p class="menubar__hint" data-slot="search-help"></p>
+      </div>
+      <div class="menubar__group" data-slot="recent-group" hidden>
+        <div class="menubar__label">Recent</div>
+        <div class="menubar__chips" data-slot="recent"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- View -->
+  <div class="menubar__item" data-menu="view">
+    <button class="menubar__btn" type="button" aria-haspopup="true" aria-expanded="false">View</button>
+    <form class="menubar__panel menubar__panel--narrow" aria-label="View" autocomplete="off" novalidate hidden>
+      <label class="menubar__radio"><input type="radio" name="view" value="rendered"> Rendered</label>
+      <label class="menubar__radio"><input type="radio" name="view" value="raw"> Raw text</label>
+    </form>
+  </div>
+
+</nav>

@@ -17,10 +17,13 @@ import {
   drawSelection,
   lineNumbers,
   highlightActiveLineGutter,
+  Decoration,
+  ViewPlugin,
 } from "@codemirror/view";
-import { EditorState, EditorSelection, Compartment } from "@codemirror/state";
+import { EditorState, EditorSelection, Compartment, RangeSetBuilder } from "@codemirror/state";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { search, searchKeymap } from "@codemirror/search";
+import { highlightSpans, firstDateLine } from "../shell/time-highlight.js";
 
 const valueDescriptor = Object.getOwnPropertyDescriptor(
   HTMLTextAreaElement.prototype,
@@ -77,10 +80,60 @@ const wedgerTheme = EditorView.theme({
   ".cm-panels": { backgroundColor: "var(--surface-2)", color: "var(--text)", borderColor: "var(--border)" },
   ".cm-panel input, .cm-panel button": { fontFamily: "var(--font-ui)", color: "var(--text)" },
   ".cm-searchMatch": { backgroundColor: "var(--warn-soft)", outline: "1px solid var(--warn)" },
+  // .timeclock / .timedot token colours (see timeLanguage below); only design tokens, so both themes work.
+  ".cm-wt-in": { color: "var(--ok)", fontWeight: "700" },
+  ".cm-wt-out": { color: "var(--warn)", fontWeight: "700" },
+  ".cm-wt-ignored": { color: "var(--text-faint)" },
+  ".cm-wt-date": { color: "var(--info)" },
+  ".cm-wt-daydate": { color: "var(--info)", fontWeight: "700" },
+  ".cm-wt-time": { color: "var(--info)" },
+  ".cm-wt-tz": { color: "var(--text-faint)" },
+  ".cm-wt-account": { color: "var(--text)", fontWeight: "600" },
+  ".cm-wt-desc": { color: "var(--text-muted)" },
+  ".cm-wt-comment": { color: "var(--text-faint)", fontStyle: "italic" },
+  ".cm-wt-org": { color: "var(--text-faint)" },
+  ".cm-wt-dots": { color: "var(--accent)", fontWeight: "700", letterSpacing: ".06em" },
+  ".cm-wt-letters": { color: "var(--accent)", fontWeight: "700" },
+  ".cm-wt-number": { color: "var(--accent)", fontWeight: "600" },
+  ".cm-wt-unit": { color: "var(--text-muted)" },
+  ".cm-wt-invalid": { color: "var(--danger)", textDecoration: "underline wavy", textDecorationColor: "var(--danger)" },
   ".cm-searchMatch.cm-searchMatch-selected": { backgroundColor: "var(--accent-soft)" },
 });
 
 const gutterExtensions = (on) => (on ? [lineNumbers(), highlightActiveLineGutter()] : []);
+
+// Token colouring for .timeclock / .timedot. The line analysis lives in shell/time-highlight.js (shared with the
+// parsers); this only turns its spans into decorations for the visible lines.
+const MARKS = new Map();
+const markFor = (cls) => MARKS.get(cls) ?? MARKS.set(cls, Decoration.mark({ class: `cm-wt-${cls}` })).get(cls);
+
+function timeLanguage(kind) {
+  if (kind !== "timeclock" && kind !== "timedot") return [];
+  const build = (view) => {
+    const builder = new RangeSetBuilder();
+    const doc = view.state.doc;
+    let firstDate = 0;
+    if (kind === "timedot") firstDate = firstDateLine(doc.lines, (n) => doc.line(n).text);
+    const done = new Set();
+    for (const { from, to } of view.visibleRanges) {
+      for (let pos = from; pos <= to;) {
+        const line = doc.lineAt(pos);
+        if (!done.has(line.number)) {
+          done.add(line.number);
+          for (const sp of highlightSpans(kind, line.text, { seenDate: line.number >= firstDate })) {
+            if (sp.to > sp.from) builder.add(line.from + sp.from, line.from + sp.to, markFor(sp.cls));
+          }
+        }
+        pos = line.to + 1;
+      }
+    }
+    return builder.finish();
+  };
+  return ViewPlugin.fromClass(class {
+    constructor(view) { this.decorations = build(view); }
+    update(u) { if (u.docChanged || u.viewportChanged) this.decorations = build(u.view); }
+  }, { decorations: (v) => v.decorations });
+}
 
 export function createBoundEditor(textarea, options = {}) {
   if (!textarea) {
@@ -93,6 +146,7 @@ export function createBoundEditor(textarea, options = {}) {
   const forcedEditable = options.editable;
   let showLineNumbers = options.lineNumbers ?? true;
   const onSelection = options.onSelection;                       // (update) => void, on cursor moves and edits
+  let language = options.language ?? null;                       // "timeclock" | "timedot" | null: token colouring
 
   function computeEditable() {
     if (typeof forcedEditable === "boolean") {
@@ -106,6 +160,7 @@ export function createBoundEditor(textarea, options = {}) {
   const editableCompartment = new Compartment();
   const readOnlyCompartment = new Compartment();
   const lineNumbersCompartment = new Compartment();
+  const languageCompartment = new Compartment();
 
   let programmaticChange = false;
 
@@ -128,6 +183,7 @@ export function createBoundEditor(textarea, options = {}) {
   function buildExtensions() {
     return [
       lineNumbersCompartment.of(gutterExtensions(showLineNumbers)),
+      languageCompartment.of(timeLanguage(language)),
       wedgerTheme,
       drawSelection(),                      // the selection stays visible while focus is in the search field
       EditorState.tabSize.of(4),
@@ -265,6 +321,12 @@ export function createBoundEditor(textarea, options = {}) {
     setLineNumbers(on) {
       showLineNumbers = Boolean(on);
       view.dispatch({ effects: lineNumbersCompartment.reconfigure(gutterExtensions(showLineNumbers)) });
+    },
+
+    /** Switches token colouring: "timeclock", "timedot" or null (plain text). */
+    setLanguage(name) {
+      language = name ?? null;
+      view.dispatch({ effects: languageCompartment.reconfigure(timeLanguage(language)) });
     },
 
     /** Document offsets of the main selection: { from, to } (from <= to). */

@@ -1,0 +1,33 @@
+<!-- Clock out of one running session at a chosen time. Controller: timeclock-clock-out.js -->
+<form data-slot="form" novalidate autocomplete="off">
+  <div class="dialog__body">
+    <div>
+      <h2 class="dialog__title">Clock out</h2>
+      <p class="dialog__message" data-slot="subtitle"></p>
+    </div>
+
+    <fieldset class="tv-when" data-slot="end-group">
+      <legend class="field__label">End</legend>
+      <div class="tv-when__row">
+        <input class="input" type="date" name="ed" aria-label="End date" aria-required="true">
+        <input class="input" type="time" step="1" name="et" aria-label="End time" aria-required="true">
+        <button class="btn btn--small btn--ghost" type="button" data-now="end" title="Use the current date and time">Now</button>
+      </div>
+      <p class="field__error" data-error-for="ed" role="alert" hidden></p>
+      <p class="field__error" data-error-for="et" role="alert" hidden></p>
+    </fieldset>
+
+    <div class="field">
+      <label class="field__label" for="tco-comment">Comment <span class="tv-optional">(optional)</span></label>
+      <input class="input" id="tco-comment" name="comment" autocomplete="off">
+      <p class="field__error" data-error-for="comment" role="alert" hidden></p>
+    </div>
+
+    <p class="tv-form__summary" data-slot="summary" aria-live="polite"></p>
+    <div class="banner banner--error" data-slot="error" role="alert" hidden></div>
+  </div>
+  <div class="dialog__actions">
+    <button class="btn" type="button" data-act="cancel">Cancel</button>
+    <button class="btn btn--primary" type="submit" data-slot="submit">Clock out</button>
+  </div>
+</form>

@@ -1,0 +1,47 @@
+<div class="tv tv--timedot" data-kind="timedot">
+  <section class="tv__rendered" data-pane="rendered" aria-label="Rendered timedot log">
+    <div class="tv__page" data-slot="page">
+      <div data-slot="render-error" hidden></div>
+
+      <div data-slot="content">
+        <h1 class="sr-only" data-slot="heading">Timedot</h1>
+
+        <div data-slot="issues"></div>
+        <div class="tv-notice" data-slot="notice" hidden></div>
+
+        <section aria-label="Entries">
+          <p class="tv-listmeta" data-slot="list-meta"></p>
+          <div class="tv-chips" data-slot="chips" hidden></div>
+          <div class="tv-selbar" data-slot="selbar" role="status" aria-live="polite" hidden>
+            <strong data-slot="sel-count"></strong>
+            <span class="tv-selbar__note" data-slot="sel-note"></span>
+            <span class="tv-selbar__actions">
+              <button class="btn btn--small btn--ghost" type="button" data-act="bar-select-all">Select all visible</button>
+              <button class="btn btn--small btn--ghost" type="button" data-act="bar-clear">Clear</button>
+              <button class="btn btn--small btn--ghost btn--danger" type="button" data-act="bar-delete">Delete…</button>
+              <button class="btn btn--small" type="button" data-act="exit-select">Done</button>
+            </span>
+          </div>
+          <div class="tv-register" data-slot="list"></div>
+          <div class="tv-empty" data-slot="empty" hidden></div>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <section class="tv__raw" data-pane="raw" aria-label="Raw timedot text" hidden>
+    <div class="rawedit">
+      <textarea class="rawedit__text" data-slot="text" spellcheck="false" wrap="off" aria-label="Raw timedot file"></textarea>
+    </div>
+    <div class="tv__raw-issues" data-slot="raw-issues" hidden></div>
+  </section>
+
+  <footer class="statusbar" data-slot="status" hidden>
+    <span data-slot="status-lines"></span>
+    <span data-slot="status-pos"></span>
+    <span data-slot="status-saved"></span>
+    <span class="statusbar__spacer"></span>
+    <button class="statusbar__btn" type="button" data-slot="status-issues" aria-expanded="false" hidden></button>
+    <span data-slot="status-sync"></span>
+  </footer>
+</div>

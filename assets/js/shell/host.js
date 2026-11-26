@@ -11,6 +11,7 @@ import * as overlays from "./overlays.js";
 import { engine } from "./engine.js";
 import { shortcuts } from "./keyboard-shortcuts.js";
 import { StorageManager } from "../storage.js";
+import { isNativeTimeFile } from "./time-format.js";
 
 /* ------------------------------------------------------------------ settings */
 const SCHEMA = {
@@ -244,7 +245,7 @@ class Auth extends Emitter {
     sync.reset();
     files.load();
     this.emit("changed", null);
-    overlays.toast("Logged out. Your journals are still in Google Drive.", "info");
+    overlays.toast("Logged out. Your files are still in Google Drive.", "info");
   }
 
   /** The token couldn't be renewed: keep working locally, ask to sign in again. */
@@ -408,15 +409,29 @@ class Reports extends Emitter {
 
   /** Runs a report and shows it in Reports output. `text` is the journal text to run on (defaults to the saved file). */
   async run(type, { file, text, query = "", forecast = false, focus = true }) {
-    const entry = {
-      id: ++this.#seq, type, label: REPORT_LABELS[type] ?? type, file, query, forecast,
-      at: Date.now(), ms: null, status: "running", result: null, error: null,
-    };
+    const entry = this.#add({ type, label: REPORT_LABELS[type] ?? type, file, query, forecast });
+    if (focus) host.open("wedger:reports-output");
+    await this.#execute(entry, text);
+    return entry;
+  }
+
+  /**
+   * Runs a report that Wedger computes itself (the .timeclock / .timedot reports): no hledger engine is involved.
+   * `compute(text)` returns the result — { ok: true, native } as built by time-report.js, or { ok: false, error } —
+   * and is called with `text` now and with the file's saved text on every "Run again".
+   */
+  async runNative({ type, label, file, text, query = "", compute, focus = true }) {
+    const entry = this.#add({ type, label, file, query, forecast: false, compute });
+    if (focus) host.open("wedger:reports-output");
+    await this.#execute(entry, text);
+    return entry;
+  }
+
+  #add(fields) {
+    const entry = { id: ++this.#seq, at: Date.now(), ms: null, status: "running", result: null, error: null, ...fields };
     this.entries.unshift(entry);
     if (this.entries.length > MAX_REPORTS) this.entries.length = MAX_REPORTS;
     this.emit("changed");
-    if (focus) host.open("wedger:reports-output");
-    await this.#execute(entry, text);
     return entry;
   }
 
@@ -433,7 +448,7 @@ class Reports extends Emitter {
     try {
       const source = text ?? files.get(entry.file)?.content;
       if (source == null) throw new Error(`"${entry.file}" no longer exists.`);
-      const result = await engine.report(entry.type, source, { query: entry.query, forecast: entry.forecast });
+      const result = entry.compute ? await entry.compute(source) : await engine.report(entry.type, source, { query: entry.query, forecast: entry.forecast });
       entry.result = result;
       entry.status = result?.ok === false ? "error" : "ok";
       entry.error = result?.ok === false ? (result.error ?? "The report failed.") : null;
@@ -510,11 +525,14 @@ export const host = {
     if (initialised) return;
     initialised = true;
     files.load({ silent: true });
-    engine.replaceAllFiles(files.contents());
-    files.on("changed", (ev) => {                                   // keep the engine's virtual filesystem identical to the file store
-      if (ev.kind === "reload") engine.replaceAllFiles(files.contents());
-      else if (ev.kind === "create" || ev.kind === "write") engine.setFile(ev.name, files.get(ev.name).content);
-      else if (ev.kind === "rename") { engine.removeFile(ev.oldName); engine.setFile(ev.name, files.get(ev.name).content); }
+    // .timeclock and .timedot files are read by Wedger's own parsers (time-format.js, timeclock.js, timedot.js) and are
+    // deliberately NOT mirrored into the hledger engine: nothing time-related may reach the WASM parser.
+    const forEngine = () => new Map([...files.contents()].filter(([name]) => !isNativeTimeFile(name)));
+    engine.replaceAllFiles(forEngine());
+    files.on("changed", (ev) => {                                   // keep the engine's virtual filesystem identical to the (journal-side) file store
+      if (ev.kind === "reload") engine.replaceAllFiles(forEngine());
+      else if (ev.kind === "create" || ev.kind === "write") { if (!isNativeTimeFile(ev.name)) engine.setFile(ev.name, files.get(ev.name).content); }
+      else if (ev.kind === "rename") { engine.removeFile(ev.oldName); if (!isNativeTimeFile(ev.name)) engine.setFile(ev.name, files.get(ev.name).content); }
       else if (ev.kind === "remove") engine.removeFile(ev.name);
     });
     sync.attach();

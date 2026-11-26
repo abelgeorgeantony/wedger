@@ -1,7 +1,0 @@
-Delete these files (nothing references them any more):
-
-assets/js/shell/mock-data.js        replaced by the real engine + file store
-assets/js/shell/preview-parser.js   replaced by engine.js / format.js
-assets/js/app.js                    old UI glue, replaced by the shell
-assets/js/init.js                   engine loading now lives in shell/engine.js
-assets/js/state.js                  replaced by shell/host.js

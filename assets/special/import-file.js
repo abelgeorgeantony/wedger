@@ -1,11 +1,15 @@
 /* special/import-file.js — import a journal, time log or bank CSV.
  *
- * Everything is previewed with the real hledger engine before anything is
- * saved: a CSV is converted with its rules, a journal is parsed. The Import
- * button only unlocks once there is something valid to import.
+ * Journals and CSVs are previewed with the real hledger engine before anything is saved: a CSV is converted with
+ * its rules, a journal is parsed. .timeclock and .timedot text never goes near the engine: Wedger's own parsers
+ * (js/shell/time-import.js) check it, and when text is added to an existing time file the MERGED file is checked.
+ * The Import button only unlocks once there is something valid to import — except that a time file with errors can
+ * be imported on purpose, as is, to repair it in the editor (an explicit choice, never the default).
  */
 import { h, extOf, fileUri, debounce, formatBytes } from "../js/shell/core.js";
 import { createBoundEditor } from "../js/codemirror/bundle.js";
+import { timeKindOf, formatDuration, formatHours, formatDateLabel, plural } from "../js/shell/time-format.js";
+import { planTimeImport } from "../js/shell/time-import.js";
 
 const SUPPORTED = [".journal", ".timeclock", ".timedot", ".csv"];
 const PREVIEW_LINES = 14;
@@ -89,6 +93,8 @@ export function mount({ root, view, host }) {
   const ext = () => extOf(source()?.name ?? "");
   const isCsv = () => ext() === ".csv";
   const targetExt = () => (isCsv() ? ".journal" : ext());
+  const timeKind = () => timeKindOf(source()?.name ?? "");
+  const TIME_STATES = ["time-ok", "time-warn", "time-error"];
 
   function setSrc(next) {
     st.src = next;
@@ -152,7 +158,8 @@ export function mount({ root, view, host }) {
 
   /* ---------- destination ---------- */
   function renderTargets() {
-    const options = host.files.list().filter((f) => f.name.endsWith(targetExt() || ".journal")).map((f) => f.name);
+    // Exactly the same type: time logs are never added to (or replacing) a journal, and timeclock never meets timedot.
+    const options = host.files.list().filter((f) => extOf(f.name) === (targetExt() || ".journal")).map((f) => f.name);
     for (const sel of [el.target, el.replaceTarget]) {
       const keep = sel.value;
       sel.replaceChildren(...options.map((n) => h("option", { value: n }, n)));
@@ -165,7 +172,8 @@ export function mount({ root, view, host }) {
     root.querySelectorAll("[data-for]").forEach((f) => { f.hidden = f.dataset.for !== dest; });
     updateSubmit();
   }
-  form.querySelectorAll('[name="dest"]').forEach((r) => r.addEventListener("change", showDest));
+  form.querySelectorAll('[name="dest"]').forEach((r) => r.addEventListener("change", () => { showDest(); if (timeKind()) replan(); }));
+  el.target.addEventListener("change", () => { if (timeKind()) replan(); });
   const destError = (msg) => { const p = slot("dest-error"); p.textContent = msg ?? ""; p.hidden = !msg; };
   el.newName.addEventListener("input", () => destError(null));
 
@@ -173,7 +181,47 @@ export function mount({ root, view, host }) {
   const PILLS = {
     empty: ["Waiting for a file", ""], "needs-rules": ["Rules needed", "warn"], loading: ["Checking…", ""],
     ok: ["Ready", "ok"], "ok-unchecked": ["Ready", "ok"], error: ["Needs attention", "error"], "engine-error": ["Not checked", "warn"],
+    "time-ok": ["Ready", "ok"], "time-warn": ["Ready, with warnings", "warn"], "time-error": ["Has errors", "error"],
   };
+  const entries = (n) => (n === 1 ? "entry" : "entries");
+  // "Allow importing with errors" is remembered across re-renders of the preview; it resets when the source changes.
+  const repair = h("input", { type: "checkbox", name: "repair" });
+  repair.addEventListener("change", updateSubmit);
+  const repairRow = h("label", { class: "check", style: "margin-top:.8rem" }, repair,
+    h("span", {}, "Import it anyway, exactly as it is, so I can fix the errors in the editor."));
+
+  /** What the native parser found, as preview elements. */
+  function timeBlocks(p) {
+    const plan = p.plan, st2 = plan.stats, out = [];
+    const facts = [];
+    if (plan.kind === "timeclock") {
+      facts.push(`${st2.completed} completed ${plural(st2.completed, "session")}`, `${formatDuration(st2.completedSeconds)} (${formatHours(st2.completedSeconds)} h)`);
+      if (st2.running) facts.push(`${st2.running} still running`);
+      if (st2.invalid) facts.push(`${st2.invalid} with problems`);
+      if (st2.accounts.length) facts.push(`${st2.accounts.length} ${plural(st2.accounts.length, "account")}`);
+    } else {
+      facts.push(`${st2.days} ${plural(st2.days, "day")}`, `${st2.postings} ${entries(st2.postings)}`, `${formatDuration(st2.totalSeconds)} (${formatHours(st2.totalSeconds)} h)`);
+      if (st2.skipped) facts.push(`${st2.skipped} can't be counted`);
+    }
+    if (st2.firstDate) facts.push(st2.firstDate === st2.lastDate ? formatDateLabel(st2.firstDate) : `${formatDateLabel(st2.firstDate)} – ${formatDateLabel(st2.lastDate)}`);
+    out.push(h("div", { class: "imp-preview__label" }, "What's in it"), h("div", { class: "tv-filters", style: "margin-bottom:.4rem" }, ...facts.map((f) => h("span", { class: "chip" }, f))));
+    if (plan.kind === "timedot" && st2.types.length) out.push(h("div", { class: "tv-filters" }, "By type:", ...st2.types.map((t) => h("span", { class: "tv-chip" }, h("b", {}, t.type), formatDuration(t.seconds)))));
+    for (const n of plan.notes) out.push(h("div", { class: "banner banner--warn", style: "margin-top:.6rem" }, n));
+    if (plan.issues.length) {
+      const where = (d) => { const l = d.line - plan.lineOffset; return plan.mode === "append" && l > 0 ? `line ${l} of this text` : `line ${d.line}${plan.mode === "append" ? " of the file" : ""}`; };
+      out.push(h("div", { class: "imp-preview__label", style: "margin-top:.8rem" }, `${plan.counts.error ? `${plan.counts.error} ${plural(plan.counts.error, "error")}` : ""}${plan.counts.error && plan.counts.warning ? ", " : ""}${plan.counts.warning ? `${plan.counts.warning} ${plural(plan.counts.warning, "warning")}` : ""}`),
+        h("ul", { class: "tv-issues__list", style: "padding:0" }, ...plan.issues.slice(0, 10).map((d) => h("li", { class: "tv-issue" },
+          h("span", { class: `tv-issue__sev tv-issue__sev--${d.severity}` }, d.severity === "error" ? "Error" : "Warning"),
+          h("span", { class: "tv-issue__msg" }, d.message), h("span", { class: "tv-note" }, where(d))))),
+        plan.issues.length > 10 ? h("p", { class: "imp-preview__more" }, `…and ${plan.issues.length - 10} more`) : null);
+    }
+    if (plan.counts.error) {
+      out.push(h("div", { class: "banner banner--error", role: "alert", style: "margin-top:.8rem" },
+        h("strong", {}, "This isn't a valid file yet."), " Totals leave out whatever has an error. You can import it as it is and fix it in the editor."), repairRow);
+    }
+    return out.filter(Boolean);
+  }
+
   const codeBlock = (text, lines = PREVIEW_LINES) => {
     const all = text.replace(/\s+$/, "").split("\n");
     return [h("pre", { class: "imp-code", tabindex: "0" }, all.slice(0, lines).join("\n")),
@@ -188,6 +236,7 @@ export function mount({ root, view, host }) {
     const [label, tone] = PILLS[p.state];
     const pill = slot("pill");
     pill.textContent = p.state === "ok" && p.count != null ? `${p.count} ${p.count === 1 ? "transaction" : "transactions"}` : label;
+    if (TIME_STATES.includes(p.state)) pill.textContent = label;
     pill.className = `pill${tone ? ` pill--${tone}` : ""}`;
     const box = slot("preview");
     box.replaceChildren();
@@ -197,6 +246,10 @@ export function mount({ root, view, host }) {
     if (p.state === "loading") box.append(h("div", { class: "imp-preview__empty" }, h("div", { class: "spinner", style: "margin:0 auto .5rem" }), host.engine.ready ? "Converting with hledger…" : "Loading the accounting engine…"));
     if (p.state === "error") box.append(h("div", { class: "banner banner--error", role: "alert", style: "margin-top:.9rem" }, h("strong", {}, "hledger said:"), h("pre", { class: "banner__pre" }, p.message)));
     if (p.state === "engine-error") box.append(h("div", { class: "banner banner--warn", style: "margin-top:.9rem" }, `The accounting engine isn't available, so this can't be checked first. ${p.message}`));
+    if (TIME_STATES.includes(p.state)) {
+      box.append(...timeBlocks(p));
+      box.append(h("div", { class: "imp-preview__label", style: "margin-top:.8rem" }, p.plan.mode === "append" ? "Text to add" : "File contents"), ...codeBlock(p.text).filter(Boolean));
+    }
     if (p.text != null && (p.state === "ok" || p.state === "ok-unchecked" || p.state === "engine-error")) {
       box.append(h("div", { class: "imp-preview__label" }, isCsv() ? "Becomes" : "File contents"), ...codeBlock(p.text).filter(Boolean));
     }
@@ -208,12 +261,13 @@ export function mount({ root, view, host }) {
     const src = source();
     if (!src) return setPreview({ state: "empty" });
     const e = extOf(src.name);
+    const kind = timeKindOf(src.name);
+    if (kind) return setPreview(timePreview(src, kind));
     const table = e === ".csv" ? peekCsv(src.text) : null;
     if (e === ".csv") {
       slot("columns").replaceChildren(...table.header.map((c) => h("span", { class: "chip" }, c || "(blank)")));
       if (!el.rules.value.trim()) return setPreview({ state: "needs-rules", table });
     }
-    if (e !== ".csv" && e !== ".journal") return setPreview({ state: "ok-unchecked", text: src.text });
 
     setPreview({ state: "loading", table });
     try { await host.engine.whenReady(); }
@@ -223,11 +277,24 @@ export function mount({ root, view, host }) {
     if (!res.ok) return setPreview({ state: "error", table, message: res.error });
     setPreview({ state: "ok", table, count: res.count, text: e === ".csv" ? res.text : src.text });
   }
+  /** Native check of time-log text, in the context of where it's going (append => the merged file is parsed). */
+  function timePreview(src, kind) {
+    const mode = form.elements.dest.value;
+    const existing = mode === "append" ? (host.files.get(el.target.value)?.content ?? "") : "";
+    const plan = planTimeImport({ kind, fragment: src.text, mode, existing });
+    return { state: plan.status === "error" ? "time-error" : plan.status === "warning" ? "time-warn" : "time-ok", kind, plan, text: src.text };
+  }
   const planSoon = debounce(() => { planned = plan(); }, 350);
-  const replan = () => { setPreview({ ...st.preview, state: st.preview.state === "empty" ? "empty" : "loading" }); planSoon(); };
+  const planSoonTime = debounce(() => { planned = plan(); }, 120);        // no engine involved, so no "Checking…" flash
+  const replan = () => {
+    if (timeKind()) return planSoonTime();
+    setPreview({ ...st.preview, state: st.preview.state === "empty" ? "empty" : "loading" });
+    planSoon();
+  };
 
   function onSourceChanged() {
     const src = source();
+    repair.checked = false;
     slot("dropzone").hidden = !!(st.src === "file" && st.picked);
     slot("file-card").hidden = !(st.src === "file" && st.picked);
     if (st.picked) { slot("file-name").textContent = st.picked.name; slot("file-meta").textContent = `${formatBytes(st.picked.size)} · ${st.picked.text.split(/\r?\n/).length} lines`; }
@@ -244,10 +311,16 @@ export function mount({ root, view, host }) {
 
   function updateSubmit() {
     const p = st.preview;
-    const ok = !st.busy && ["ok", "ok-unchecked", "engine-error"].includes(p.state) && (p.state !== "engine-error" || !isCsv());
+    const time = TIME_STATES.includes(p.state);
+    const ok = !st.busy && (["ok", "ok-unchecked", "engine-error"].includes(p.state) && (p.state !== "engine-error" || !isCsv())
+      || p.state === "time-ok" || p.state === "time-warn" || (p.state === "time-error" && repair.checked));
     slot("submit").disabled = !ok;
+    slot("submit").textContent = p.state === "time-error" ? "Import for repair" : "Import";
     const src = source();
-    slot("summary").textContent = !src ? "" : p.state === "ok" && p.count != null ? `${p.count} ${p.count === 1 ? "transaction" : "transactions"} will be imported.` : p.state === "error" ? "Fix the problem above to import." : "";
+    const stats = p.plan?.stats;
+    slot("summary").textContent = !src ? "" : time
+      ? (p.state === "time-error" ? "Has errors — tick the box above to import it as it is." : p.plan.kind === "timeclock" ? `${stats.completed} completed ${plural(stats.completed, "session")}${stats.running ? ` and ${stats.running} running` : ""} will be imported.` : `${stats.postings} ${entries(stats.postings)} on ${stats.days} ${plural(stats.days, "day")} will be imported.`)
+      : p.state === "ok" && p.count != null ? `${p.count} ${p.count === 1 ? "transaction" : "transactions"} will be imported.` : p.state === "error" ? "Fix the problem above to import." : "";
   }
 
   /* ---------- submit ---------- */
@@ -257,7 +330,8 @@ export function mount({ root, view, host }) {
     destError(null);
     await planned;                                           // never import from a stale preview
     const p = st.preview, src = source();
-    if (!src || !["ok", "ok-unchecked", "engine-error"].includes(p.state)) return;
+    const kind = timeKind();
+    if (!src || ![...TIME_STATES, "ok", "ok-unchecked", "engine-error"].includes(p.state)) return;
     const text = isCsv() ? p.text : src.text;
     const dest = form.elements.dest.value;
 
@@ -269,6 +343,12 @@ export function mount({ root, view, host }) {
     } else {
       name = dest === "append" ? el.target.value : el.replaceTarget.value;
       if (!name) return destError(`There's no ${targetExt() || ".journal"} file to ${dest === "append" ? "add to" : "replace"}. Create a new file instead.`);
+    }
+    if (dest !== "new" && extOf(name) !== targetExt()) return destError(`${name} is not a ${targetExt()} file, so it can't take this ${targetExt().slice(1)} data. Choose a ${targetExt()} file or create a new one.`);
+    let timePlan = null;
+    if (kind) {                                                         // re-check against the file as it is NOW, never a stale preview
+      timePlan = planTimeImport({ kind, fragment: src.text, mode: dest, existing: dest === "append" ? (host.files.get(name)?.content ?? "") : "" });
+      if (timePlan.status === "error" && !repair.checked) { setPreview(timePreview(src, kind)); return destError("This has errors. Tick “Import it anyway” to import it as it is."); }
     }
     if (dest === "replace") {
       const ok = await host.dialogs.confirm({ title: `Replace ${name}?`, message: "Everything currently in this file will be overwritten.", confirmLabel: "Replace", danger: true });
@@ -282,6 +362,7 @@ export function mount({ root, view, host }) {
     try {
       if (dest === "new") host.files.create(name, text);
       else if (dest === "replace") host.files.write(name, text);
+      else if (timePlan) host.files.write(name, timePlan.finalText);       // the imported text verbatim, added after the existing text
       else {
         const current = host.files.get(name).content.replace(/\s*$/, "");
         const merged = current ? `${current}\n\n${text.replace(/^\s+/, "")}` : text;
@@ -308,8 +389,8 @@ export function mount({ root, view, host }) {
 
   renderSavedRules(); renderTargets(); showDest(); setPreview({ state: "empty" });
   const offs = [
-    host.files.on("changed", () => { renderSavedRules(); renderTargets(); }),
+    host.files.on("changed", () => { renderSavedRules(); renderTargets(); if (timeKind() && form.elements.dest.value === "append") replan(); }),
     host.settings.on("lineNumbers", () => editors.forEach((ed) => ed.setLineNumbers(!!host.settings.get("lineNumbers")))),
   ];
-  return { dispose() { offs.forEach((o) => o()); planSoon.cancel(); seq++; editors.forEach((ed) => ed.destroy()); } };
+  return { dispose() { offs.forEach((o) => o()); planSoon.cancel(); planSoonTime.cancel(); seq++; editors.forEach((ed) => ed.destroy()); } };
 }
